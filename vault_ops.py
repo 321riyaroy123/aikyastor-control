@@ -76,7 +76,7 @@ def sync_to_vault_rsync(src: str, dest_sub: str) -> Tuple[bool, str]:
     """
     try:
         dest = _ensure_vault_subdir(dest_sub)
-        cmd = f"rsync -av --progress '{src}' '{dest}/'"
+        cmd = f"rsync -av --no-owner --no-group --progress '{src}' '{dest}/'"
         out, err, code = run_ceph_cmd(cmd, timeout=CMD_TIMEOUT * 2)
         return code == 0, err if code != 0 else out
     except Exception as e:
@@ -203,7 +203,7 @@ def start_cephfs_sync_background(cephfs_mount: str) -> Dict[str, Any]:
         log_activity("VAULT SYNC (CephFS)", "entire mount", "info",
                      "rsync started...", vault=True)
         dest = _ensure_vault_subdir("file")
-        cmd = f"rsync -av --progress '{cephfs_mount}/' '{dest}/'"
+        cmd = f"rsync -av --no-owner --no-group --progress '{cephfs_mount}/' '{dest}/'"
         out, err, code = run_ceph_cmd(cmd, timeout=CMD_TIMEOUT * 3)
         if code == 0:
             log_activity("VAULT SYNC (CephFS)", "entire mount", "success",
