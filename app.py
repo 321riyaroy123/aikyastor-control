@@ -7,6 +7,9 @@ from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 import os
 import io
+from dotenv import load_dotenv
+
+load_dotenv()  # ensure environment vars from .env are available
 
 # ─── Configuration & Setup ────────────────────────────────────────────────────
 import config

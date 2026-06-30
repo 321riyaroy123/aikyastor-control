@@ -237,7 +237,7 @@ function ObjectStorage({ toast, buckets, reloadBuckets }) {
       setObjects([]);
     }
   };
-  const closeBucket = () => { setCurrentBucket(null); setObjects(null); };
+  const closeBucket = () => { setCurrentBucket(null); setObjects([]); };
 
   const createBucket = async () => {
     if (!form.name.trim()) { setError("Bucket name is required"); return; }
@@ -371,9 +371,9 @@ function ObjectStorage({ toast, buckets, reloadBuckets }) {
             <table style={{ width:"100%",borderCollapse:"collapse" }}>
               <thead><tr><Th>Key</Th><Th>Size</Th><Th>Modified</Th><Th>Actions</Th></tr></thead>
               <tbody>
-                {objects.length === 0 ? (
+                {(objects || []).length === 0  ? (
                   <tr><td colSpan={4} style={{ textAlign:"center",color:C.muted,padding:"2rem",fontFamily:"'Space Mono',monospace",fontSize:".8rem" }}>No objects</td></tr>
-                ) : objects.map((o, i) => (
+                ) : (objects || []).map((o, i) => (
                   <tr key={i}>
                     <Td style={{ fontFamily:"'Space Mono',monospace",fontSize:".82rem" }}>{o.key}</Td>
                     <Td>{fmt(o.size)}</Td>
