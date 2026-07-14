@@ -64,6 +64,7 @@ coverage.xml
 *.swp
 *.DS_Store
 Thumbs.db
+backups/
 
 # Jupyter
 .ipynb_checkpoints

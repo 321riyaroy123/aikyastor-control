@@ -1,9 +1,9 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import AiKyaStorCONTROL from "./AiKyaStorCONTROL";
+import App from "./App";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <AiKyaStorCONTROL />
+    <App />
   </React.StrictMode>
 );
