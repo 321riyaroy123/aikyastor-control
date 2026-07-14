@@ -2,7 +2,7 @@
 routes/object_routes.py - Object Storage (RGW/S3) Blueprint
 
     - GET    /api/object/buckets
-    - GET    /api/object/buckets
+    - POST   /api/object/buckets
     - GET    /api/object/buckets/<bucket>/objects
     - POST   /api/object/buckets/<bucket>/upload
     - DELETE /api/object/buckets/<bucket>
@@ -153,7 +153,7 @@ def api_delete_object(bucket, key):
         logger.exception(f"delete_object error for {bucket}/{key}")
         return jsonify({"error": str(e)}), 500
   
-  
+
 @object_bp.route("/buckets/<bucket>", methods=["DELETE"])
 def api_delete_bucket(bucket):
     """Delete a bucket"""

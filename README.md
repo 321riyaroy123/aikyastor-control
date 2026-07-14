@@ -31,24 +31,28 @@ backend/
         policy_routes.py           # /api/policies*, bucket policy assignment
         simulation_routes.py       # /api/simulation/time
 
-    services/                     # Business logic — routes never talk to Ceph directly
+    services/
         cluster/
-            ceph_ops.py             # Cluster stats/health/version
+            ceph_ops.py                 # Cluster stats/health/version
         object/
-            object_storage.py       # S3/RGW bucket & object management
-            policy_manager.py       # Retention/lifecycle policy storage
+            object_storage.py           # S3/RGW bucket & object management
+            policy_manager.py           # Lifecycle policy CRUD
+            lifecycle_engine.py         # Policy enforcement engine
+            lifecycle_scheduler.py      # Background lifecycle scheduler
+            bucket_settings.py          # Persistent bucket lifecycle settings
         block/
-            block_storage.py        # RBD image, snapshot, mapping management
+            block_storage.py            # RBD image, snapshot, mapping management
         file/
-            file_storage.py         # CephFS browsing, uploads, permissions
+            file_storage.py             # CephFS browsing, uploads, permissions
         vault/
-            vault_ops.py            # rsync/rclone/rbd-export backup operations
+            vault_ops.py                # rsync/rclone/rbd-export backup operations
 
     simulation/
         simulation.py              # Mock data for testing without a Ceph cluster
 
 data/
-    policies.json                 # Custom lifecycle policies (JSON store)
+    policies.json                  # Custom lifecycle policies
+    bucket_settings.json           # Bucket lifecycle assignments
 
 logs/
     aikya-stor.log                # Rotating log file (10MB, 5 backups)
@@ -215,6 +219,19 @@ When `APP_MODE=simulation`:
 - Activity logs are simulated
 - No changes to actual storage
 - Object download streaming is not available (returns `501`)
+- Lifecycle policies and policy assignments are fully simulated
+
+## 🗂 Lifecycle Policy System
+AiKyaStor CONTROL includes a lifecycle management system for Object Storage.
+
+Features include:
+- Built-in retention policies (7, 30, 90 and 365 days)
+- User-defined custom lifecycle policies
+- Persistent bucket-policy assignments
+- Background lifecycle scheduler in production mode
+- Manual lifecycle execution endpoint
+- Version-aware permanent object deletion
+- Policy usage tracking before deletion
 
 ### Activity Logging
 
@@ -253,25 +270,27 @@ blueprint file for its exact route set.
 - `POST /api/object/buckets` - Create bucket
   - Body: `{ bucket, owner, acl, versioning, object_locking }`
   - Returns `409` if the bucket already exists, `400` if `bucket` is empty
-  - Sets ACL, enables versioning, and links the owner via `radosgw-admin`
+  - Sets ACL, enables versioning, lifecycle management, and links the owner via `radosgw-admin`
     as non-fatal post-creation steps
 - `DELETE /api/object/buckets/<bucket>` - Delete bucket (removes all contained objects first)
+    - Permanently removes all object versions before deleting the bucket
 - `GET /api/object/buckets/<bucket>/objects` - List objects in bucket
 - `POST /api/object/buckets/<bucket>/upload` - Upload an object
   - Form fields: `file`, `vault` (`"true"` to also copy the object to
     `/vault/object/<bucket>/<key>` in the background)
 - `GET /api/object/buckets/<bucket>/objects/<key>` - Download an object
   (streamed back to the client as an attachment)
-- `DELETE /api/object/buckets/<bucket>/objects/<key>` - Delete an object
+- `DELETE /api/object/buckets/<bucket>/objects/<key>` Permanently delete an object (all versions)
 - `GET /api/object/users` - List RGW users
 
-### Policies — `routes/policy_routes.py`
-- `GET /api/policies` - List built-in + custom retention policies
-- `POST /api/policies` - Create a custom policy
+### Policies — routes/policy_routes.py
+- `GET /api/policies` - List built-in and custom lifecycle policies
+- `POST /api/policies` - Create a custom lifecycle policy
 - `DELETE /api/policies/<policy_id>` - Delete a custom policy
-- `GET /api/policies/<policy_id>/usage` - Usage stats for a policy
-- `POST /api/policies/run` - Run the lifecycle engine (simulation mode)
-- `GET/POST /api/object/buckets/<bucket>/policy` - Get/assign a bucket's lifecycle policy
+- `GET /api/policies/<policy_id>/usage` - View bucket usage for a policy
+- `GET /api/object/buckets/<bucket>/policy` - Get assigned bucket lifecycle
+- `PUT /api/object/buckets/<bucket>/policy` - Update bucket lifecycle
+- `POST /api/policies/run` - Manually run the lifecycle engine
 
 ### Block Storage — `routes/block_routes.py`
 - `GET /api/block/images` - List RBD images
@@ -384,6 +403,7 @@ by `backend/`), and `api.js`, `hooks.js`, `utils.js`,
 - Vault-sync activity log labels and destination paths match the original
 - Simulation mode's mock data, delays, and activity logging behave
   identically to before
+- Bucket lifecycle policies persist across application restarts
 
 ### ✅ Structural Improvements (this release)
 - **Layered backend**: routes → services → core, instead of one flat
@@ -398,6 +418,10 @@ by `backend/`), and `api.js`, `hooks.js`, `utils.js`,
   or a bucket-policy UI now means adding a new `routes/`, `services/`,
   `api/`, and `pages/` file each — not touching a 40-route `app.py` or a
   700-line component
+- Persistent lifecycle policy management using JSON-backed storage
+- Automatic background lifecycle scheduler in production mode
+- Version-aware object deletion for Ceph RGW buckets
+- Shared lifecycle policy selector component reused across dialogs
 
 ### ✅ Carried-over Improvements (from the previous refactor)
 - **Configuration management**: `.env` file support, no hardcoded secrets
@@ -424,10 +448,22 @@ python backend/app.py
 # Get cluster stats (returns mock data)
 curl http://localhost:5000/api/stats
 
-# Create bucket (simulated)
+# Create bucket with lifecycle
 curl -X POST http://localhost:5000/api/object/buckets \
-  -H "Content-Type: application/json" \
-  -d '{"bucket":"test-bucket"}'
+-H "Content-Type: application/json" \
+-d '{
+  "bucket":"backup-data",
+  "lifecycle":"keep30"
+}'
+
+# List lifecycle policies
+curl http://localhost:5000/api/policies
+
+# View bucket lifecycle
+curl http://localhost:5000/api/object/buckets/backup-data/policy
+
+# Run lifecycle engine
+curl -X POST http://localhost:5000/api/policies/run
 
 # Check activity log
 curl http://localhost:5000/api/activity
@@ -550,5 +586,5 @@ Same as original project
 
 ---
 
-**Version**: 2.0.0 (Layered backend + component-based frontend, full structural refactor)
-**Previous version**: 1.1.0 (Modular flat files, frontend/backend contract aligned)
+**Version**: 2.1.0 (Lifecycle policy management, scheduler, and persistent bucket settings)
+**Previous version**: 2.0.0 (Layered backend + component-based frontend, full structural refactor)
