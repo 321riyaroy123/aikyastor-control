@@ -4,7 +4,7 @@ import { PolicyAPI } from "../api/policies";
 import { useObjects } from "../hooks/useObjects";
 import BucketTable from "../components/object/BucketTable";
 import BucketDialog from "../components/object/BucketDialog";
-import BucketDetails from "../components/object/BucketDetails";
+import BucketWorkspace from "../components/object/BucketWorkspace/BucketWorkspace";
 import LifecycleDialog from "../components/object/LifecycleDialog";
 import VaultPopup from "../components/vault/VaultPopup";
 
@@ -32,7 +32,7 @@ export default function ObjectStoragePage({ toast, buckets, reloadBuckets }) {
 
   async function loadBucketPolicy(name){
     try{
-        const result = await ObjectAPI.getBucketPolicy(name);
+        const result = await PolicyAPI.getBucketPolicy(name);
         setBucketPolicy(result);
     } catch(err){
         console.error(err);
@@ -99,7 +99,7 @@ export default function ObjectStoragePage({ toast, buckets, reloadBuckets }) {
 
   const updateLifecycle = async (policyId) => {
       try {
-          const result = await ObjectAPI.updateBucketPolicy(
+          const result = await PolicyAPI.updateBucketPolicy(
               currentBucket.name,
               policyId
           );
@@ -118,15 +118,20 @@ export default function ObjectStoragePage({ toast, buckets, reloadBuckets }) {
       {!currentBucket ? (
         <BucketTable buckets={buckets} onOpen={async (bucket) => { await openBucket(bucket); await loadBucketPolicy(bucket.name); }} onDelete={deleteBucket} onCreateClick={() => setShowCreate(true)} />
       ) : (
-        <BucketDetails
+        <BucketWorkspace
           bucket={currentBucket}
           objects={objects}
           onBack={closeBucket}
           onUpload={handleUpload}
           onDeleteObject={deleteObject}
           onSyncVault={syncBucketVault}
-          downloadUrl={(key) => ObjectAPI.downloadObjectUrl(currentBucket.name, key)}
+          downloadUrl={(key) =>
+              ObjectAPI.downloadObjectUrl(currentBucket.name, key)
+          }
           bucketPolicy={bucketPolicy}
+          policies={policies}
+          onPoliciesChange={setPolicies}
+          onSaveLifecycle={updateLifecycle}
           onEditPolicy={() => setShowLifecycle(true)}
         />
       )}

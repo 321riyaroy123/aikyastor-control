@@ -13,4 +13,19 @@ export const PolicyAPI = {
   delete: (policyId) => req(`/policies/${policyId}`, { method: "DELETE" }),
   usage: (policyId) => req(`/policies/${policyId}/usage`),
   run: () => req("/policies/run", { method: "POST" }),
+  
+  // Bucket-level lifecycle policy 
+  getBucketPolicy: (bucket) => req(`/object/buckets/${bucket}/policy`),
+  assignBucketPolicy: (bucket, policyId) => req(`/object/buckets/${bucket}/policy`, {
+    method: "POST",
+    body: JSON.stringify({ policy: policyId }),
+  }),
+  updateBucketPolicy: (bucket, lifecycle) => {
+    return req(`/object/buckets/${bucket}/policy`, {
+      method: "PUT",
+      body: JSON.stringify({
+        lifecycle
+      })
+    });
+  },
 };

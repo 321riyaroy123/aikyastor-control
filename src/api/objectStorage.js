@@ -25,21 +25,5 @@ export const ObjectAPI = {
   deleteObject: (bucket, key) => req(`/object/buckets/${bucket}/objects/${key}`, { method: "DELETE" }),
 
   syncBucketVault: (bucket) => req(`/object/buckets/${bucket}/sync-vault`, { method: "POST" }),
-
-  // Bucket-level lifecycle policy (not wired into any component today —
-  // this is the API surface for the future LifecycleSelector UI)
-  getBucketPolicy: (bucket) => req(`/object/buckets/${bucket}/policy`),
-  assignBucketPolicy: (bucket, policyId) => req(`/object/buckets/${bucket}/policy`, {
-    method: "POST",
-    body: JSON.stringify({ policy: policyId }),
-  }),
-  updateBucketPolicy: (bucket, lifecycle) => {
-    return req(`/object/buckets/${bucket}/policy`, {
-      method: "PUT",
-      body: JSON.stringify({
-        lifecycle
-      })
-    });
-  },
 };
 

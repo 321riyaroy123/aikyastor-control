@@ -27,6 +27,7 @@ from services.object.object_storage import (
     list_buckets, list_bucket_objects, create_bucket, delete_bucket,
     upload_object, delete_object, list_rgw_users, get_object
 )
+from services.object.bucket_policy import get_bucket_policy, put_bucket_policy, delete_bucket_policy
 from services.vault.vault_ops import start_bucket_sync_background
 import simulation.simulation as simulation
 
@@ -202,3 +203,110 @@ def api_sync_bucket(bucket):
         logger.exception(f"sync_bucket error for {bucket}")
         return jsonify({"error": str(e)}), 500
     
+@object_bp.route("/buckets/<bucket>/policy", methods=["GET"])
+def api_get_bucket_policy(bucket):
+    """
+    Retrieve the AWS S3 bucket policy attached to a bucket.
+    """
+
+    if config.IS_SIMULATION:
+        policy = simulation.get_mock_bucket_policy(bucket)
+
+        return jsonify({
+            "bucket": bucket,
+            "policy": policy
+        })
+
+    try:
+        result = get_bucket_policy(bucket)
+        return jsonify(result), 200 if "error" not in result else 500
+
+    except Exception as e:
+        logger.exception(
+            f"get_bucket_policy error for {bucket}"
+        )
+
+        return jsonify({
+            "error": str(e)
+        }), 500
+    
+@object_bp.route("/buckets/<bucket>/policy", methods=["PUT"])
+def api_put_bucket_policy(bucket):
+    """
+    Create or replace a bucket policy.
+    """
+
+    if config.IS_SIMULATION:
+        data = request.json or {}
+
+        simulation.set_mock_bucket_policy(
+            bucket,
+            data.get("policy")
+        )
+
+        log_activity(
+            "BUCKET POLICY",
+            bucket,
+            "success",
+            "Simulation mode"
+        )
+
+        return jsonify({
+            "message": f"Bucket policy updated for '{bucket}'."
+        })
+
+    try:
+        data = request.json or {}
+        policy = data.get("policy")
+
+        if not policy:
+            return jsonify({
+                "error": "Policy document is required."
+            }), 400
+
+        result = put_bucket_policy(bucket, policy)
+
+        return jsonify(result), 200 if "error" not in result else 500
+
+    except Exception as e:
+        logger.exception(
+            f"put_bucket_policy error for {bucket}"
+        )
+
+        return jsonify({
+            "error": str(e)
+        }), 500
+    
+@object_bp.route("/buckets/<bucket>/policy", methods=["DELETE"])
+def api_delete_bucket_policy(bucket):
+    """
+    Remove a bucket policy.
+    """
+
+    if config.IS_SIMULATION:
+        simulation.delete_mock_bucket_policy(bucket)
+
+        log_activity(
+            "DELETE BUCKET POLICY",
+            bucket,
+            "success",
+            "Simulation mode"
+        )
+
+        return jsonify({
+            "message": f"Bucket policy removed from '{bucket}'."
+        })
+
+    try:
+        result = delete_bucket_policy(bucket)
+
+        return jsonify(result), 200 if "error" not in result else 500
+
+    except Exception as e:
+        logger.exception(
+            f"delete_bucket_policy error for {bucket}"
+        )
+
+        return jsonify({
+            "error": str(e)
+        }), 500

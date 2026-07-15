@@ -200,6 +200,15 @@ MOCK_ACTIVITY = [
     {"time": "2025-06-13 09:25:00", "action": "LIFECYCLE DELETE", "target": "logs-archive/app-2025-05.log.gz", "status": "success", "detail": "Deleted automatically. Reason: Keep 30 Days retention policy expired.", "vault": False},
 ]
 
+# Mock bucket Policies
+MOCK_BUCKET_POLICIES = {
+    # Example:
+    # "backups": {
+    #     "Version": "2012-10-17",
+    #     "Statement": [...]
+    # }
+}
+
 def get_simulation_time():
     return SIMULATION_TIME
 
@@ -231,6 +240,7 @@ def create_mock_bucket(bucket_name, lifecycle="none"):
     }
 
     MOCK_OBJECTS[bucket_name] = []
+    MOCK_BUCKET_POLICIES[bucket_name] = None
 
 def get_mock_objects(bucket: str) -> List[Dict[str, Any]]:
     """Get mock objects for a bucket"""
@@ -262,7 +272,7 @@ def add_mock_activity_entry(entry: Dict[str, Any]) -> None:
     if len(MOCK_ACTIVITY) > 100:
         MOCK_ACTIVITY.pop()
 
-def get_bucket_policy(bucket):
+def get_bucket_lifecycle(bucket):
     settings = MOCK_BUCKET_SETTINGS.get(
         bucket,
         {
@@ -279,7 +289,7 @@ def get_bucket_policy(bucket):
         "bucket_policy": settings["bucket_policy"]
     }
 
-def assign_bucket_policy(bucket, policy_id):
+def assign_bucket_lifecycle(bucket, policy_id):
     if bucket not in MOCK_BUCKET_SETTINGS:
         return {"error": "Bucket not found"}
 
@@ -389,4 +399,33 @@ def run_lifecycle_engine():
     return {
         "count": len(deleted),
         "deleted": deleted
+    }
+
+# Bucket Policy Simulation
+def get_mock_bucket_policy(bucket: str):
+    """
+    Return the simulated bucket policy.
+    """
+    return MOCK_BUCKET_POLICIES.get(bucket)
+
+def set_mock_bucket_policy(bucket: str, policy: dict):
+    """
+    Attach or replace a simulated bucket policy.
+    """
+
+    MOCK_BUCKET_POLICIES[bucket] = policy
+
+    return {
+        "bucket": bucket,
+        "policy": policy
+    }
+
+def delete_mock_bucket_policy(bucket: str):
+    """
+    Remove a simulated bucket policy.
+    """
+    MOCK_BUCKET_POLICIES.pop(bucket, None)
+
+    return {
+        "bucket": bucket
     }

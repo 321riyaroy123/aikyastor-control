@@ -15,7 +15,7 @@ Functions:
     - Object operations: list_bucket_objects(), upload_object(), get_object(),
       delete_object(), delete_object_permanently(), delete_all_object_versions()
     - User operations: list_rgw_users()
-    - Lifecycle/policy: get_bucket_policy(), assign_bucket_policy()
+    - Lifecycle/policy: get_bucket_lifecycle(), assign_bucket_lifecycle()
     - Internal: get_s3_client()
  
 Integration:
@@ -254,7 +254,7 @@ def delete_all_object_versions(bucket: str):
                 VersionId=marker["VersionId"]
             )
     
-def get_bucket_policy(bucket):
+def get_bucket_lifecycle(bucket):
     policy_id = get_bucket_lifecycle(bucket)
 
     return {
@@ -262,7 +262,7 @@ def get_bucket_policy(bucket):
         "lifecycle": get_policy(policy_id)
     }
 
-def assign_bucket_policy(bucket, policy_id):
+def assign_bucket_lifecycle(bucket, policy_id):
     set_bucket_lifecycle(bucket, policy_id)
 
     return {

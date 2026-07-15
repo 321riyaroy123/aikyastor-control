@@ -22,7 +22,7 @@ from flask import Blueprint, request, jsonify
 import config.config as config
 from services.object.lifecycle_engine import run_lifecycle_engine
 from services.object.policy_manager import get_all_policies, create_policy, delete_policy, get_policy_usage
-from services.object.object_storage import get_bucket_policy, assign_bucket_policy
+from services.object.object_storage import get_bucket_lifecycle, assign_bucket_lifecycle
 import simulation.simulation as simulation
 
 policy_bp = Blueprint("policy", __name__, url_prefix="/api")
@@ -43,9 +43,9 @@ def api_policies():
 def api_bucket_policy(bucket):
     if config.IS_SIMULATION:
         return jsonify(
-            simulation.get_bucket_policy(bucket)
+            simulation.get_bucket_lifecycle(bucket)
         )
-    return jsonify(get_bucket_policy(bucket))
+    return jsonify(get_bucket_lifecycle(bucket))
     
 @policy_bp.route("/object/buckets/<bucket>/policy", methods=["PUT"])
 def api_update_bucket_policy(bucket):
@@ -54,14 +54,14 @@ def api_update_bucket_policy(bucket):
 
     if config.IS_SIMULATION:
         return jsonify(
-            simulation.assign_bucket_policy(
+            simulation.assign_bucket_lifecycle(
                 bucket,
                 lifecycle
             )
         )
 
     return jsonify(
-        assign_bucket_policy(
+        assign_bucket_lifecycle(
             bucket,
             lifecycle
         )

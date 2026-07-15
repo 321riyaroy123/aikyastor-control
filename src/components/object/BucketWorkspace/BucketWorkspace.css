@@ -1,0 +1,1355 @@
+.bucket-workspace{
+    display:flex;
+    flex-direction:column;
+    gap:1.5rem;
+    padding:1.5rem;
+}
+
+/* ==========================================================================
+   Breadcrumb
+   ========================================================================== */
+
+.bucket-breadcrumb{
+    display:flex;
+    align-items:center;
+    gap:.5rem;
+
+    font-size:.82rem;
+    color:var(--muted);
+
+    user-select:none;
+}
+
+.breadcrumb-item{
+    display:flex;
+    align-items:center;
+    gap:.35rem;
+}
+
+.breadcrumb-item.active{
+    color:var(--accent);
+    font-weight:600;
+}
+
+.breadcrumb-separator{
+    opacity:.45;
+}
+
+/* ==========================================================================
+   Header
+   ========================================================================== */
+
+.bucket-header{
+
+    display:flex;
+    flex-direction:column;
+    gap:1.5rem;
+
+    background:var(--panel);
+
+    border:1px solid var(--border);
+
+    border-radius:18px;
+
+    padding:1.75rem;
+
+}
+
+.bucket-header-top{
+
+    display:flex;
+
+    justify-content:flex-start;
+
+}
+
+.bucket-back-btn{
+
+    display:flex;
+    align-items:center;
+    gap:.5rem;
+
+    background:none;
+
+    border:none;
+
+    color:var(--muted);
+
+    cursor:pointer;
+
+    transition:.2s;
+
+    font-size:.9rem;
+
+}
+
+.bucket-back-btn:hover{
+
+    color:white;
+
+}
+
+.bucket-header-main{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:flex-start;
+
+    gap:2rem;
+
+}
+
+.bucket-title-section{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:1rem;
+
+}
+
+.bucket-icon{
+
+    width:68px;
+
+    height:68px;
+
+    border-radius:18px;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    font-size:2rem;
+
+    background:rgba(255,153,0,.12);
+
+    border:1px solid rgba(255,153,0,.25);
+
+}
+
+.bucket-title{
+
+    margin:0;
+
+    font-size:2rem;
+
+    font-weight:700;
+
+}
+
+.bucket-subtitle{
+
+    margin-top:.35rem;
+
+    color:var(--muted);
+
+    font-size:.9rem;
+
+}
+
+/* ==========================================================================
+   Bucket Information Cards
+   ========================================================================== */
+
+.bucket-info-grid{
+
+    display:grid;
+
+    grid-template-columns:repeat(4,minmax(180px,1fr));
+
+    gap:1rem;
+
+    flex:1;
+
+}
+
+.bucket-info-card{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:.8rem;
+
+    padding:1rem;
+
+    background:rgba(255,255,255,.02);
+
+    border:1px solid var(--border);
+
+    border-radius:14px;
+
+    transition:all .2s ease;
+
+}
+
+.bucket-info-card:hover{
+
+    border-color:var(--accent);
+
+    transform:translateY(-2px);
+
+}
+
+.bucket-info-card svg{
+
+    flex-shrink:0;
+
+    color:var(--accent);
+
+}
+
+.bucket-info-label{
+
+    display:block;
+
+    margin-bottom:.2rem;
+
+    color:var(--muted);
+
+    font-size:.74rem;
+
+    text-transform:uppercase;
+
+    letter-spacing:.05em;
+
+}
+
+.bucket-info-card strong{
+
+    font-size:1rem;
+
+    font-weight:600;
+
+}
+
+/* ==========================================================================
+   Status Badges
+   ========================================================================== */
+
+.bucket-status-row{
+
+    display:flex;
+
+    flex-wrap:wrap;
+
+    gap:.75rem;
+
+}
+
+.bucket-badge{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:.45rem;
+
+    padding:.45rem .95rem;
+
+    border-radius:999px;
+
+    font-size:.78rem;
+
+    font-weight:500;
+
+}
+
+.bucket-badge svg{
+
+    flex-shrink:0;
+
+}
+
+.bucket-badge.success{
+
+    background:#173d27;
+
+    color:#73ffb2;
+
+}
+
+.bucket-badge.warning{
+
+    background:#4a3b15;
+
+    color:#ffd96d;
+
+}
+
+.bucket-badge.info{
+
+    background:#17344b;
+
+    color:#8fd2ff;
+
+}
+
+.bucket-badge.secondary{
+
+    background:#303030;
+
+    color:#d0d0d0;
+
+}
+
+/* ==========================================================================
+   Bucket Panel
+   ========================================================================== */
+
+.bucket-panel{
+
+    display:flex;
+    flex-direction:column;
+
+    background:var(--panel);
+
+    border:1px solid var(--border);
+
+    border-radius:18px;
+
+    overflow:hidden;
+
+}
+
+/* ==========================================================================
+   Bucket Tabs
+   ========================================================================== */
+
+.bucket-tabs{
+
+    display:flex;
+    align-items:center;
+
+    gap:.25rem;
+
+    padding:.4rem;
+
+    background:var(--panel);
+
+    border-bottom:1px solid var(--border);
+
+}
+
+.bucket-tab{
+
+    display:flex;
+    align-items:center;
+    gap:.55rem;
+
+    padding:.85rem 1.25rem;
+
+    border:none;
+
+    background:transparent;
+
+    color:var(--muted);
+
+    border-radius:10px;
+
+    cursor:pointer;
+
+    transition:all .2s ease;
+
+    font-size:.9rem;
+
+    font-weight:500;
+
+}
+
+.bucket-tab svg{
+
+    flex-shrink:0;
+
+}
+
+.bucket-tab:hover{
+
+    background:rgba(255,255,255,.05);
+
+    color:white;
+
+}
+
+.bucket-tab.active{
+
+    background:rgba(255,153,0,.12);
+
+    color:var(--accent);
+
+    box-shadow:
+        inset 0 0 0 1px rgba(255,153,0,.2);
+
+}
+
+/* ==========================================================================
+   Toolbar
+   ========================================================================== */
+
+.bucket-toolbar{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    flex-wrap:wrap;
+
+    gap:.75rem;
+
+    padding:1rem 1.5rem;
+
+    border-bottom:1px solid var(--border);
+
+    background:rgba(255,255,255,.015);
+
+}
+
+/* ==========================================================================
+   Toolbar Buttons
+   ========================================================================== */
+
+.bucket-toolbar-btn{
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    gap:.55rem;
+
+    padding:.7rem 1rem;
+
+    min-height:40px;
+
+    border-radius:10px;
+
+    border:1px solid var(--border);
+
+    background:transparent;
+
+    color:inherit;
+
+    cursor:pointer;
+
+    font-size:.85rem;
+
+    font-weight:500;
+
+    transition:all .2s ease;
+
+}
+
+.bucket-toolbar-btn svg{
+
+    flex-shrink:0;
+
+}
+
+.bucket-toolbar-btn:hover{
+
+    border-color:var(--accent);
+
+    background:rgba(255,153,0,.08);
+
+}
+
+.bucket-toolbar-btn.primary{
+
+    background:var(--accent);
+
+    color:var(--bg);
+
+    border-color:var(--accent);
+
+}
+
+.bucket-toolbar-btn.primary:hover{
+
+    filter:brightness(1.08);
+
+}
+
+.bucket-toolbar-btn.secondary{
+
+    background:rgba(255,255,255,.03);
+
+}
+
+.bucket-toolbar-btn.danger{
+
+    color:#ff7d7d;
+
+}
+
+.bucket-toolbar-btn.danger:hover{
+
+    border-color:#ff5555;
+
+    background:rgba(255,80,80,.12);
+
+}
+
+/* Upload button */
+
+.bucket-toolbar label.bucket-toolbar-btn{
+
+    margin:0;
+
+}
+
+/* ==========================================================================
+   Workspace Content
+   ========================================================================== */
+
+.bucket-workspace-content{
+
+    padding:1.5rem;
+
+    min-height:500px;
+
+}
+
+/* ==========================================================================
+   Generic Cards
+   ========================================================================== */
+
+.workspace-card{
+
+    background:rgba(255,255,255,.02);
+
+    border:1px solid var(--border);
+
+    border-radius:14px;
+
+    padding:1.25rem;
+
+}
+
+.workspace-card-title{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:.6rem;
+
+    margin-bottom:1rem;
+
+    font-size:1rem;
+
+    font-weight:600;
+
+}
+
+.workspace-card-title svg{
+
+    color:var(--accent);
+
+}
+
+/* ==========================================================================
+   Divider
+   ========================================================================== */
+
+.workspace-divider{
+
+    width:100%;
+
+    height:1px;
+
+    background:var(--border);
+
+    margin:1.5rem 0;
+
+}
+
+/* ==========================================================================
+   Objects Tab
+   ========================================================================== */
+
+.objects-tab{
+
+    display:flex;
+    flex-direction:column;
+    gap:1.5rem;
+
+}
+
+/* ==========================================================================
+   Objects Toolbar
+   ========================================================================== */
+
+.objects-toolbar{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    gap:1rem;
+
+    flex-wrap:wrap;
+
+}
+
+/* ==========================================================================
+   Search
+   ========================================================================== */
+
+.objects-search{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:.6rem;
+
+    min-width:300px;
+
+    padding:.75rem 1rem;
+
+    border:1px solid var(--border);
+
+    border-radius:12px;
+
+    background:rgba(255,255,255,.02);
+
+    transition:all .2s ease;
+
+}
+
+.objects-search:focus-within{
+
+    border-color:var(--accent);
+
+    box-shadow:0 0 0 3px rgba(255,153,0,.08);
+
+}
+
+.objects-search svg{
+
+    color:var(--muted);
+
+    flex-shrink:0;
+
+}
+
+.objects-search input{
+
+    width:100%;
+
+    border:none;
+
+    outline:none;
+
+    background:none;
+
+    color:inherit;
+
+    font-size:.9rem;
+
+}
+
+.objects-search input::placeholder{
+
+    color:var(--muted);
+
+}
+
+/* ==========================================================================
+   Object Table Wrapper
+   ========================================================================== */
+
+.object-table-wrapper{
+
+    overflow:auto;
+
+    border:1px solid var(--border);
+
+    border-radius:14px;
+
+    background:rgba(255,255,255,.02);
+
+}
+
+/* ==========================================================================
+   Object Table
+   ========================================================================== */
+
+.object-table{
+
+    width:100%;
+
+    border-collapse:collapse;
+
+    min-width:700px;
+
+}
+
+.object-table thead{
+
+    background:rgba(255,255,255,.03);
+
+}
+
+.object-table th{
+
+    padding:1rem;
+
+    text-align:left;
+
+    font-size:.82rem;
+
+    font-weight:600;
+
+    color:var(--muted);
+
+    text-transform:uppercase;
+
+    letter-spacing:.04em;
+
+    border-bottom:1px solid var(--border);
+
+}
+
+.object-table td{
+
+    padding:1rem;
+
+    border-bottom:1px solid rgba(255,255,255,.04);
+
+}
+
+.object-table tbody tr{
+
+    transition:background .18s ease;
+
+}
+
+.object-table tbody tr:hover{
+
+    background:rgba(255,255,255,.035);
+
+}
+
+.object-table tbody tr:last-child td{
+
+    border-bottom:none;
+
+}
+
+/* ==========================================================================
+   Object Name
+   ========================================================================== */
+
+.object-name{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:.6rem;
+
+    font-weight:500;
+
+}
+
+.object-name svg{
+
+    color:var(--accent);
+
+}
+
+/* ==========================================================================
+   Object Actions
+   ========================================================================== */
+
+.object-actions{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:.5rem;
+
+}
+
+.object-action-btn{
+
+    width:36px;
+
+    height:36px;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    border:none;
+
+    border-radius:10px;
+
+    background:transparent;
+
+    color:inherit;
+
+    cursor:pointer;
+
+    transition:all .18s ease;
+
+    text-decoration:none;
+
+}
+
+.object-action-btn:hover{
+
+    background:rgba(255,255,255,.06);
+
+}
+
+.object-action-btn.danger{
+
+    color:#ff7a7a;
+
+}
+
+.object-action-btn.danger:hover{
+
+    background:rgba(255,80,80,.12);
+
+}
+
+/* ==========================================================================
+   Empty State
+   ========================================================================== */
+
+.object-empty{
+
+    text-align:center;
+
+    padding:4rem 2rem !important;
+
+    color:var(--muted);
+
+    font-style:italic;
+
+}
+
+/* ==========================================================================
+   Scrollbar
+   ========================================================================== */
+
+.object-table-wrapper::-webkit-scrollbar{
+
+    height:8px;
+
+}
+
+.object-table-wrapper::-webkit-scrollbar-thumb{
+
+    background:rgba(255,255,255,.15);
+
+    border-radius:999px;
+
+}
+
+.object-table-wrapper::-webkit-scrollbar-track{
+
+    background:transparent;
+
+}
+
+/* ==========================================================================
+   Policy Templates
+   ========================================================================== */
+
+.policy-template-grid{
+
+    display:grid;
+
+    grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
+
+    gap:1rem;
+
+}
+
+.policy-template-card{
+
+    display:flex;
+
+    gap:1rem;
+
+    align-items:flex-start;
+
+    padding:1rem;
+
+    border:1px solid var(--border);
+
+    border-radius:14px;
+
+    background:rgba(255,255,255,.02);
+
+    cursor:pointer;
+
+    text-align:left;
+
+    transition:all .2s ease;
+
+}
+
+.policy-template-card:hover{
+
+    border-color:var(--accent);
+
+    transform:translateY(-2px);
+
+}
+
+.policy-template-card.selected{
+
+    border-color:var(--accent);
+
+    background:rgba(255,153,0,.08);
+
+}
+
+.policy-template-icon{
+
+    width:52px;
+
+    height:52px;
+
+    border-radius:12px;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    flex-shrink:0;
+
+}
+
+.policy-template-icon.green{
+
+    background:rgba(34,197,94,.15);
+
+    color:#22c55e;
+
+}
+
+.policy-template-icon.blue{
+
+    background:rgba(59,130,246,.15);
+
+    color:#3b82f6;
+
+}
+
+.policy-template-icon.orange{
+
+    background:rgba(249,115,22,.15);
+
+    color:#f97316;
+
+}
+
+.policy-template-icon.purple{
+
+    background:rgba(168,85,247,.15);
+
+    color:#a855f7;
+
+}
+
+.policy-template-icon.red{
+
+    background:rgba(239,68,68,.15);
+
+    color:#ef4444;
+
+}
+
+.policy-template-content{
+
+    flex:1;
+
+}
+
+.policy-template-content h3{
+
+    margin:0;
+
+    font-size:1rem;
+
+    font-weight:600;
+
+}
+
+.policy-template-content p{
+
+    margin-top:.4rem;
+
+    color:var(--muted);
+
+    font-size:.85rem;
+
+    line-height:1.5;
+
+}
+
+/* ==========================================================================
+   Policy Builder
+   ========================================================================== */
+
+.policy-section{
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:.6rem;
+
+    margin-bottom:1.5rem;
+
+}
+
+.policy-section label{
+
+    font-weight:600;
+
+}
+
+.policy-section select{
+
+    padding:.75rem;
+
+    border-radius:10px;
+
+    border:1px solid var(--border);
+
+    background:var(--panel);
+
+    color:inherit;
+
+}
+
+.policy-actions-grid{
+
+    display:grid;
+
+    grid-template-columns:repeat(2,1fr);
+
+    gap:.75rem;
+
+}
+
+.policy-checkbox{
+
+    display:flex;
+
+    gap:.6rem;
+
+    align-items:center;
+
+    padding:.75rem;
+
+    border:1px solid var(--border);
+
+    border-radius:10px;
+
+    cursor:pointer;
+
+}
+
+.policy-checkbox:hover{
+
+    border-color:var(--accent);
+
+}
+
+/* ==========================================================================
+   Policy Preview
+   ========================================================================== */
+
+.policy-preview-toolbar{
+
+    display:flex;
+
+    justify-content:flex-end;
+
+    gap:.75rem;
+
+    margin-bottom:1rem;
+
+}
+
+.policy-json{
+
+    margin:0;
+
+    padding:1.25rem;
+
+    border-radius:12px;
+
+    background:#111827;
+
+    border:1px solid var(--border);
+
+    overflow:auto;
+
+    max-height:450px;
+
+    font-size:.82rem;
+
+    line-height:1.6;
+
+    font-family:
+        "JetBrains Mono",
+        "Fira Code",
+        Consolas,
+        monospace;
+
+}
+
+.policy-json code{
+
+    color:#d1d5db;
+
+    white-space:pre;
+
+}
+
+/* ==========================================================================
+   Policy Validation
+   ========================================================================== */
+
+.policy-risk{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:.6rem;
+
+    margin-bottom:1rem;
+
+    padding:1rem;
+
+    border-radius:12px;
+
+    font-weight:600;
+
+}
+
+.policy-risk.low{
+
+    background:rgba(34,197,94,.12);
+
+    color:#22c55e;
+
+}
+
+.policy-risk.medium{
+
+    background:rgba(249,115,22,.12);
+
+    color:#f59e0b;
+
+}
+
+.policy-risk.high{
+
+    background:rgba(239,68,68,.12);
+
+    color:#ef4444;
+
+}
+
+.policy-errors,
+
+.policy-warnings,
+
+.policy-recommendations{
+
+    margin-top:1.5rem;
+
+}
+
+.policy-message{
+
+    display:flex;
+
+    align-items:flex-start;
+
+    gap:.6rem;
+
+    margin-top:.5rem;
+
+    padding:.8rem;
+
+    border-radius:10px;
+
+}
+
+.policy-message.error{
+
+    background:rgba(239,68,68,.08);
+
+}
+
+.policy-message.warning{
+
+    background:rgba(249,115,22,.08);
+
+}
+
+.policy-message.info{
+
+    background:rgba(59,130,246,.08);
+
+}
+
+.policy-statement{
+
+    margin-bottom:2rem;
+
+    padding:1.5rem;
+
+    border:1px solid var(--border);
+
+    border-radius:14px;
+
+    background:rgba(255,255,255,.02);
+
+}
+
+.policy-statement-header{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    margin-bottom:1.5rem;
+
+}
+
+.policy-statement-actions{
+
+    display:flex;
+
+    gap:.5rem;
+
+}
+
+.icon-btn{
+
+    width:36px;
+
+    height:36px;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    border:none;
+
+    border-radius:8px;
+
+    cursor:pointer;
+
+    background:transparent;
+
+}
+
+.icon-btn:hover{
+
+    background:rgba(255,255,255,.05);
+
+}
+
+.icon-btn.danger{
+
+    color:#ef4444;
+
+}
+
+/* ============================================================
+   Resources
+============================================================ */
+
+.policy-resource-card{
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:.75rem;
+
+    padding:1rem;
+
+    margin-bottom:.75rem;
+
+    border:1px solid var(--border);
+
+    border-radius:12px;
+
+    background:rgba(255,255,255,.02);
+
+}
+
+.policy-resource-card input,
+
+.policy-resource-card select{
+
+    width:100%;
+
+}
+
+/* ============================================================
+   Conditions
+============================================================ */
+
+.policy-condition-card{
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:1rem;
+
+    padding:1rem;
+
+    border:1px solid var(--border);
+
+    border-radius:12px;
+
+    background:rgba(255,255,255,.02);
+
+}
+
+.policy-condition-field{
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:.5rem;
+
+}
