@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import PolicySelector from "../../PolicySelector";
+import { C, styles } from "../../../../styles/theme.js";
 
 export default function LifecycleTab({ bucket, bucketPolicy, policies, onPoliciesChange, onSaveLifecycle }) {
     const lifecycle = bucketPolicy?.lifecycle;
@@ -19,27 +20,25 @@ export default function LifecycleTab({ bucket, bucketPolicy, policies, onPolicie
     }
 
     return (
-        <div className="lifecycle-page">
-            <div className="lifecycle-overview">
-                <div>
-                    <h2>
-                        Lifecycle Management
-                    </h2>
-                    <p>
-                        Configure automatic object expiration for <strong> {bucket.name}</strong>
-                    </p>
-                </div>
+        <div style={styles.lifecyclePage}>
+            <div>
+                <h2 style={styles.pageHeaderTitle}>
+                    Lifecycle Management
+                </h2>
+                <p style={styles.pageHeaderSubtitle}>
+                    Configure automatic object expiration for <strong style={{ color: C.text }}>{bucket.name}</strong>
+                </p>
             </div>
 
             {/* Current Policy */}
-            <div className="lifecycle-card">
-                <div className="lifecycle-card-title">
+            <div style={styles.lifecycleCard}>
+                <div style={styles.lifecycleCardTitle}>
                     Current Policy
                 </div>
-                <h3>
+                <h3 style={{ fontSize: "1rem", fontWeight: 600, color: C.text }}>
                     {lifecycle?.policy_name || "No Lifecycle Policy"}
                 </h3>
-                <p>
+                <p style={{ marginTop: ".4rem", fontSize: ".85rem", color: C.muted }}>
                     {
                         lifecycle?.description ||
                         "Objects are retained forever."
@@ -48,8 +47,8 @@ export default function LifecycleTab({ bucket, bucketPolicy, policies, onPolicie
             </div>
 
             {/* Assign */}
-            <div className="lifecycle-card">
-                <div className="lifecycle-card-title">
+            <div style={styles.lifecycleCard}>
+                <div style={styles.lifecycleCardTitle}>
                     Assign Lifecycle Policy
                 </div>
 
@@ -61,24 +60,25 @@ export default function LifecycleTab({ bucket, bucketPolicy, policies, onPolicie
                     allowCreate={true}
                 />
 
-                <button className="bucket-toolbar-btn primary" onClick={applyPolicy}>
+                <button
+                    style={{ ...styles.bucketToolbarBtn, ...styles.bucketToolbarBtnPrimary, marginTop: "1rem" }}
+                    onClick={applyPolicy}
+                >
                     Apply Policy
                 </button>
             </div>
 
             {/* Info */}
-            <div className="lifecycle-info-card">
-                <div>
-                    <strong>
-                        How Lifecycle Policies Work
-                    </strong>
-                    <p>
-                        Lifecycle policies automatically remove objects
-                        after the configured retention period.
-                        The same policy can be reused across multiple
-                        buckets.
-                    </p>
-                </div>
+            <div style={styles.lifecycleInfoCard}>
+                <strong style={{ color: C.blue, fontSize: ".85rem" }}>
+                    How Lifecycle Policies Work
+                </strong>
+                <p style={{ marginTop: ".5rem", fontSize: ".85rem", color: C.muted, lineHeight: 1.55 }}>
+                    Lifecycle policies automatically remove objects
+                    after the configured retention period.
+                    The same policy can be reused across multiple
+                    buckets.
+                </p>
             </div>
         </div>
     );

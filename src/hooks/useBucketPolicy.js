@@ -117,6 +117,45 @@ export default function useBucketPolicy(bucket, toast) {
         loadPolicy();
     }, [bucket]);
 
+    function updateStatement(id, updates) {
+        setPolicyDraft(current => ({
+            ...current,
+            statements: current.statements.map(statement =>
+                statement.id === id ? { ...statement, ...updates } : statement
+            )
+        }));
+    }
+
+    function duplicateStatement(id) {
+        setPolicyDraft(current => {
+            const statement = current.statements.find(s => s.id === id);
+            if (!statement) return current;
+            return {
+                ...current,
+                statements: [...current.statements, { ...statement, id: crypto.randomUUID(), sid: `Statement${current.statements.length + 1}` }]
+            };
+        });
+    }
+
+    function toggleStatement(id) {
+        const target = policyDraft.statements.find(s => s.id === id);
+        if (target) updateStatement(id, { enabled: !target.enabled });
+    }
+
+    function addStatement() {
+        setPolicyDraft(current => ({
+            ...current,
+            statements: [...current.statements, createStatement(current.statements.length + 1)]
+        }));
+    }
+
+    function removeStatement(id) {
+        setPolicyDraft(current => {
+            if (current.statements.length === 1) return current; // fixed typo
+            return { ...current, statements: current.statements.filter(s => s.id !== id) };
+        });
+    }
+
     async function loadPolicy() {
         setLoading(true);
 
@@ -182,49 +221,23 @@ export default function useBucketPolicy(bucket, toast) {
         }
     }
 
-    function applyTemplate(template) {
-        setSelectedTemplate(template);
-
+    function templateToStatement(template) {
+        const base = createStatement(1);
         switch (template.id) {
             case "private":
-                setPolicyDraft({
-                    version: "2012-10-17",
-                    principal: "owner",
-                    effect: "Allow",
-                    actions: [],
-                    resources: [],
-                    conditions: {}
-                });
-                break;
-
+                return { ...base, principal: "owner", actions: [] };
             case "public-read":
-                setPolicyDraft({
-                    version: "2012-10-17",
-                    principal: "*",
-                    effect: "Allow",
-                    actions: ["GetObject"],
-                    resources: [],
-                    conditions: {}
-                });
-                break;
-
+                return { ...base, principal: "*", actions: ["GetObject"] };
             case "read-only":
-                setPolicyDraft({
-                    version: "2012-10-17",
-                    principal: "authenticated",
-                    effect: "Allow",
-                    actions: [
-                        "GetObject",
-                        "ListBucket"
-                    ],
-                    resources: [],
-                    conditions: {}
-                });
-                break;
-
+                return { ...base, principal: "authenticated", actions: ["GetObject", "ListBucket"] };
             default:
-                setPolicyDraft(EMPTY_POLICY);
+                return base;
         }
+    }
+
+    function applyTemplate(template) {
+        setSelectedTemplate(template);
+        setPolicyDraft({ version: "2012-10-17", statements: [templateToStatement(template)] });
     }
 
     return {
@@ -242,6 +255,5 @@ export default function useBucketPolicy(bucket, toast) {
         removeStatement,
         duplicateStatement,
         toggleStatement,
-        updateStatement
     };
 }

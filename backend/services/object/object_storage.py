@@ -36,7 +36,7 @@ from config.config import CEPH_RGW_ENDPOINT, CEPH_ACCESS_KEY, CEPH_SECRET_KEY, C
 from services.cluster.ceph_ops import run_ceph_cmd
 from core.activity import log_activity
 from services.object.policy_manager import get_policy
-from services.object.bucket_settings import initialize_bucket, set_bucket_lifecycle, get_bucket_lifecycle, delete_bucket_settings
+from services.object.bucket_settings import initialize_bucket, set_bucket_lifecycle, get_bucket_lifecycle as get_bucket_lifecycle_setting, delete_bucket_settings
 import xml.etree.ElementTree as ET
 
 def get_s3_client() -> boto3.client:
@@ -255,7 +255,7 @@ def delete_all_object_versions(bucket: str):
             )
     
 def get_bucket_lifecycle(bucket):
-    policy_id = get_bucket_lifecycle(bucket)
+    policy_id = get_bucket_lifecycle_setting(bucket)
 
     return {
         "bucket": bucket,

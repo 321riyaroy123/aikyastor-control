@@ -5,7 +5,6 @@ import { useObjects } from "../hooks/useObjects";
 import BucketTable from "../components/object/BucketTable";
 import BucketDialog from "../components/object/BucketDialog";
 import BucketWorkspace from "../components/object/BucketWorkspace/BucketWorkspace";
-import LifecycleDialog from "../components/object/LifecycleDialog";
 import VaultPopup from "../components/vault/VaultPopup";
 
 // Extracted/wired from the ObjectStorage component in AiKyaStorCONTROL.jsx.
@@ -18,7 +17,6 @@ export default function ObjectStoragePage({ toast, buckets, reloadBuckets }) {
   const [vaultPopup, setVaultPopup] = useState(null);
   const [policies, setPolicies] = useState([]);
   const [bucketPolicy, setBucketPolicy] = useState(null);
-  const [showLifecycle, setShowLifecycle] = useState(false);
 
   useEffect(() => {
     ObjectAPI.users().then(d => setUsers(d.users || [])).catch(() => {});
@@ -119,20 +117,20 @@ export default function ObjectStoragePage({ toast, buckets, reloadBuckets }) {
         <BucketTable buckets={buckets} onOpen={async (bucket) => { await openBucket(bucket); await loadBucketPolicy(bucket.name); }} onDelete={deleteBucket} onCreateClick={() => setShowCreate(true)} />
       ) : (
         <BucketWorkspace
-          bucket={currentBucket}
-          objects={objects}
-          onBack={closeBucket}
-          onUpload={handleUpload}
-          onDeleteObject={deleteObject}
-          onSyncVault={syncBucketVault}
-          downloadUrl={(key) =>
-              ObjectAPI.downloadObjectUrl(currentBucket.name, key)
-          }
-          bucketPolicy={bucketPolicy}
-          policies={policies}
-          onPoliciesChange={setPolicies}
-          onSaveLifecycle={updateLifecycle}
-          onEditPolicy={() => setShowLifecycle(true)}
+            bucket={currentBucket}
+            objects={objects}
+            toast={toast}
+            onBack={closeBucket}
+            onUpload={handleUpload}
+            onDeleteObject={deleteObject}
+            onSyncVault={syncBucketVault}
+            downloadUrl={(key) =>
+                ObjectAPI.downloadObjectUrl(currentBucket.name, key)
+            }
+            bucketPolicy={bucketPolicy}
+            policies={policies}
+            onPoliciesChange={setPolicies}
+            onSaveLifecycle={updateLifecycle}
         />
       )}
 
@@ -143,16 +141,6 @@ export default function ObjectStoragePage({ toast, buckets, reloadBuckets }) {
         users={users}
         existingBuckets={buckets}
         policies={policies}
-        onPoliciesChange={setPolicies}
-      />
-
-      <LifecycleDialog
-        open={showLifecycle}
-        bucket={currentBucket}
-        current={bucketPolicy}
-        policies={policies}
-        onSave={updateLifecycle}
-        onClose={() => setShowLifecycle(false)}
         onPoliciesChange={setPolicies}
       />
     </div>

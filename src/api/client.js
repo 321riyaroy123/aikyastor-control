@@ -132,6 +132,64 @@ async function simRequest(rawPath, opts) {
     }
   }
 
+  if (path === "/policies" && method === "GET") return { policies: SIM.policies };
+
+  if (path === "/policies" && method === "POST") {
+    const { name, expire_days, expire_hours } = body;
+    if (!name || !name.trim()) return { error: "Policy name is required." };
+    if (SIM.policies.find(p => p.name.toLowerCase() === name.trim().toLowerCase())) {
+      return { error: `Policy '${name}' already exists.` };
+    }
+    const id = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    const policy = {
+      id, name: name.trim(), builtin: false,
+      ...(expire_days != null ? { expire_days, description: `Delete after ${expire_days} days` }
+                              : { expire_hours, description: `Delete after ${expire_hours} hours` }),
+    };
+    SIM.policies.push(policy);
+    return { message: `Policy '${name}' created`, policy };
+  }
+
+  {
+    const m = matchPath(path, "/policies/:id");
+    if (m && method === "DELETE") {
+      const used = Object.values(SIM.bucketSettings).filter(s => s.lifecycle === m.id).length;
+      if (used > 0) return { error: "Policy is currently assigned." };
+      SIM.policies = SIM.policies.filter(p => p.id !== m.id);
+      return { message: `Policy '${m.id}' deleted` };
+    }
+  }
+
+  {
+    const m = matchPath(path, "/policies/:id/usage");
+    if (m && method === "GET") {
+      const buckets = Object.entries(SIM.bucketSettings).filter(([, s]) => s.lifecycle === m.id).map(([b]) => b);
+      return { policy: m.id, buckets, count: buckets.length };
+    }
+  }
+
+  {
+    const m = matchPath(path, "/object/buckets/:bucket/lifecycle"); // matches fix #12
+    if (m && method === "GET") {
+      const settings = SIM.bucketSettings[m.bucket] || { lifecycle: "none" };
+      const lifecycle = SIM.policies.find(p => p.id === settings.lifecycle) || null;
+      return { bucket: m.bucket, lifecycle };
+    }
+    if (m && method === "PUT") {
+      if (!SIM.bucketSettings[m.bucket]) SIM.bucketSettings[m.bucket] = {};
+      SIM.bucketSettings[m.bucket].lifecycle = body.lifecycle;
+      const lifecycle = SIM.policies.find(p => p.id === body.lifecycle) || null;
+      return { message: "Lifecycle updated successfully", bucket: m.bucket, lifecycle };
+    }
+  }
+
+  {
+    const m = matchPath(path, "/object/buckets/:bucket/policy");
+    if (m && method === "GET") return { bucket: m.bucket, policy: SIM.bucketPolicies[m.bucket] || null };
+    if (m && method === "PUT") { SIM.bucketPolicies[m.bucket] = body.policy; return { message: `Bucket policy updated for '${m.bucket}'.` }; }
+    if (m && method === "DELETE") { delete SIM.bucketPolicies[m.bucket]; return { message: `Bucket policy removed from '${m.bucket}'.` }; }
+  }
+
   // ── BLOCK STORAGE ────────────────────────────────────────────────────────
   if (path === "/block/images" && method === "GET") return { images: SIM.rbdImages };
 

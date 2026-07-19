@@ -39,7 +39,7 @@ def api_policies():
     })
 
 
-@policy_bp.route("/object/buckets/<bucket>/policy")
+@policy_bp.route("/object/buckets/<bucket>/lifecycle")
 def api_bucket_policy(bucket):
     if config.IS_SIMULATION:
         return jsonify(
@@ -47,7 +47,7 @@ def api_bucket_policy(bucket):
         )
     return jsonify(get_bucket_lifecycle(bucket))
     
-@policy_bp.route("/object/buckets/<bucket>/policy", methods=["PUT"])
+@policy_bp.route("/object/buckets/<bucket>/lifecycle", methods=["PUT"])
 def api_update_bucket_policy(bucket):
     data = request.json or {}
     lifecycle = data.get("lifecycle")

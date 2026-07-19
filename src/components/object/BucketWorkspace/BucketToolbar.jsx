@@ -1,4 +1,5 @@
 import { Upload, ShieldPlus, Download, UploadCloud, RefreshCw, Save } from "lucide-react";
+import { styles } from "../../../styles/theme.js";
 
 export default function BucketToolbar({ activeTab, onUpload, onSyncVault, onEditPolicy }) {
     const renderToolbar = () => {
@@ -6,7 +7,7 @@ export default function BucketToolbar({ activeTab, onUpload, onSyncVault, onEdit
             case "objects":
                 return (
                     <>
-                        <label className="bucket-toolbar-btn primary">
+                        <label style={{ ...styles.bucketToolbarBtn, ...styles.bucketToolbarBtnPrimary, margin: 0 }}>
                             <Upload size={16} />
                             Upload Object
                             <input
@@ -20,7 +21,7 @@ export default function BucketToolbar({ activeTab, onUpload, onSyncVault, onEdit
                             />
                         </label>
 
-                        <button className="bucket-toolbar-btn" onClick={onSyncVault}>
+                        <button style={styles.bucketToolbarBtn} onClick={onSyncVault}>
                             <RefreshCw size={16} />
                             Sync Vault
                         </button>
@@ -30,17 +31,17 @@ export default function BucketToolbar({ activeTab, onUpload, onSyncVault, onEdit
             case "policies":
                 return (
                     <>
-                        <button className="bucket-toolbar-btn primary">
+                        <button style={{ ...styles.bucketToolbarBtn, ...styles.bucketToolbarBtnPrimary }} onClick={onEditPolicy}>
                             <ShieldPlus size={16} />
                             Create Policy
                         </button>
 
-                        <button className="bucket-toolbar-btn">
+                        <button style={styles.bucketToolbarBtn}>
                             <UploadCloud size={16} />
                             Import
                         </button>
 
-                        <button className="bucket-toolbar-btn">
+                        <button style={styles.bucketToolbarBtn}>
                             <Download size={16} />
                             Export
                         </button>
@@ -49,7 +50,7 @@ export default function BucketToolbar({ activeTab, onUpload, onSyncVault, onEdit
 
             case "settings":
                 return (
-                    <button className="bucket-toolbar-btn primary">
+                    <button style={{ ...styles.bucketToolbarBtn, ...styles.bucketToolbarBtnPrimary }}>
                         <Save size={16} />
                         Save Settings
                     </button>
@@ -61,9 +62,8 @@ export default function BucketToolbar({ activeTab, onUpload, onSyncVault, onEdit
     };
 
     return (
-        <div className="bucket-toolbar">
+        <div style={styles.bucketToolbar}>
             {renderToolbar()}
         </div>
     );
-
 }

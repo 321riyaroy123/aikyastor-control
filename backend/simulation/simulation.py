@@ -402,6 +402,10 @@ def run_lifecycle_engine():
     }
 
 # Bucket Policy Simulation
+def get_policies() -> List[Dict[str, Any]]:
+    """Get all mock policies (builtin + custom)"""
+    return [p.copy() for p in MOCK_POLICIES] + [p.copy() for p in CUSTOM_POLICIES]
+
 def get_mock_bucket_policy(bucket: str):
     """
     Return the simulated bucket policy.
@@ -429,3 +433,48 @@ def delete_mock_bucket_policy(bucket: str):
     return {
         "bucket": bucket
     }
+
+import re
+
+def normalize_name(name):
+    return re.sub(r"\s+", " ", name.strip().lower())
+
+def create_policy(name, expire_days=None, expire_hours=None):
+    name = normalize_name(name)
+    if not name:
+        return {"error": "Policy name is required."}
+    all_policies = get_policies()
+    if any(normalize_name(p["name"]) == name for p in all_policies):
+        return {"error": f"Policy '{name}' already exists."}
+    if expire_days is None and expire_hours is None:
+        return {"error": "Retention period is required."}
+    if expire_days is not None and expire_days <= 0:
+        return {"error": "Retention period must be greater than zero."}
+    if expire_hours is not None and expire_hours <= 0:
+        return {"error": "Retention period must be greater than zero."}
+
+    policy_id = re.sub(r"[^a-z0-9]+", "-", name).strip("-")
+    policy = {"id": policy_id, "name": name, "builtin": False}
+    if expire_days is not None:
+        policy["expire_days"] = expire_days
+        policy["description"] = f"Delete after {expire_days} days"
+    else:
+        policy["expire_hours"] = expire_hours
+        policy["description"] = f"Delete after {expire_hours} hours"
+
+    CUSTOM_POLICIES.append(policy)
+    return {"message": f"Policy '{name}' created", "policy": policy}
+
+def get_policy_usage(policy_id):
+    buckets = [b for b, cfg in MOCK_BUCKET_SETTINGS.items() if cfg.get("lifecycle") == policy_id]
+    return {"policy": policy_id, "buckets": buckets, "count": len(buckets)}
+
+def delete_policy(policy_id):
+    usage = get_policy_usage(policy_id)
+    if usage["count"] > 0:
+        return {"error": "Policy is currently assigned.", "usage": usage}
+    global CUSTOM_POLICIES
+    if not any(p["id"] == policy_id for p in CUSTOM_POLICIES):
+        return {"error": "Policy not found"}
+    CUSTOM_POLICIES = [p for p in CUSTOM_POLICIES if p["id"] != policy_id]
+    return {"message": f"Policy '{policy_id}' deleted"}

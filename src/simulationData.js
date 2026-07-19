@@ -93,6 +93,21 @@ export const SIM = {
     ],
   },
 
+  policies: [
+    { id: "none", name: "No Policy", description: "Keep data forever", expire_days: null, builtin: true },
+    { id: "keep7", name: "Keep 7 Days", description: "Delete objects after 7 days", expire_days: 7, builtin: true },
+    { id: "keep30", name: "Keep 30 Days", description: "Delete objects after 30 days", expire_days: 30, builtin: true },
+    { id: "keep90", name: "Keep 90 Days", description: "Delete objects after 90 days", expire_days: 90, builtin: true },
+    { id: "keep365", name: "Keep 1 Year", description: "Delete objects after 365 days", expire_days: 365, builtin: true },
+  ],
+  bucketSettings: {
+    "media-assets": { lifecycle: "none" },
+    "backups-daily": { lifecycle: "keep30" },
+    "logs-archive": { lifecycle: "keep90" },
+    "ml-datasets": { lifecycle: "none" },
+  },
+  bucketPolicies: {},
+
   rgwUsers: [
     "admin",
     "app-user",

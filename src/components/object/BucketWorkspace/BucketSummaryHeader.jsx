@@ -1,4 +1,5 @@
-import { ArrowLeft, Calendar, Database, HardDrive, Shield, Clock3, Lock } from "lucide-react";
+import { ArrowLeft, Database, Shield, Clock3, Lock } from "lucide-react";
+import { C, styles } from "../../../styles/theme.js";
 
 function formatBytes(bytes = 0) {
     if (!bytes) return "0 B";
@@ -17,33 +18,39 @@ function formatBytes(bytes = 0) {
 }
 
 export default function BucketHeader({ bucket, objects = [], bucketPolicy, onBack }) {
-    const totalSize = objects.reduce((sum, object) => sum + (object.size || 0), 0);
+    const safeObjects = objects ?? [];
+    const totalSize = safeObjects.reduce((sum, object) => sum + (object.size || 0), 0);
 
     // Placeholder until bucket quotas are implemented.
     const usagePercent = 35;
 
     return (
-        <div className="bucket-header">
+        <div style={styles.bucketHeader}>
             {/* Navigation */}
-            <div className="bucket-header-top">
-                <button className="bucket-back-btn" onClick={onBack}>
+            <div style={styles.bucketHeaderTop}>
+                <button
+                    style={styles.bucketBackBtn}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = C.text)}
+                    onMouseLeave={(e) => (e.currentTarget.style.color = C.muted)}
+                    onClick={onBack}
+                >
                     <ArrowLeft size={18} />
                     Object Storage
                 </button>
             </div>
 
             {/* Bucket Identity */}
-            <div className="bucket-header-main">
-                <div className="bucket-title-section">
-                    <div className="bucket-icon">
+            <div style={styles.bucketHeaderMain}>
+                <div style={styles.bucketTitleSection}>
+                    <div style={styles.bucketIcon}>
                         🪣
                     </div>
 
                     <div>
-                        <h2 className="bucket-title">
+                        <h2 style={styles.bucketTitle}>
                             {bucket.name}
                         </h2>
-                        <p className="bucket-subtitle">
+                        <p style={styles.bucketSubtitle}>
                             Object Storage Bucket
                         </p>
                     </div>
@@ -51,24 +58,24 @@ export default function BucketHeader({ bucket, objects = [], bucketPolicy, onBac
                 </div>
 
                 {/* Summary Cards */}
-                <div className="bucket-info-grid">
-                    <div className="bucket-info-card">
+                <div style={styles.bucketInfoGrid}>
+                    <div style={styles.bucketInfoCard}>
                         <div>
-                            <span className="bucket-info-label">
+                            <span style={styles.bucketInfoLabel}>
                                 Owner
                             </span>
-                            <strong>
+                            <strong style={styles.bucketInfoValue}>
                                 {bucket.owner || "admin"}
                             </strong>
                         </div>
                     </div>
 
-                    <div className="bucket-info-card">
+                    <div style={styles.bucketInfoCard}>
                         <div>
-                            <span className="bucket-info-label">
+                            <span style={styles.bucketInfoLabel}>
                                 Created
                             </span>
-                            <strong>
+                            <strong style={styles.bucketInfoValue}>
                                 {bucket.created
                                     ? new Date(
                                           bucket.created
@@ -78,23 +85,23 @@ export default function BucketHeader({ bucket, objects = [], bucketPolicy, onBac
                         </div>
                     </div>
 
-                    <div className="bucket-info-card">
+                    <div style={styles.bucketInfoCard}>
                         <div>
-                            <span className="bucket-info-label">
+                            <span style={styles.bucketInfoLabel}>
                                 Objects
                             </span>
-                            <strong>
-                                {objects.length}
+                            <strong style={styles.bucketInfoValue}>
+                                {safeObjects.length}
                             </strong>
                         </div>
                     </div>
 
-                    <div className="bucket-info-card">
+                    <div style={styles.bucketInfoCard}>
                         <div>
-                            <span className="bucket-info-label">
+                            <span style={styles.bucketInfoLabel}>
                                 Storage Used
                             </span>
-                            <strong>
+                            <strong style={styles.bucketInfoValue}>
                                 {formatBytes(totalSize)}
                             </strong>
                         </div>
@@ -103,50 +110,50 @@ export default function BucketHeader({ bucket, objects = [], bucketPolicy, onBac
             </div>
 
             {/* Storage Usage */}
-            <div className="bucket-storage">
-                <div className="bucket-storage-header">
+            <div style={styles.bucketStorage}>
+                <div style={styles.bucketStorageHeader}>
                     <span>
                         Storage Usage
                     </span>
-                    <strong>
+                    <strong style={{ color: C.text }}>
                         {formatBytes(totalSize)}
                     </strong>
                 </div>
 
-                <div className="bucket-progress">
+                <div style={styles.bucketProgress}>
                     <div
-                        className="bucket-progress-fill"
                         style={{
+                            ...styles.bucketProgressFill,
                             width: `${usagePercent}%`
                         }}
                     />
                 </div>
 
-                <span className="bucket-storage-note">
+                <span style={styles.bucketStorageNote}>
                     Unlimited quota configured
                 </span>
             </div>
 
             {/* Status Badges */}
-            <div className="bucket-status-row">
-                <span className="bucket-badge success">
+            <div style={styles.bucketStatusRow}>
+                <span style={{ ...styles.bucketBadge, ...styles.bucketBadgeSuccess }}>
                     <Shield size={14} />
                     Private
                 </span>
 
-                <span className="bucket-badge warning">
+                <span style={{ ...styles.bucketBadge, ...styles.bucketBadgeWarning }}>
                     <Clock3 size={14} />
                     {bucketPolicy?.lifecycle?.policy_name
                         ? bucketPolicy.lifecycle.policy_name
                         : "No Lifecycle"}
                 </span>
 
-                <span className="bucket-badge info">
+                <span style={{ ...styles.bucketBadge, ...styles.bucketBadgeInfo }}>
                     <Database size={14} />
                     Versioning Disabled
                 </span>
 
-                <span className="bucket-badge secondary">
+                <span style={{ ...styles.bucketBadge, ...styles.bucketBadgeSecondary }}>
                     <Lock size={14} />
                     Object Lock Disabled
                 </span>

@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import BucketHeader from "./BucketHeader";
+import BucketHeader from "./BucketSummaryHeader";
 import BucketBreadcrumb from "./BucketBreadcrumb";
 import BucketTabs from "./BucketTabs";
 import BucketToolbar from "./BucketToolbar";
@@ -10,9 +10,9 @@ import PoliciesTab from "./tabs/PoliciesTab";
 import LifecycleTab from "./tabs/LifecycleTab";
 import SettingsTab from "./tabs/SettingsTab";
 
-import "./BucketWorkspace.css";
+import { styles } from "../../../styles/theme.js";
 
-export default function BucketWorkspace({ bucket, objects, onBack, onUpload, onDeleteObject, onSyncVault, downloadUrl, bucketPolicy, policies, onPoliciesChange, onSaveLifecycle, onEditPolicy }) {
+export default function BucketWorkspace({ bucket, objects, toast, onBack, onUpload, onDeleteObject, onSyncVault, downloadUrl, bucketPolicy, policies, onPoliciesChange, onSaveLifecycle, onEditPolicy }) {
     const [activeTab, setActiveTab] = useState("objects");
 
     const TAB_COMPONENTS = {
@@ -42,14 +42,13 @@ export default function BucketWorkspace({ bucket, objects, onBack, onUpload, onD
     };
 
     return (
-        <div className="bucket-workspace">
-            <BucketBreadcrumb bucket={bucket} activeTab={activeTab} />
+        <div style={styles.bucketWorkspace}>
             <BucketHeader bucket={bucket} objects={objects} bucketPolicy={bucketPolicy} onBack={onBack} />
             <BucketTabs activeTab={activeTab} onChange={setActiveTab} />
 
-            <div className="bucket-panel">
+            <div style={styles.bucketPanel}>
                 <BucketToolbar activeTab={activeTab} onUpload={onUpload} onSyncVault={onSyncVault} onEditPolicy={onEditPolicy} />
-                <div className="bucket-workspace-content">
+                <div style={styles.bucketWorkspaceContent}>
                     {TAB_COMPONENTS[activeTab]}
                 </div>
             </div>

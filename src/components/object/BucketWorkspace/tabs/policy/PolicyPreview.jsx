@@ -1,8 +1,9 @@
 import { FileCode2, Copy, Download } from "lucide-react";
-import { generatePolicy } from "../../../services/policyGenerator";
+import { generatePolicy } from "../../../../../../backend/services/policyGenerator";
+import { C, styles } from "../../../../../styles/theme.js";
 
 export default function PolicyPreview({ bucket, draft }) {
-    const policy = generatePolicy(draft, bucket.name)
+    const policy = generatePolicy(draft, bucket.name);
     const json = JSON.stringify(policy, null, 4);
 
     function copyPolicy() {
@@ -10,31 +11,25 @@ export default function PolicyPreview({ bucket, draft }) {
     }
 
     return (
-        <div className="workspace-card">
-            <div className="workspace-card-title">
+        <div style={styles.workspaceCard}>
+            <div style={styles.workspaceCardTitle}>
                 <FileCode2 size={18} />
                 Generated Policy
             </div>
 
-            <div className="policy-preview-toolbar">
-                <button
-                    className="bucket-toolbar-btn"
-                    onClick={copyPolicy}
-                >
+            <div style={styles.policyPreviewToolbar}>
+                <button style={styles.bucketToolbarBtn} onClick={copyPolicy}>
                     <Copy size={16} />
                     Copy
                 </button>
 
-                <button
-                    className="bucket-toolbar-btn"
-                    disabled
-                >
+                <button style={{ ...styles.bucketToolbarBtn, opacity: .5, cursor: "not-allowed" }} disabled>
                     <Download size={16} />
                     Export
                 </button>
             </div>
 
-            <pre className="policy-json">
+            <pre style={styles.policyJson}>
                 <code>
                     {json}
                 </code>

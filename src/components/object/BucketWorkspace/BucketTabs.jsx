@@ -1,32 +1,24 @@
-import { FolderOpen, Shield, Clock3, Settings } from "lucide-react";
+import { styles } from "../../../styles/theme.js";
 
 const tabs = [
-    {
-        id: "objects",
-        label: "Objects"
-    },
-    {
-        id: "policies",
-        label: "Policies"
-    },
-    {
-        id: "lifecycle",
-        label: "Lifecycle"
-    },
-    {
-        id: "settings",
-        label: "Settings"
-    }
+    { id: "objects", label: "Objects" },
+    { id: "policies", label: "Policies" },
+    { id: "lifecycle", label: "Lifecycle" },
+    { id: "settings", label: "Settings" }
 ];
 
 export default function BucketTabs({ activeTab, onChange }) {
     return (
-        <div className="bucket-tabs">
+        <div style={styles.bucketTabs}>
             {tabs.map((tab) => {
-                const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
 
                 return (
-                    <button key={tab.id} className={`bucket-tab ${ activeTab === tab.id ? "active" : "" }`} onClick={() => onChange(tab.id)}>
+                    <button
+                        key={tab.id}
+                        style={isActive ? { ...styles.bucketTab, ...styles.bucketTabActive } : styles.bucketTab}
+                        onClick={() => onChange(tab.id)}
+                    >
                         <span>{tab.label}</span>
                     </button>
                 );

@@ -1,4 +1,5 @@
 import { Lock, Globe, BookOpen, Upload, Archive } from "lucide-react";
+import { C, styles } from "../../../../../styles/theme.js";
 
 const templates = [
     {
@@ -38,37 +39,52 @@ const templates = [
     }
 ];
 
+const ICON_STYLE_BY_COLOR = {
+    green: styles.policyTemplateIconGreen,
+    blue: styles.policyTemplateIconBlue,
+    orange: styles.policyTemplateIconOrange,
+    purple: styles.policyTemplateIconPurple,
+    red: styles.policyTemplateIconRed,
+};
+
 export default function PolicyTemplates({ selectedTemplate, onSelect }) {
     return (
-        <div className="workspace-card">
-            <div className="workspace-card-title">
+        <div style={styles.workspaceCard}>
+            <div style={styles.workspaceCardTitle}>
                 <Lock size={18} />
                 Policy Templates
             </div>
 
-            <div className="policy-template-grid">
+            <div style={styles.policyTemplateGrid}>
                 {templates.map((template) => {
                     const Icon = template.icon;
+                    const isSelected = selectedTemplate === template.id;
+
                     return (
                         <button
                             key={template.id}
-                            className={`policy-template-card ${
-                                selectedTemplate === template.id
-                                    ? "selected"
-                                    : ""
-                            }`}
+                            style={
+                                isSelected
+                                    ? { ...styles.policyTemplateCard, ...styles.policyTemplateCardSelected }
+                                    : styles.policyTemplateCard
+                            }
+                            onMouseEnter={(e) => {
+                                if (!isSelected) e.currentTarget.style.borderColor = C.muted;
+                            }}
+                            onMouseLeave={(e) => {
+                                if (!isSelected) e.currentTarget.style.borderColor = C.border;
+                            }}
                             onClick={() => onSelect?.(template)}
                         >
-
-                            <div className={`policy-template-icon ${template.color}`}>
+                            <div style={{ ...styles.policyTemplateIcon, ...ICON_STYLE_BY_COLOR[template.color] }}>
                                 <Icon size={26} />
                             </div>
 
-                            <div className="policy-template-content">
-                                <h3>
+                            <div style={styles.policyTemplateContent}>
+                                <h3 style={styles.policyTemplateTitle}>
                                     {template.title}
                                 </h3>
-                                <p>
+                                <p style={styles.policyTemplateDescription}>
                                     {template.description}
                                 </p>
                             </div>

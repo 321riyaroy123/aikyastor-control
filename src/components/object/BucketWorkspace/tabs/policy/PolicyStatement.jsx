@@ -1,3 +1,6 @@
+import { Eye, EyeOff, Copy, Trash2 } from "lucide-react";
+import { C, styles } from "../../../../../styles/theme.js";
+
 const ACTIONS = [
     "GetObject",
     "PutObject",
@@ -8,258 +11,190 @@ const ACTIONS = [
 ];
 
 const RESOURCE_TYPES = [
-    {
-        id: "bucket",
-        label: "Bucket"
-    },
-    {
-        id: "bucket-objects",
-        label: "All Objects"
-    },
-    {
-        id: "prefix",
-        label: "Object Prefix"
-    },
-    {
-        id: "object",
-        label: "Specific Object"
-    }
+    { id: "bucket", label: "Bucket" },
+    { id: "bucket-objects", label: "All Objects" },
+    { id: "prefix", label: "Object Prefix" },
+    { id: "object", label: "Specific Object" }
 ];
 
-export default function PolicyStatement({ statement, onChange, onDuplicate, onDelete, onToggle }){
-    function toggleAction(action){
+function IconButton({ danger, onClick, children }) {
+    return (
+        <button
+            onClick={onClick}
+            style={danger ? { ...styles.iconButton, ...styles.iconButtonDanger } : styles.iconButton}
+            onMouseEnter={(e) => (e.currentTarget.style.background = danger ? "rgba(248,113,113,.12)" : "rgba(255,255,255,.06)")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+        >
+            {children}
+        </button>
+    );
+}
+
+export default function PolicyStatement({ statement, onChange, onDuplicate, onDelete, onToggle }) {
+    function toggleAction(action) {
         const exists = statement.actions.includes(action);
 
         onChange({
             actions: exists
-                ? statement.actions.filter(
-                    a=>a!==action
-                )
-                : [
-                    ...statement.actions,
-                    action
-                ]
+                ? statement.actions.filter(a => a !== action)
+                : [...statement.actions, action]
         });
     }
 
-    return(
-        <div className="policy-statement">
+    return (
+        <div style={styles.policyStatement}>
             {/* Header */}
-            <div className="policy-statement-header">
+            <div style={styles.policyStatementHeader}>
                 <div>
-                    <h3>
+                    <h3 style={styles.policyStatementTitle}>
                         {statement.sid}
                     </h3>
-                    <small>
+                    <small style={styles.policyStatementSubtitle}>
                         {statement.description || "No description"}
                     </small>
                 </div>
 
-                <div className="policy-statement-actions">
-                    <button onClick={onToggle} className="icon-btn">
-                        {
-                            statement.enabled
-                                ? <Eye size={16}/>
-                                : <EyeOff size={16}/>
-                        }
-                    </button>
+                <div style={styles.policyStatementActions}>
+                    <IconButton onClick={onToggle}>
+                        {statement.enabled ? <Eye size={16} /> : <EyeOff size={16} />}
+                    </IconButton>
 
-                    <button onClick={onDuplicate} className="icon-btn">
-                        <Copy size={16}/>
-                    </button>
+                    <IconButton onClick={onDuplicate}>
+                        <Copy size={16} />
+                    </IconButton>
 
-                    <button onClick={onDelete} className="icon-btn danger">
-                        <Trash2 size={16}/>
-                    </button>
+                    <IconButton danger onClick={onDelete}>
+                        <Trash2 size={16} />
+                    </IconButton>
                 </div>
             </div>
 
             {/* Description */}
-            <div className="policy-section">
-                <label>
+            <div style={styles.policySection}>
+                <label style={styles.policySectionLabel}>
                     Description
                 </label>
 
                 <input
+                    style={styles.formInput}
                     value={statement.description}
-                    onChange={(e)=>
-                        onChange({
-                            description:e.target.value
-                        })
-                    }
+                    onChange={(e) => onChange({ description: e.target.value })}
                 />
             </div>
 
             {/* Principal */}
-            <div className="policy-section">
-                <label>
+            <div style={styles.policySection}>
+                <label style={styles.policySectionLabel}>
                     Principal
                 </label>
 
                 <select
+                    style={styles.formInput}
                     value={statement.principal}
-                    onChange={(e)=>
-                        onChange({
-                            principal:e.target.value
-                        })
-                    }
+                    onChange={(e) => onChange({ principal: e.target.value })}
                 >
-                    <option value="*">
-                        Everyone
-                    </option>
-
-                    <option value="authenticated">
-                        Authenticated Users
-                    </option>
-
-                    <option value="owner">
-                        Bucket Owner
-                    </option>
+                    <option value="*">Everyone</option>
+                    <option value="authenticated">Authenticated Users</option>
+                    <option value="owner">Bucket Owner</option>
                 </select>
             </div>
 
             {/* Effect */}
-            <div className="policy-section">
-                <label>
+            <div style={styles.policySection}>
+                <label style={styles.policySectionLabel}>
                     Effect
                 </label>
 
                 <select
+                    style={styles.formInput}
                     value={statement.effect}
-                    onChange={(e)=>
-                        onChange({
-                            effect:e.target.value
-                        })
-                    }
+                    onChange={(e) => onChange({ effect: e.target.value })}
                 >
-                    <option> Allow </option>
-                    <option> Deny</option>
+                    <option value="Allow">Allow</option>
+                    <option value="Deny">Deny</option>
                 </select>
             </div>
 
             {/* Actions */}
-            <div className="policy-section">
-                <label>
+            <div style={styles.policySection}>
+                <label style={styles.policySectionLabel}>
                     Actions
                 </label>
 
-                <div className="policy-actions-grid">
-                    {
-                        ACTIONS.map(action=>(
-                            <label
-                                key={action}
-                                className="policy-checkbox"
-                            >
-                                <input
-                                    type="checkbox"
-                                    checked={statement.actions.includes(action)}
-                                    onChange={()=>
-                                        toggleAction(action)
-                                    }
-                                />
-                                {action}
-                            </label>
-                        ))
-                    }
+                <div style={styles.policyActionsGrid}>
+                    {ACTIONS.map((action) => (
+                        <label key={action} style={styles.policyCheckbox}>
+                            <input
+                                type="checkbox"
+                                style={styles.policyCheckboxInput}
+                                checked={statement.actions.includes(action)}
+                                onChange={() => toggleAction(action)}
+                            />
+                            {action}
+                        </label>
+                    ))}
                 </div>
             </div>
 
             {/* Resources */}
-            <div className="policy-section">
-                <label>
+            <div style={styles.policySection}>
+                <label style={styles.policySectionLabel}>
                     Resources
                 </label>
-                {
-                    statement.resources.map((resource, index) => (
-                        <div
-                            key={index}
-                            className="policy-resource-card"
+                {statement.resources.map((resource, index) => (
+                    <div key={index} style={styles.policyResourceCard}>
+                        <select
+                            style={{ ...styles.formInput, width: "auto", minWidth: 160 }}
+                            value={resource.type}
+                            onChange={(e) => {
+                                const resources = [...statement.resources];
+                                resources[index] = { ...resources[index], type: e.target.value };
+                                onChange({ resources });
+                            }}
                         >
-                            <select
-                                value={resource.type}
-                                onChange={(e)=>{
-                                    const resources=[
-                                        ...statement.resources
-                                    ];
-                                    resources[index]={
-                                        ...resources[index],
-                                        type:e.target.value
-                                    };
-                                    onChange({
-                                        resources
-                                    });
+                            {RESOURCE_TYPES.map((type) => (
+                                <option key={type.id} value={type.id}>
+                                    {type.label}
+                                </option>
+                            ))}
+                        </select>
+
+                        {resource.type === "prefix" && (
+                            <input
+                                type="text"
+                                placeholder="images/"
+                                style={styles.formInput}
+                                value={resource.value}
+                                onChange={(e) => {
+                                    const resources = [...statement.resources];
+                                    resources[index] = { ...resources[index], value: e.target.value };
+                                    onChange({ resources });
                                 }}
-                            >
-                                {
-                                    RESOURCE_TYPES.map(type=>(
-                                        <option
-                                            key={type.id}
-                                            value={type.id}
-                                        >
-                                            {type.label}
-                                        </option>
-                                    ))
-                                }
-                            </select>
-
-                            {
-                                resource.type==="prefix" && (
-                                    <input
-                                        type="text"
-                                        placeholder="images/"
-                                        value={resource.value}
-                                        onChange={(e)=>{
-                                            const resources=[
-                                                ...statement.resources
-                                            ];
-
-                                            resources[index]={
-                                                ...resources[index],
-                                                value:e.target.value
-                                            };
-
-                                            onChange({
-                                                resources
-                                            });
-                                        }}
-                                    />
-                                )
-                            }
-                            {
-                                resource.type==="object" && (
-                                    <input
-                                        type="text"
-                                        placeholder="report.pdf"
-                                        value={resource.value}
-                                        onChange={(e)=>{
-                                            const resources=[
-                                                ...statement.resources
-                                            ];
-                                            resources[index]={
-                                                ...resources[index],
-                                                value:e.target.value
-                                            };
-                                            onChange({
-                                                resources
-                                            });
-                                        }}
-                                    />
-                                )
-                            }
-                        </div>
-                    ))
-                }
+                            />
+                        )}
+                        {resource.type === "object" && (
+                            <input
+                                type="text"
+                                placeholder="report.pdf"
+                                style={styles.formInput}
+                                value={resource.value}
+                                onChange={(e) => {
+                                    const resources = [...statement.resources];
+                                    resources[index] = { ...resources[index], value: e.target.value };
+                                    onChange({ resources });
+                                }}
+                            />
+                        )}
+                    </div>
+                ))}
 
                 <button
-                    className="bucket-toolbar-btn"
-                    onClick={()=>{
+                    style={styles.bucketToolbarBtn}
+                    onClick={() => {
                         onChange({
-                            resources:[
+                            resources: [
                                 ...statement.resources,
-                                {
-                                    type:"bucket-objects",
-                                    value:""
-                                }
+                                { type: "bucket-objects", value: "" }
                             ]
                         });
                     }}
@@ -267,23 +202,24 @@ export default function PolicyStatement({ statement, onChange, onDuplicate, onDe
                     + Add Resource
                 </button>
             </div>
-            
+
             {/* Conditions */}
-            <div className="policy-section">
-                <label>
+            <div style={styles.policySection}>
+                <label style={styles.policySectionLabel}>
                     Conditions
                 </label>
-                <div className="policy-condition-card">
+                <div style={styles.policyConditionCard}>
                     {/* HTTPS */}
-                    <label className="policy-checkbox">
+                    <label style={styles.policyCheckbox}>
                         <input
                             type="checkbox"
+                            style={styles.policyCheckboxInput}
                             checked={statement.conditions.secureTransport}
-                            onChange={(e)=>
+                            onChange={(e) =>
                                 onChange({
-                                    conditions:{
+                                    conditions: {
                                         ...statement.conditions,
-                                        secureTransport:e.target.checked
+                                        secureTransport: e.target.checked
                                     }
                                 })
                             }
@@ -292,19 +228,20 @@ export default function PolicyStatement({ statement, onChange, onDuplicate, onDe
                     </label>
 
                     {/* Source IP */}
-                    <div className="policy-condition-field">
-                        <label>
+                    <div style={styles.policyConditionField}>
+                        <label style={styles.policySectionLabel}>
                             Source IP
                         </label>
                         <input
                             type="text"
                             placeholder="192.168.1.0/24"
+                            style={styles.formInput}
                             value={statement.conditions.sourceIp}
-                            onChange={(e)=>
+                            onChange={(e) =>
                                 onChange({
-                                    conditions:{
+                                    conditions: {
                                         ...statement.conditions,
-                                        sourceIp:e.target.value
+                                        sourceIp: e.target.value
                                     }
                                 })
                             }

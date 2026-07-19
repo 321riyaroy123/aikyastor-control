@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import Button from "../common/Button";
 import ObjectTable from "./ObjectTable";
-import BucketHeader from "./BucketHeader";
+import BucketHeader from "./BucketSummaryHeader";
 import { C, styles } from "../../styles/theme";
 
 // Extracted from the currentBucket branch of ObjectStorage in
