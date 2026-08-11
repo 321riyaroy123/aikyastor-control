@@ -26,7 +26,6 @@ export default function BucketDialog({ open, onClose, onCreate, users, existingB
         acl: form.acl,
         versioning: form.versioning,
         object_locking: form.locking,
-        lifecycle: form.lifecycle
       });
       setForm({ name: "", owner: "", acl: "private", versioning: false, locking: false, lifecycle: "none" });
       setError("");

@@ -2,9 +2,6 @@
     "bucket-policy": {
         "lifecycle": "keep30"
     },
-    "bukky": {
-        "lifecycle": "keep7"
-    },
     "versioning-test": {
         "lifecycle": "keep7"
     }

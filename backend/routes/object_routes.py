@@ -68,7 +68,6 @@ def api_create_bucket():
             data.get("acl", "private"),
             data.get("versioning", False),
             data.get("object_locking", data.get("object_locking", False)),
-            data.get("lifecycle", None)
         )
         if "error" in result:
             status = 409 if "already exists" in result["error"] else 500

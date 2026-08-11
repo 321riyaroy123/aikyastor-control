@@ -209,7 +209,7 @@ def create_bucket(
     owner: str = "admin",
     acl: str = "private",
     versioning: bool = False,
-    obj_lock: bool = False
+    object_locking: bool = False
 ) -> Dict[str, Any]:
 
     try:
@@ -220,7 +220,7 @@ def create_bucket(
         s3.create_bucket(
             Bucket=bucket,
             ACL=acl,
-            ObjectLockEnabledForBucket=obj_lock
+            ObjectLockEnabledForBucket=object_locking
         )
 
         # Enable versioning after bucket creation.
@@ -236,7 +236,7 @@ def create_bucket(
             f"Owner:{owner} "
             f"ACL:{acl} "
             f"Versioning:{versioning} "
-            f"ObjLock:{obj_lock}"
+            f"ObjLock:{object_locking}"
         )
 
         log_activity(

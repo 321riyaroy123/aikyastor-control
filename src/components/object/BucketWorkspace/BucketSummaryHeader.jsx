@@ -24,8 +24,11 @@ export default function BucketHeader({ bucket, objects = [], bucketLifecycle, on
     const isPrivate = bucket?.acl === "private";
     const versioning = bucket?.versioning;
     const objectLocking = bucket?.object_locking;
-    const totalSize = safeObjects.reduce((sum, object) => sum + (object.size || 0), 0);
 
+    const totalSize = safeObjects.reduce(
+        (sum, object) => sum + (object.size || 0),
+        0
+    );
     // Placeholder until bucket quotas are implemented.
     const usagePercent = 35;
 
@@ -197,7 +200,7 @@ export default function BucketHeader({ bucket, objects = [], bucketLifecycle, on
                     }}
                 >
                     <Lock size={14} />
-                    {object
+                    {objectLocking
                         ? "Object Lock Enabled"
                         : "Object Lock Disabled"}
                 </span>
