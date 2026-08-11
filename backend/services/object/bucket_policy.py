@@ -34,6 +34,7 @@ from core.logger import logger
 from core.activity import log_activity
 
 from services.object.object_storage import get_s3_client
+from services.object.policy_converter import convert_ui_policy_to_aws, convert_aws_policy_to_ui
 
 def get_bucket_policy(bucket: str):
     """
@@ -43,10 +44,11 @@ def get_bucket_policy(bucket: str):
     try:
         s3 = get_s3_client()
         response = s3.get_bucket_policy(Bucket=bucket)
+        aws_policy = json.loads(response["Policy"])
 
         return {
             "bucket": bucket,
-            "policy": json.loads(response["Policy"])
+            "policy": convert_aws_policy_to_ui(aws_policy)
         }
 
     except ClientError as e:
@@ -90,9 +92,23 @@ def put_bucket_policy(bucket: str, policy: dict):
         s3 = get_s3_client()
 
         # Upload policy to RGW
+        aws_policy = convert_ui_policy_to_aws(bucket, policy)
+
+        logger.info(
+            "Applying AWS bucket policy:\n%s",
+            json.dumps(aws_policy, indent=2)
+        )
+
+
+        policy_json = json.dumps(aws_policy)
+
+        logger.info("Policy type: %s", type(policy_json))
+        logger.info("Policy repr: %r", policy_json)
+        logger.info("Policy bytes: %s", policy_json.encode("utf-8"))
+
         s3.put_bucket_policy(
             Bucket=bucket,
-            Policy=json.dumps(policy, indent=2)
+            Policy=policy_json,
         )
 
         log_activity(
@@ -105,7 +121,8 @@ def put_bucket_policy(bucket: str, policy: dict):
         return {
             "message": f"Bucket policy applied to '{bucket}'.",
             "bucket": bucket,
-            "policy": policy
+            "policy": policy,
+            "aws_policy": aws_policy
         }
 
     except ClientError as e:

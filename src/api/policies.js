@@ -1,31 +1,89 @@
 import { req } from "./client";
 
-// NOTE: the original frontend never called these routes (no PolicyAPI existed).
-// This wraps backend/routes/policy_routes.py for future policy UI work.
-// Not wired into any component yet, and not covered by client.js's simRequest
-// mock — these calls only succeed against the real backend (MODE=production).
 export const PolicyAPI = {
-  list: () => req("/policies"),
-  create: (payload) => req("/policies", {
-      method:"POST",
-      body:JSON.stringify(payload)
-  }),
-  delete: (policyId) => req(`/policies/${policyId}`, { method: "DELETE" }),
-  usage: (policyId) => req(`/policies/${policyId}/usage`),
-  run: () => req("/policies/run", { method: "POST" }),
-  
-  // Bucket-level lifecycle policy 
-  getBucketPolicy: (bucket) => req(`/object/buckets/${bucket}/lifecycle`),
-  assignBucketPolicy: (bucket, policyId) => req(`/object/buckets/${bucket}/lifecycle`, {
-    method: "POST",
-    body: JSON.stringify({ policy: policyId }),
-  }),
-  updateBucketPolicy: (bucket, lifecycle) => {
-    return req(`/object/buckets/${bucket}/policy`, {
-      method: "PUT",
-      body: JSON.stringify({
-        lifecycle
-      })
-    });
-  },
+    list() {
+        return req("/policies");
+    },
+
+    create(payload) {
+        return req("/policies", {
+            method: "POST",
+            body: JSON.stringify(payload)
+        });
+    },
+
+    delete(policyId) {
+        return req(`/policies/${policyId}`, {
+            method: "DELETE"
+        });
+    },
+
+    usage(policyId) {
+        return req(`/policies/${policyId}/usage`);
+    },
+
+    run() {
+        return req("/policies/run", {
+            method: "POST"
+        });
+    }
+};
+
+
+export const LifecycleAPI = {
+    listPolicies() {
+        return req("/policies");
+    },
+
+    get(bucket) {
+        return req(
+            `/object/buckets/${bucket}/lifecycle`
+        );
+    },
+
+    put(bucket, lifecycle) {
+        return req(
+            `/object/buckets/${bucket}/lifecycle`,
+            {
+                method: "PUT",
+                body: JSON.stringify({
+                    lifecycle
+                })
+            }
+        );
+    },
+
+    remove(bucket) {
+        return req(
+            `/object/buckets/${bucket}/lifecycle`,
+            {
+                method: "DELETE"
+            }
+        );
+    },
+
+    create(data) {
+        return req(
+            "/policies",
+            {
+                method: "POST",
+                body: JSON.stringify(data)
+            }
+        );
+    },
+
+    delete(policyId) {
+        return req(
+            `/policies/${policyId}`,
+            {
+                method: "DELETE"
+            }
+        );
+    },
+
+    usage(policyId) {
+        return req(
+            `/policies/${policyId}/usage`
+        );
+    }
 };

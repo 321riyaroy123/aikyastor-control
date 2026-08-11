@@ -1,13 +1,6 @@
 import { useEffect, useState } from "react";
 import { BucketPolicyAPI } from "../api/bucketPolicies";
 
-const EMPTY_POLICY = {
-    version: "2012-10-17",
-    statements: [
-        createStatement()
-    ]
-};
-
 function createStatement(number = 1) {
     return {
         id: crypto.randomUUID(),
@@ -32,90 +25,25 @@ function createStatement(number = 1) {
     };
 }
 
-function updateStatement(id, updates){
-    setPolicyDraft(current=>({
-        ...current,
-        statements: current.statements.map(statement=>
-            statement.id===id
-                ? {
-                    ...statement,
-                    ...updates
-                }
-                : statement
-        )
-    }));
-}
-
-function duplicateStatement(id) {
-    setPolicyDraft(current => {
-        const statement = current.statements.find(
-            s => s.id === id
-        );
-
-        if (!statement) {
-            return current;
-        }
-
-        return {
-            ...current,
-            statements: [
-                ...current.statements,
-                {
-                    ...statement,
-                    id: crypto.randomUUID(),
-                    sid: `Statement${current.statements.length + 1}`
-                }
-            ]
-        };
-    });
-}
-
-function toggleStatement(id) {
-    updateStatement(
-        id,
-        {
-            enabled: !policyDraft.statements.find(
-                s => s.id === id
-            ).enabled
-        }
-    );
-}
-
-function addStatement(){
-    setPolicyDraft(current=>({
-        ...current,
-        statements:[
-            ...current.statements,
-            createStatement(current.statements.length + 1)
+function createEmptyPolicy() {
+    return {
+        version: "2012-10-17",
+        statements: [
+            createStatement()
         ]
-    }));
-}
-
-function removeStatement(id){
-    setPolicyDraft(current=>{
-        if(current.statement.length === 1){
-            return current;
-        }
-        return {
-            ...current,
-            statements:
-                current.statements.filter(
-                    s=>s.id!==id
-                )
-        };
-    });
+    };
 }
 
 export default function useBucketPolicy(bucket, toast) {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [selectedTemplate, setSelectedTemplate] = useState(null);
-    const [policyDraft, setPolicyDraft] = useState(EMPTY_POLICY);
+    const [policyDraft, setPolicyDraft] = useState(createEmptyPolicy());
 
     useEffect(() => {
-        if (!bucket) return;
+        if (!bucket?.name) return;
         loadPolicy();
-    }, [bucket]);
+    }, [bucket?.name]);
 
     function updateStatement(id, updates) {
         setPolicyDraft(current => ({
@@ -165,7 +93,7 @@ export default function useBucketPolicy(bucket, toast) {
                 setPolicyDraft(result.policy);
             }
             else {
-                setPolicyDraft(EMPTY_POLICY);
+                setPolicyDraft(createEmptyPolicy());
             }
         } catch (err) {
             console.error(err);
@@ -183,15 +111,12 @@ export default function useBucketPolicy(bucket, toast) {
                 policyDraft
             );
 
-            toast?.(
-                result.message,
-                "success"
-            );
+            toast?.(result.message, "success");
+
+            // Reload the policy from RGW
+            await loadPolicy();
         } catch (err) {
-            toast?.(
-                err.message,
-                "error"
-            );
+            toast?.(err.message, "error");
         } finally {
             setSaving(false);
         }
@@ -209,7 +134,7 @@ export default function useBucketPolicy(bucket, toast) {
                 "success"
             );
 
-            setPolicyDraft(EMPTY_POLICY);
+            setPolicyDraft(createEmptyPolicy());
             setSelectedTemplate(null);
         } catch (err) {
             toast?.(

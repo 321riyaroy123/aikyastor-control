@@ -1,1 +1,9 @@
-[]
+[
+  {
+    "id": "keep-3-days",
+    "name": "keep 3 days",
+    "builtin": false,
+    "expire_days": 3,
+    "description": "Delete after 3 days"
+  }
+]

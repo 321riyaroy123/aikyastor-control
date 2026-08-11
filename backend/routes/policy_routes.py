@@ -22,7 +22,7 @@ from flask import Blueprint, request, jsonify
 import config.config as config
 from services.object.lifecycle_engine import run_lifecycle_engine
 from services.object.policy_manager import get_all_policies, create_policy, delete_policy, get_policy_usage
-from services.object.object_storage import get_bucket_lifecycle, assign_bucket_lifecycle
+from services.object.object_storage import get_bucket_lifecycle, assign_bucket_lifecycle, delete_bucket_lifecycle
 import simulation.simulation as simulation
 
 policy_bp = Blueprint("policy", __name__, url_prefix="/api")
@@ -38,33 +38,67 @@ def api_policies():
         "policies": get_all_policies()
     })
 
-
-@policy_bp.route("/object/buckets/<bucket>/lifecycle")
-def api_bucket_policy(bucket):
+@policy_bp.route(
+    "/object/buckets/<bucket>/lifecycle",
+    methods=["GET"]
+)
+def api_bucket_lifecycle(bucket):
     if config.IS_SIMULATION:
         return jsonify(
             simulation.get_bucket_lifecycle(bucket)
         )
-    return jsonify(get_bucket_lifecycle(bucket))
+
+    result = get_bucket_lifecycle(bucket)
+
+    return jsonify(result), (
+        200 if "error" not in result else 500
+    )
     
-@policy_bp.route("/object/buckets/<bucket>/lifecycle", methods=["PUT"])
-def api_update_bucket_policy(bucket):
-    data = request.json or {}
+@policy_bp.route(
+    "/object/buckets/<bucket>/lifecycle",
+    methods=["PUT"]
+)
+def api_update_bucket_lifecycle(bucket):
+    data = request.get_json(silent=True) or {}
+
     lifecycle = data.get("lifecycle")
 
-    if config.IS_SIMULATION:
-        return jsonify(
-            simulation.assign_bucket_lifecycle(
-                bucket,
-                lifecycle
-            )
-        )
+    if not lifecycle:
+        return jsonify({
+            "error": "Lifecycle policy is required."
+        }), 400
 
-    return jsonify(
-        assign_bucket_lifecycle(
+    if config.IS_SIMULATION:
+        result = simulation.assign_bucket_lifecycle(
             bucket,
             lifecycle
         )
+    else:
+        result = assign_bucket_lifecycle(
+            bucket,
+            lifecycle
+        )
+
+    return jsonify(result), (
+        200 if "error" not in result else 400
+    )
+
+@policy_bp.route(
+    "/object/buckets/<bucket>/lifecycle",
+    methods=["DELETE"]
+)
+def api_delete_bucket_lifecycle(bucket):
+
+    if config.IS_SIMULATION:
+        result = simulation.assign_bucket_lifecycle(
+            bucket,
+            "none"
+        )
+    else:
+        result = delete_bucket_lifecycle(bucket)
+
+    return jsonify(result), (
+        200 if "error" not in result else 500
     )
 
 @policy_bp.route("/policies", methods=["POST"])
@@ -75,13 +109,11 @@ def api_create_policy():
         result = simulation.create_policy(
                 name=data["name"],
                 expire_days=data.get("expire_days"),
-                expire_hours=data.get("expire_hours")
             )
     else:
         result = create_policy(
             name=data["name"],
             expire_days=data.get("expire_days"),
-            expire_hours=data.get("expire_hours")
         )
 
     if "error" in result:
@@ -115,6 +147,13 @@ def policy_usage(policy_id):
 @policy_bp.route("/policies/run", methods=["POST"])
 def run_policy_engine():
     if config.IS_SIMULATION:
-        return jsonify(simulation.run_lifecycle_engine())
+        return jsonify(
+            simulation.run_lifecycle_engine()
+        )
 
-    return jsonify(run_lifecycle_engine())
+    return jsonify({
+        "message": (
+            "Native Ceph RGW lifecycle processing is enabled. "
+            "No application-side lifecycle engine is required."
+        )
+    })

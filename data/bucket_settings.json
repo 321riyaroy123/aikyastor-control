@@ -1,0 +1,8 @@
+{
+    "bucket-policy": {
+        "lifecycle": "keep30"
+    },
+    "bukky": {
+        "lifecycle": "keep7"
+    }
+}

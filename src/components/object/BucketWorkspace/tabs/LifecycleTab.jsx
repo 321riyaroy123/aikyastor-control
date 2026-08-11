@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import PolicySelector from "../../PolicySelector";
 import { C, styles } from "../../../../styles/theme.js";
 
-export default function LifecycleTab({ bucket, bucketPolicy, policies, onPoliciesChange, onSaveLifecycle }) {
-    const lifecycle = bucketPolicy?.lifecycle;
+export default function LifecycleTab({ bucket, bucketLifecycle, policies, onPoliciesChange, onSaveLifecycle }) {
+    const lifecycle = bucketLifecycle?.lifecycle;
     const [selectedPolicy, setSelectedPolicy] = useState("none");
 
     useEffect(() => {

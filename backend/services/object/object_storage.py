@@ -30,13 +30,15 @@ import json
 import boto3
 from datetime import datetime, timezone
 from botocore.client import Config
+from botocore.exceptions import ClientError
 from typing import Dict, List, Any, Tuple
 from core.logger import logger
 from config.config import CEPH_RGW_ENDPOINT, CEPH_ACCESS_KEY, CEPH_SECRET_KEY, CEPH_REGION
 from services.cluster.ceph_ops import run_ceph_cmd
 from core.activity import log_activity
-from services.object.policy_manager import get_policy
-from services.object.bucket_settings import initialize_bucket, set_bucket_lifecycle, get_bucket_lifecycle as get_bucket_lifecycle_setting, delete_bucket_settings
+from services.object.policy_manager import get_policy, get_all_policies
+from services.object.lifecycle_converter import policy_to_lifecycle_configuration, lifecycle_configuration_to_policy
+from services.object.bucket_settings import initialize_bucket, delete_bucket_settings
 import xml.etree.ElementTree as ET
 
 def get_s3_client() -> boto3.client:
@@ -153,11 +155,35 @@ def create_bucket(
 
         if owner:
             try:
-                run_ceph_cmd(f"radosgw-admin bucket link --bucket={bucket} --uid={owner}")
+                pass
+                # run_ceph_cmd(f"radosgw-admin bucket link --bucket={bucket} --uid={owner}")
             except Exception as e:
                 logger.warning(f"Owner link failed: {e}")
 
-        initialize_bucket(bucket, lifecycle or "none")
+        lifecycle = lifecycle or "none"
+
+        lifecycle_result = assign_bucket_lifecycle(
+            bucket,
+            lifecycle
+        )
+
+        if "error" in lifecycle_result:
+            logger.error(
+                f"Lifecycle configuration failed for newly "
+                f"created bucket '{bucket}': "
+                f"{lifecycle_result['error']}"
+            )
+
+            return {
+                "error": (
+                    f"Bucket '{bucket}' was created, but "
+                    f"lifecycle configuration failed: "
+                    f"{lifecycle_result['error']}"
+                ),
+                "bucket": bucket
+            }
+
+        initialize_bucket(bucket, lifecycle)
 
         detail = f"Owner:{owner or 'default'} ACL:{acl} Versioning:{versioning} ObjLock:{obj_lock}"
         log_activity("CREATE BUCKET", bucket, "success", detail)
@@ -254,22 +280,258 @@ def delete_all_object_versions(bucket: str):
                 VersionId=marker["VersionId"]
             )
     
-def get_bucket_lifecycle(bucket):
-    policy_id = get_bucket_lifecycle_setting(bucket)
+def get_bucket_lifecycle(bucket: str) -> Dict[str, Any]:
+    """
+    Retrieve the native S3/Ceph RGW lifecycle configuration.
 
-    return {
-        "bucket": bucket,
-        "lifecycle": get_policy(policy_id)
-    }
+    RGW is the source of truth in production.
+    """
 
-def assign_bucket_lifecycle(bucket, policy_id):
-    set_bucket_lifecycle(bucket, policy_id)
+    try:
+        s3 = get_s3_client()
 
-    return {
-        "message": "Lifecycle updated successfully",
-        "bucket": bucket,
-        "lifecycle": get_policy(policy_id)
-    }
+        response = s3.get_bucket_lifecycle_configuration(
+            Bucket=bucket
+        )
+
+        configuration = response.get(
+            "Rules",
+            []
+        )
+
+        native_configuration = {
+            "Rules": configuration
+        }
+
+        policy = lifecycle_configuration_to_policy(
+            native_configuration,
+            get_all_policies()
+        )
+
+        return {
+            "bucket": bucket,
+            "lifecycle": policy,
+            "configuration": native_configuration
+        }
+
+    except ClientError as e:
+        code = e.response["Error"]["Code"]
+
+        # A bucket without lifecycle configuration is a
+        # normal state, not an error.
+        if code in (
+            "NoSuchLifecycleConfiguration",
+            "NoSuchLifecycle"
+        ):
+            return {
+                "bucket": bucket,
+                "lifecycle": get_policy("none"),
+                "configuration": {
+                    "Rules": []
+                }
+            }
+
+        logger.exception(
+            f"Failed to retrieve lifecycle for '{bucket}'"
+        )
+
+        return {
+            "error": e.response["Error"]["Message"]
+        }
+
+    except Exception as e:
+        logger.exception(
+            f"Unexpected error retrieving lifecycle for '{bucket}'"
+        )
+
+        return {
+            "error": str(e)
+        }
+
+def assign_bucket_lifecycle(
+    bucket: str,
+    policy_id: str
+) -> Dict[str, Any]:
+    """
+    Apply an AiKyaStor lifecycle policy directly to
+    Ceph RGW using the native S3 lifecycle API.
+    """
+
+    try:
+        if not policy_id:
+            return {
+                "error": "Lifecycle policy is required."
+            }
+
+        policy = get_policy(policy_id)
+
+        if not policy:
+            return {
+                "error": f"Lifecycle policy '{policy_id}' not found."
+            }
+
+        s3 = get_s3_client()
+
+        # --------------------------------------------------
+        # Remove lifecycle configuration
+        # --------------------------------------------------
+
+        if policy_id == "none":
+            try:
+                s3.delete_bucket_lifecycle(
+                    Bucket=bucket
+                )
+            except ClientError as e:
+                code = e.response["Error"]["Code"]
+
+                if code not in (
+                    "NoSuchLifecycleConfiguration",
+                    "NoSuchLifecycle"
+                ):
+                    raise
+
+            log_activity(
+                "LIFECYCLE POLICY",
+                bucket,
+                "success",
+                "Native RGW lifecycle configuration removed"
+            )
+
+            return {
+                "message": (
+                    f"Lifecycle policy removed from '{bucket}'."
+                ),
+                "bucket": bucket,
+                "lifecycle": policy,
+                "configuration": {
+                    "Rules": []
+                }
+            }
+
+        # --------------------------------------------------
+        # Convert AiKyaStor policy → S3 lifecycle
+        # --------------------------------------------------
+
+        configuration = policy_to_lifecycle_configuration(
+            policy
+        )
+
+        logger.info(
+            "Applying RGW lifecycle configuration to '%s':\n%s",
+            bucket,
+            json.dumps(configuration, indent=2)
+        )
+
+        # --------------------------------------------------
+        # Apply directly to RGW
+        # --------------------------------------------------
+
+        s3.put_bucket_lifecycle_configuration(
+            Bucket=bucket,
+            LifecycleConfiguration=configuration
+        )
+
+        log_activity(
+            "LIFECYCLE POLICY",
+            bucket,
+            "success",
+            f"Applied lifecycle policy '{policy_id}'"
+        )
+
+        return {
+            "message": (
+                f"Lifecycle policy '{policy['name']}' "
+                f"applied to '{bucket}'."
+            ),
+            "bucket": bucket,
+            "lifecycle": policy,
+            "configuration": configuration
+        }
+
+    except ClientError as e:
+        logger.exception(
+            f"Failed to apply lifecycle policy "
+            f"for '{bucket}'"
+        )
+
+        return {
+            "error": e.response["Error"]["Message"]
+        }
+
+    except ValueError as e:
+        logger.warning(
+            f"Invalid lifecycle policy for '{bucket}': {e}"
+        )
+
+        return {
+            "error": str(e)
+        }
+
+    except Exception as e:
+        logger.exception(
+            f"Unexpected error applying lifecycle "
+            f"for '{bucket}'"
+        )
+
+        return {
+            "error": str(e)
+        }
+
+def delete_bucket_lifecycle(bucket: str) -> Dict[str, Any]:
+    """
+    Remove the native lifecycle configuration from a bucket.
+    """
+
+    try:
+        s3 = get_s3_client()
+
+        try:
+            s3.delete_bucket_lifecycle(
+                Bucket=bucket
+            )
+
+        except ClientError as e:
+            code = e.response["Error"]["Code"]
+
+            if code not in (
+                "NoSuchLifecycleConfiguration",
+                "NoSuchLifecycle"
+            ):
+                raise
+
+        log_activity(
+            "DELETE LIFECYCLE POLICY",
+            bucket,
+            "success",
+            "Native RGW lifecycle configuration removed"
+        )
+
+        return {
+            "message": (
+                f"Lifecycle policy removed from '{bucket}'."
+            ),
+            "bucket": bucket,
+            "lifecycle": get_policy("none")
+        }
+
+    except ClientError as e:
+        logger.exception(
+            f"Failed to delete lifecycle for '{bucket}'"
+        )
+
+        return {
+            "error": e.response["Error"]["Message"]
+        }
+
+    except Exception as e:
+        logger.exception(
+            f"Unexpected error deleting lifecycle "
+            f"for '{bucket}'"
+        )
+
+        return {
+            "error": str(e)
+        }
 
 def upload_object(bucket: str, key: str, file_content: bytes, to_vault: bool = False) -> Dict[str, Any]:
     """

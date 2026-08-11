@@ -80,7 +80,7 @@ export const styles = {
   bucketWorkspaceContent: { padding: "1.5rem", minHeight: 400 },
 
   // Generic workspace card
-  workspaceCard: { background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 8, padding: "1.25rem" },
+  workspaceCard: { background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 8, padding: "0.25rem" },
   workspaceCardTitle: { display: "flex", alignItems: "center", gap: ".5rem", marginBottom: ".85rem", fontFamily: "'Space Mono',monospace", fontSize: ".85rem", fontWeight: 700, color: C.accent, textTransform: "uppercase", letterSpacing: ".03em" },
   workspaceDivider: { width: "100%", height: 1, background: C.border, margin: "1.5rem 0" },
 
@@ -120,8 +120,12 @@ export const styles = {
   policySecurity: { display: "flex", flexDirection: "column", gap: ".5rem" },
   policySecurityRow: { display: "flex", alignItems: "center", gap: ".5rem", fontSize: ".85rem", color: C.text },
   policyFooter: { display: "flex", gap: ".75rem" },
+  policySummaryGrid: { display: "grid", gridAutoRows: "min-content", gap: "0.3rem", },
+  policySummaryRow: { background: "red", display: "grid", gridTemplateColumns: "120px 1fr", alignItems: "center", gap: "0.35rem", padding: "0.1rem 0", borderBottom: `0.1px solid ${C.border}`, },
+  policySummaryLabel: { color: C.muted, fontSize: ".85rem", fontWeight: 600, },
+  policySummaryValue: { color: C.text, textAlign: "left", overflowWrap: "anywhere", },
 
-  // Shared page header (title + subtitle) used by Policies/Lifecycle
+   // Shared page header (title + subtitle) used by Policies/Lifecycle
   pageHeaderTitle: { margin: 0, fontFamily: "'Space Mono',monospace", fontSize: "1.1rem", fontWeight: 700, color: C.text },
   pageHeaderSubtitle: { marginTop: ".3rem", color: C.muted, fontSize: ".85rem" },
 

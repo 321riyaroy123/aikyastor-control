@@ -237,11 +237,18 @@ def api_put_bucket_policy(bucket):
     """
 
     if config.IS_SIMULATION:
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
+
+        policy = data.get("policy")
+
+        if not policy:
+            return jsonify({
+                "error": "Policy document is required."
+            }), 400
 
         simulation.set_mock_bucket_policy(
             bucket,
-            data.get("policy")
+            policy
         )
 
         log_activity(
@@ -252,21 +259,68 @@ def api_put_bucket_policy(bucket):
         )
 
         return jsonify({
-            "message": f"Bucket policy updated for '{bucket}'."
-        })
+            "message": f"Bucket policy updated for '{bucket}'.",
+            "bucket": bucket,
+            "policy": policy
+        }), 200
 
     try:
-        data = request.json or {}
+        # ---------------------------------------------
+        # Parse JSON body
+        # ---------------------------------------------
+
+        data = request.get_json(silent=True)
+
+        logger.info(
+            "Bucket policy PUT received for '%s': %r",
+            bucket,
+            data
+        )
+
+        if not data:
+            logger.warning(
+                "Bucket policy request contained no JSON body"
+            )
+
+            return jsonify({
+                "error": "Request body must contain valid JSON."
+            }), 400
+
+        # ---------------------------------------------
+        # Extract policy
+        # ---------------------------------------------
+
         policy = data.get("policy")
+
+        logger.info(
+            "Extracted bucket policy for '%s': %r",
+            bucket,
+            policy
+        )
 
         if not policy:
             return jsonify({
                 "error": "Policy document is required."
             }), 400
 
-        result = put_bucket_policy(bucket, policy)
+        if not isinstance(policy, dict):
+            return jsonify({
+                "error": "Policy document must be a JSON object."
+            }), 400
 
-        return jsonify(result), 200 if "error" not in result else 500
+        # ---------------------------------------------
+        # Apply policy through RGW/S3
+        # ---------------------------------------------
+
+        result = put_bucket_policy(
+            bucket,
+            policy
+        )
+
+        if "error" in result:
+            return jsonify(result), 400
+
+        return jsonify(result), 200
 
     except Exception as e:
         logger.exception(
@@ -276,7 +330,7 @@ def api_put_bucket_policy(bucket):
         return jsonify({
             "error": str(e)
         }), 500
-    
+
 @object_bp.route("/buckets/<bucket>/policy", methods=["DELETE"])
 def api_delete_bucket_policy(bucket):
     """

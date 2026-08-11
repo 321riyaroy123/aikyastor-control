@@ -68,11 +68,9 @@ def get_custom_policies() -> List[Dict]:
     with open(POLICY_FILE, "r") as f:
         return json.load(f)
 
-
 def save_custom_policies(policies: List[Dict]):
     with open(POLICY_FILE, "w") as f:
         json.dump(policies, f, indent=2)
-
 
 def get_all_policies() -> List[Dict]:
     return BUILTIN_POLICIES + get_custom_policies()
@@ -127,7 +125,7 @@ def get_policy(policy_id):
 def normalize_name(name):
     return re.sub(r"\s+", " ", name.strip().lower())
 
-def create_policy(name, expire_days=None, expire_hours=None):
+def create_policy(name, expire_days=None):
     name = normalize_name(name)
 
     if not name:
@@ -135,58 +133,63 @@ def create_policy(name, expire_days=None, expire_hours=None):
             "error": "Policy name is required."
         }
 
+    if expire_days is None:
+        return {
+            "error": (
+                "Retention period is required "
+                "and must be specified in days."
+            )
+        }
+
+    try:
+        expire_days = int(expire_days)
+    except (TypeError, ValueError):
+        return {
+            "error": "Retention period must be a valid number of days."
+        }
+
+    if expire_days <= 0:
+        return {
+            "error": "Retention period must be greater than zero."
+        }
+
     all_policies = get_all_policies()
 
-    if any(normalize_name(p["name"]) == name for p in all_policies):
+    if any(
+        normalize_name(p["name"]) == name
+        for p in all_policies
+    ):
         return {
             "error": f"Policy '{name}' already exists."
         }
 
-    if expire_days is None and expire_hours is None:
+    policy_id = re.sub(
+        r"[^a-z0-9]+",
+        "-",
+        name
+    ).strip("-")
+
+    if any(
+        p["id"] == policy_id
+        for p in all_policies
+    ):
         return {
-            "error": "Retention period is required."
+            "error": f"Policy '{name}' already exists."
         }
 
-    if expire_days is not None and expire_days <= 0:
-        return {
-            "error": "Retention period must be greater than zero."
-        }
-
-    if expire_hours is not None and expire_hours <= 0:
-        return {
-            "error": "Retention period must be greater than zero."
-        }
-    
-    policy_id = re.sub(r"[^a-z0-9]+", "-", name.strip().lower()).strip("-")
-    
     policy = {
         "id": policy_id,
         "name": name,
-        "builtin": False
-    }
-
-    if any(p["id"] == policy_id for p in all_policies):
-        return {
-            "error": f"Policy '{name}' already exists"
-        }
-
-    if expire_days is not None:
-        policy["expire_days"] = expire_days
-        policy["description"] = (
+        "builtin": False,
+        "expire_days": expire_days,
+        "description": (
             f"Delete after {expire_days} days"
         )
-    elif expire_hours is not None:
-        policy["expire_hours"] = expire_hours
-        policy["description"] = (
-            f"Delete after {expire_hours} hours"
-        )
-    else:
-        return {
-            "error": "Retention period required"
-        }
+    }
 
     policies = get_custom_policies()
     policies.append(policy)
+
     save_custom_policies(policies)
 
     return {
