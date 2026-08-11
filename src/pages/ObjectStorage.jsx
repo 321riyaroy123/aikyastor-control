@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 
 import { ObjectAPI } from "../api/objectStorage";
-import { PolicyAPI, LifecycleAPI } from "../api/policies";
+import { LifecyclePolicyAPI, BucketLifecycleAPI } from "../api/lifecyclePolicies";
 
 import { useObjects } from "../hooks/useObjects";
 
@@ -28,7 +28,7 @@ export default function ObjectStoragePage({
     const [vaultPopup, setVaultPopup] = useState(null);
 
     // Lifecycle policy definitions
-    const [policies, setPolicies] = useState([]);
+    const [lifecyclePolicies, setLifecyclePolicies] = useState([]);
 
     // Lifecycle currently assigned to the selected bucket
     const [bucketLifecycle, setBucketLifecycle] = useState(null);
@@ -42,7 +42,7 @@ export default function ObjectStoragePage({
      */
     async function loadBucketLifecycle(name) {
         try {
-            const result = await LifecycleAPI.get(name);
+            const result = await BucketLifecycleAPI.get(name);
 
             console.log(
                 `Loaded lifecycle for '${name}':`,
@@ -64,14 +64,14 @@ export default function ObjectStoragePage({
      * Load RGW lifecycle policy definitions.
      */
     useEffect(() => {
-        loadPolicies();
+        loadLifecyclePolicies();
     }, []);
 
-    async function loadPolicies() {
+    async function loadLifecyclePolicies() {
         try {
-            const result = await PolicyAPI.list();
+            const result = await LifecyclePolicyAPI.list();
 
-            setPolicies(
+            setLifecyclePolicies(
                 result.policies || []
             );
         } catch (err) {
@@ -146,7 +146,7 @@ export default function ObjectStoragePage({
         }
 
         try {
-            const result = await LifecycleAPI.put(
+            const result = await BucketLifecycleAPI.put(
                 currentBucket.name,
                 policyId
             );
@@ -369,10 +369,12 @@ export default function ObjectStoragePage({
                         bucketLifecycle
                     }
 
-                    policies={policies}
+                    lifecyclePolicies={
+                        lifecyclePolicies
+                    }
 
-                    onPoliciesChange={
-                        setPolicies
+                    onLifecyclePoliciesChange={
+                        setLifecyclePolicies
                     }
 
                     onSaveLifecycle={
@@ -394,10 +396,10 @@ export default function ObjectStoragePage({
 
                 existingBuckets={buckets}
 
-                policies={policies}
+                lifecyclePolicies={lifecyclePolicies}
 
-                onPoliciesChange={
-                    setPolicies
+                onLifecyclePoliciesChange={
+                    setLifecyclePolicies
                 }
             />
         </div>

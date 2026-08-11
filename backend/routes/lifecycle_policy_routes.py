@@ -1,10 +1,17 @@
 """
-routes/policy_routes.py - Retention / Lifecycle Policy Blueprint
+routes/lifecycle_policy_routes.py - Lifecycle / Retention Policy Blueprint
+
+Renamed from routes/policy_routes.py (blueprint policy_bp -> 
+lifecycle_policy_bp) to make explicit that every route here concerns
+LIFECYCLE (retention/expiration) policies — bucket ACCESS policies live in
+routes/object_routes.py (/api/object/buckets/<bucket>/policy, backed by
+services/object/bucket_policy.py).
 
 Moved from: app.py
     - GET    /api/policies
-    - GET    /api/object/buckets/<bucket>/policy
-    - PUT    /api/object/buckets/<bucket>/policy
+    - GET    /api/object/buckets/<bucket>/lifecycle
+    - PUT    /api/object/buckets/<bucket>/lifecycle
+    - DELETE /api/object/buckets/<bucket>/lifecycle
     - POST   /api/policies
     - DELETE /api/policies/<policy_id>
     - GET    /api/policies/<policy_id>/usage
@@ -13,32 +20,35 @@ Moved from: app.py
 Responsibility:
     Thin HTTP layer for the lifecycle-policy system. In simulation mode,
     delegates to simulation.simulation (which owns MOCK_BUCKET_SETTINGS /
-    MOCK_POLICIES and the mock lifecycle engine). In production mode,
-    delegates to services.object.policy_manager.get_all_policies().
-    
+    MOCK_LIFECYCLE_POLICIES and the mock lifecycle engine). In production
+    mode, delegates to
+    services.object.lifecycle_policy_manager.get_all_lifecycle_policies().
 """
 
 from flask import Blueprint, request, jsonify
 import config.config as config
 from services.object.lifecycle_engine import run_lifecycle_engine
-from services.object.policy_manager import get_all_policies, create_policy, delete_policy, get_policy_usage
+from services.object.lifecycle_policy_manager import (
+    get_all_lifecycle_policies, create_lifecycle_policy,
+    delete_lifecycle_policy, get_lifecycle_policy_usage
+)
 from services.object.object_storage import get_bucket_lifecycle, assign_bucket_lifecycle, delete_bucket_lifecycle
 import simulation.simulation as simulation
 
-policy_bp = Blueprint("policy", __name__, url_prefix="/api")
+lifecycle_policy_bp = Blueprint("lifecycle_policy", __name__, url_prefix="/api")
 
-@policy_bp.route("/policies")
+@lifecycle_policy_bp.route("/policies")
 def api_policies():
     if config.IS_SIMULATION:
         return jsonify({
-            "policies": simulation.get_policies()
+            "policies": simulation.get_lifecycle_policies()
         })
 
     return jsonify({
-        "policies": get_all_policies()
+        "policies": get_all_lifecycle_policies()
     })
 
-@policy_bp.route(
+@lifecycle_policy_bp.route(
     "/object/buckets/<bucket>/lifecycle",
     methods=["GET"]
 )
@@ -54,7 +64,7 @@ def api_bucket_lifecycle(bucket):
         200 if "error" not in result else 500
     )
     
-@policy_bp.route(
+@lifecycle_policy_bp.route(
     "/object/buckets/<bucket>/lifecycle",
     methods=["PUT"]
 )
@@ -83,7 +93,7 @@ def api_update_bucket_lifecycle(bucket):
         200 if "error" not in result else 400
     )
 
-@policy_bp.route(
+@lifecycle_policy_bp.route(
     "/object/buckets/<bucket>/lifecycle",
     methods=["DELETE"]
 )
@@ -101,17 +111,17 @@ def api_delete_bucket_lifecycle(bucket):
         200 if "error" not in result else 500
     )
 
-@policy_bp.route("/policies", methods=["POST"])
-def api_create_policy():
+@lifecycle_policy_bp.route("/policies", methods=["POST"])
+def api_create_lifecycle_policy():
     data = request.get_json()
 
     if config.IS_SIMULATION:
-        result = simulation.create_policy(
+        result = simulation.create_lifecycle_policy(
                 name=data["name"],
                 expire_days=data.get("expire_days"),
             )
     else:
-        result = create_policy(
+        result = create_lifecycle_policy(
             name=data["name"],
             expire_days=data.get("expire_days"),
         )
@@ -121,31 +131,31 @@ def api_create_policy():
 
     return jsonify(result), 201
 
-@policy_bp.route("/policies/<policy_id>", methods=["DELETE"])
-def api_delete_policy(policy_id):
+@lifecycle_policy_bp.route("/policies/<policy_id>", methods=["DELETE"])
+def api_delete_lifecycle_policy(policy_id):
     if config.IS_SIMULATION:
         return jsonify(
-            simulation.delete_policy(policy_id)
+            simulation.delete_lifecycle_policy(policy_id)
         )
     else:
-        result = delete_policy(policy_id)
+        result = delete_lifecycle_policy(policy_id)
 
     if "error" in result:
         return jsonify(result), 400
 
     return jsonify(result)
 
-@policy_bp.route("/policies/<policy_id>/usage")
-def policy_usage(policy_id):
+@lifecycle_policy_bp.route("/policies/<policy_id>/usage")
+def lifecycle_policy_usage(policy_id):
     if config.IS_SIMULATION:
         return jsonify(
-            simulation.get_policy_usage(policy_id)
+            simulation.get_lifecycle_policy_usage(policy_id)
         )
-    return jsonify(get_policy_usage(policy_id))
+    return jsonify(get_lifecycle_policy_usage(policy_id))
 
 
-@policy_bp.route("/policies/run", methods=["POST"])
-def run_policy_engine():
+@lifecycle_policy_bp.route("/policies/run", methods=["POST"])
+def run_lifecycle_policy_engine():
     if config.IS_SIMULATION:
         return jsonify(
             simulation.run_lifecycle_engine()

@@ -103,6 +103,7 @@ export default function useBucketPolicy(bucket, toast) {
     }
 
     async function applyPolicy() {
+        console.log("useBucketPolicy.applyPolicy firing", policyDraft);
         setSaving(true);
 
         try {

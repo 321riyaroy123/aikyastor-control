@@ -3,7 +3,7 @@ import Modal from "../common/Modal";
 import Button from "../common/Button";
 import { styles, C } from "../../styles/theme";
 
-export default function CreatePolicyDialog({ open, onClose, onCreate }){
+export default function CreateLifecyclePolicyDialog({ open, onClose, onCreate }){
     const [name,setName]=useState("");
     const [unit,setUnit]=useState("days");
     const [value,setValue]=useState(30);

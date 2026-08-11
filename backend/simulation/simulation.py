@@ -14,7 +14,7 @@ import re
 from email import policy
 from typing import Dict, List, Any
 from datetime import datetime, timedelta
-from services.object.policy_manager import get_policy
+from services.object.lifecycle_policy_manager import get_policy
 
 SIMULATION_TIME = datetime.utcnow()
 
@@ -110,7 +110,7 @@ MOCK_CEPHFS = {
 }
 
 # Mock retention policies
-MOCK_POLICIES = [
+MOCK_LIFECYCLE_POLICIES = [
     {
         "id": "none",
         "name": "No Policy",
@@ -184,7 +184,7 @@ MOCK_BUCKET_SETTINGS = {
     }
 }
 
-CUSTOM_POLICIES = []
+CUSTOM_LIFECYCLE_POLICIES = []
 
 # Mock activity log
 MOCK_ACTIVITY = [
@@ -281,7 +281,7 @@ def get_bucket_lifecycle(bucket):
         }
     )
 
-    lifecycle = get_policy(settings["lifecycle"])
+    lifecycle = get_lifecycle_policy(settings["lifecycle"])
 
     return {
         "bucket": bucket,
@@ -297,8 +297,8 @@ def assign_bucket_lifecycle(bucket, policy_id):
 
     MOCK_BUCKET_SETTINGS[bucket]["lifecycle"] = policy_id
 
-    old_policy = get_policy(old_policy_id)
-    new_policy = get_policy(policy_id)
+    old_policy = get_lifecycle_policy(old_policy_id)
+    new_policy = get_lifecycle_policy(policy_id)
 
     add_mock_activity_entry({
         "time": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
@@ -344,14 +344,14 @@ def run_lifecycle_engine():
         if policy_id == "none":
             continue
 
-        policy = get_policy(policy_id)
-        if not policy:
+        lifecycle_policy = get_lifecycle_policy(policy_id)
+        if not lifecycle_policy:
             continue
 
-        if "expire_hours" in policy:
-            retention = timedelta(hours=policy["expire_hours"])
-        elif "expire_days" in policy:
-            retention = timedelta(days=policy["expire_days"])
+        if "expire_hours" in lifecycle_policy:
+            retention = timedelta(hours=lifecycle_policy["expire_hours"])
+        elif "expire_days" in lifecycle_policy:
+            retention = timedelta(days=lifecycle_policy["expire_days"])
         else:
             continue
 
@@ -372,10 +372,10 @@ def run_lifecycle_engine():
                     "simulation-time": now.strftime("%Y-%m-%d %H:%M:%S"),
                     "bucket": bucket,
                     "object": obj["key"],
-                    "policy": policy["name"],
+                    "policy": lifecycle_policy["name"],
                     "reason": (
                         f"Expired after "
-                        f"{policy['name']} retention policy."
+                        f"{lifecycle_policy['name']} retention policy."
                     )
                 })
 
@@ -386,7 +386,7 @@ def run_lifecycle_engine():
                     "status": "success",
                     "detail": (
                         f"Deleted automatically. "
-                        f"Reason: {policy['name']} retention policy expired."
+                        f"Reason: {lifecycle_policy['name']} retention policy expired."
                     ),
                     "vault": False
                 })
@@ -401,11 +401,12 @@ def run_lifecycle_engine():
         "deleted": deleted
     }
 
-# Bucket Policy Simulation
-def get_policies() -> List[Dict[str, Any]]:
-    """Get all mock policies (builtin + custom)"""
-    return [p.copy() for p in MOCK_POLICIES] + [p.copy() for p in CUSTOM_POLICIES]
+# ── Lifecycle Policy Simulation (retention policy definitions) ─────────────
+def get_lifecycle_policies() -> List[Dict[str, Any]]:
+    """Get all mock lifecycle policies (builtin + custom)"""
+    return [p.copy() for p in MOCK_LIFECYCLE_POLICIES] + [p.copy() for p in CUSTOM_LIFECYCLE_POLICIES]
 
+# ── Bucket ACCESS Policy Simulation (AWS S3-style) ──────────────────────────
 def get_mock_bucket_policy(bucket: str):
     """
     Return the simulated bucket policy.
@@ -439,11 +440,12 @@ import re
 def normalize_name(name):
     return re.sub(r"\s+", " ", name.strip().lower())
 
-def create_policy(name, expire_days=None, expire_hours=None):
+# ── back to Lifecycle Policy Simulation ─────────────────────────────────────
+def create_lifecycle_policy(name, expire_days=None, expire_hours=None):
     name = normalize_name(name)
     if not name:
         return {"error": "Policy name is required."}
-    all_policies = get_policies()
+    all_policies = get_lifecycle_policies()
     if any(normalize_name(p["name"]) == name for p in all_policies):
         return {"error": f"Policy '{name}' already exists."}
     if expire_days is None and expire_hours is None:
@@ -462,19 +464,20 @@ def create_policy(name, expire_days=None, expire_hours=None):
         policy["expire_hours"] = expire_hours
         policy["description"] = f"Delete after {expire_hours} hours"
 
-    CUSTOM_POLICIES.append(policy)
+    CUSTOM_LIFECYCLE_POLICIES.append(policy)
     return {"message": f"Policy '{name}' created", "policy": policy}
 
-def get_policy_usage(policy_id):
+def get_lifecycle_policy_usage(policy_id):
     buckets = [b for b, cfg in MOCK_BUCKET_SETTINGS.items() if cfg.get("lifecycle") == policy_id]
     return {"policy": policy_id, "buckets": buckets, "count": len(buckets)}
 
-def delete_policy(policy_id):
-    usage = get_policy_usage(policy_id)
+def delete_lifecycle_policy(policy_id):
+    usage = get_lifecycle_policy_usage(policy_id)
     if usage["count"] > 0:
         return {"error": "Policy is currently assigned.", "usage": usage}
-    global CUSTOM_POLICIES
-    if not any(p["id"] == policy_id for p in CUSTOM_POLICIES):
+    global CUSTOM_LIFECYCLE_POLICIES
+    if not any(p["id"] == policy_id for p in CUSTOM_LIFECYCLE_POLICIES):
         return {"error": "Policy not found"}
-    CUSTOM_POLICIES = [p for p in CUSTOM_POLICIES if p["id"] != policy_id]
+    CUSTOM_LIFECYCLE_POLICIES = [p for p in CUSTOM_LIFECYCLE_POLICIES if p["id"] != policy_id]
     return {"message": f"Policy '{policy_id}' deleted"}
+    

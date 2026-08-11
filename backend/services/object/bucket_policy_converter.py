@@ -1,11 +1,15 @@
 """
-services/object/policy_converter.py
+services/object/bucket_policy_converter.py
 
-Converts between the frontend bucket policy model and the
+Converts between the frontend BUCKET ACCESS policy model and the
 AWS S3 bucket policy format required by Ceph RGW.
+
+Renamed from policy_converter.py so this can't be mistaken for lifecycle
+policy conversion (see services/object/lifecycle_converter.py, which
+performs the analogous job for lifecycle/retention policies).
 """
 
-def convert_ui_policy_to_aws(bucket: str, policy: dict) -> dict:
+def convert_ui_bucket_policy_to_aws(bucket: str, policy: dict) -> dict:
     """
     Convert the frontend policy draft into an AWS S3 bucket policy.
 
@@ -43,34 +47,23 @@ def convert_ui_policy_to_aws(bucket: str, policy: dict) -> dict:
 
     for index, stmt in enumerate(policy.get("statements", []), start=1):
 
-        # --------------------------------------------------
-        # Skip disabled statements
-        # --------------------------------------------------
         if not stmt.get("enabled", True):
             continue
 
-        # --------------------------------------------------
-        # SID
-        # --------------------------------------------------
         sid = stmt.get("sid", "").strip()
 
         if not sid:
             sid = f"Statement{index}"
 
-        # --------------------------------------------------
-        # Principal
-        # --------------------------------------------------
         principal = stmt.get("principal", "*")
 
         if principal == "*":
             aws_principal = "*"
 
         elif principal == "authenticated":
-            # Placeholder until IAM identities are supported
             aws_principal = "*"
 
         elif principal == "owner":
-            # Placeholder until canonical user IDs are supported
             aws_principal = "*"
 
         else:
@@ -78,9 +71,6 @@ def convert_ui_policy_to_aws(bucket: str, policy: dict) -> dict:
                 "AWS": principal
             }
 
-        # --------------------------------------------------
-        # Actions
-        # --------------------------------------------------
         actions = []
 
         for action in stmt.get("actions", []):
@@ -96,9 +86,6 @@ def convert_ui_policy_to_aws(bucket: str, policy: dict) -> dict:
         if not actions:
             continue
 
-        # --------------------------------------------------
-        # Resources
-        # --------------------------------------------------
         resources = []
 
         for resource in stmt.get("resources", []):
@@ -137,9 +124,6 @@ def convert_ui_policy_to_aws(bucket: str, policy: dict) -> dict:
         if not resources:
             continue
 
-        # --------------------------------------------------
-        # Conditions
-        # --------------------------------------------------
         condition = {}
 
         ui_conditions = stmt.get("conditions", {})
@@ -170,9 +154,6 @@ def convert_ui_policy_to_aws(bucket: str, policy: dict) -> dict:
                 {}
             )["aws:CurrentTime"] = ui_conditions["dateBefore"]
 
-        # --------------------------------------------------
-        # Build Statement
-        # --------------------------------------------------
         aws_statement = {
             "Sid": sid,
             "Effect": stmt.get("effect", "Allow"),
@@ -188,7 +169,7 @@ def convert_ui_policy_to_aws(bucket: str, policy: dict) -> dict:
 
     return aws_policy
 
-def convert_aws_policy_to_ui(aws_policy: dict) -> dict:
+def convert_aws_bucket_policy_to_ui(aws_policy: dict) -> dict:
     """
     Convert an AWS S3 bucket policy into the frontend editor model.
     """
@@ -211,18 +192,10 @@ def convert_aws_policy_to_ui(aws_policy: dict) -> dict:
 
     for index, statement in enumerate(statements, start=1):
 
-        ####################################################
-        # SID
-        ####################################################
-
         sid = statement.get("Sid")
 
         if not sid:
             sid = f"Statement{index}"
-
-        ####################################################
-        # Principal
-        ####################################################
 
         principal = statement.get("Principal", "*")
 
@@ -239,10 +212,6 @@ def convert_aws_policy_to_ui(aws_policy: dict) -> dict:
         else:
             principal = "*"
 
-        ####################################################
-        # Actions
-        ####################################################
-
         actions = statement.get("Action", [])
 
         if isinstance(actions, str):
@@ -256,10 +225,6 @@ def convert_aws_policy_to_ui(aws_policy: dict) -> dict:
                 ui_actions.append(action[3:])
             else:
                 ui_actions.append(action)
-
-        ####################################################
-        # Resources
-        ####################################################
 
         resources = []
 
@@ -275,7 +240,6 @@ def convert_aws_policy_to_ui(aws_policy: dict) -> dict:
 
             path = arn.replace("arn:aws:s3:::", "", 1)
 
-            # bucket only
             if "/" not in path:
 
                 resources.append({
@@ -287,7 +251,6 @@ def convert_aws_policy_to_ui(aws_policy: dict) -> dict:
 
             key = path.split("/", 1)[1]
 
-            # bucket/*
             if key == "*":
 
                 resources.append({
@@ -295,7 +258,6 @@ def convert_aws_policy_to_ui(aws_policy: dict) -> dict:
                     "value": ""
                 })
 
-            # prefix/*
             elif key.endswith("/*"):
 
                 resources.append({
@@ -303,7 +265,6 @@ def convert_aws_policy_to_ui(aws_policy: dict) -> dict:
                     "value": key[:-2]
                 })
 
-            # single object
             else:
 
                 resources.append({
@@ -318,10 +279,6 @@ def convert_aws_policy_to_ui(aws_policy: dict) -> dict:
                 "value": ""
             })
 
-        ####################################################
-        # Conditions
-        ####################################################
-
         conditions = {
             "secureTransport": False,
             "sourceIp": "",
@@ -330,10 +287,6 @@ def convert_aws_policy_to_ui(aws_policy: dict) -> dict:
         }
 
         condition = statement.get("Condition", {})
-
-        ####################################################
-        # Bool
-        ####################################################
 
         secure = (
             condition
@@ -346,19 +299,11 @@ def convert_aws_policy_to_ui(aws_policy: dict) -> dict:
             secure == "true"
         )
 
-        ####################################################
-        # IP
-        ####################################################
-
         conditions["sourceIp"] = (
             condition
             .get("IpAddress", {})
             .get("aws:SourceIp", "")
         )
-
-        ####################################################
-        # Dates
-        ####################################################
 
         conditions["dateAfter"] = (
             condition
@@ -371,10 +316,6 @@ def convert_aws_policy_to_ui(aws_policy: dict) -> dict:
             .get("DateLessThan", {})
             .get("aws:CurrentTime", "")
         )
-
-        ####################################################
-        # Build UI Statement
-        ####################################################
 
         ui_policy["statements"].append({
 

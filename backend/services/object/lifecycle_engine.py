@@ -20,7 +20,7 @@ from core.logger import logger
 from core.activity import log_activity
 
 from services.object.bucket_settings import get_all_bucket_settings
-from services.object.policy_manager import get_policy
+from services.object.lifecycle_policy_manager import get_lifecycle_policy
 from services.object.object_storage import get_s3_client, delete_object_permanently
 
 def run_lifecycle_engine():
@@ -50,9 +50,9 @@ def run_lifecycle_engine():
         if policy_id == "none":
             continue
 
-        policy = get_policy(policy_id)
+        lifecycle_policy = get_lifecycle_policy(policy_id)
 
-        if policy is None:
+        if lifecycle_policy is None:
             logger.warning(
                 f"Unknown lifecycle policy '{policy_id}' "
                 f"assigned to bucket '{bucket}'."
@@ -61,13 +61,13 @@ def run_lifecycle_engine():
 
         retention = None
 
-        if policy.get("expire_days") is not None:
+        if lifecycle_policy.get("expire_days") is not None:
             retention = timedelta(
-                days=policy["expire_days"]
+                days=lifecycle_policy["expire_days"]
             )
-        elif policy.get("expire_hours") is not None:
+        elif lifecycle_policy.get("expire_hours") is not None:
             retention = timedelta(
-                hours=policy["expire_hours"]
+                hours=lifecycle_policy["expire_hours"]
             )
 
         if retention is None:
@@ -94,7 +94,7 @@ def run_lifecycle_engine():
                 delete_object_permanently(bucket, obj["Key"])
                 reason = (
                     f"Expired after "
-                    f"{policy['name']} retention policy."
+                    f"{lifecycle_policy['name']} retention policy."
                 )
                 log_activity(
                     "LIFECYCLE DELETE",
@@ -106,7 +106,7 @@ def run_lifecycle_engine():
                     {
                         "bucket": bucket,
                         "object": obj["Key"],
-                        "policy": policy["name"],
+                        "policy": lifecycle_policy["name"],
                         "reason": reason
                     }
                 )

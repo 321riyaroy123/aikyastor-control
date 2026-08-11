@@ -1,23 +1,23 @@
 import { useState } from "react";
-import { PolicyAPI } from "../../api/policies";
-import CreatePolicyDialog from "./CreatePolicyDialog";
+import { LifecyclePolicyAPI } from "../../api/lifecyclePolicies";
+import CreateLifecyclePolicyDialog from "./CreateLifecyclePolicyDialog";
 import { C, styles } from "../../styles/theme";
 
-export default function PolicySelector({ value, onChange, policies = [], onPoliciesChange, allowCreate = true }) {
+export default function LifecyclePolicySelector({ value, onChange, lifecyclePolicies = [], onLifecyclePoliciesChange, allowCreate = true }) {
     const [showCreatePolicy, setShowCreatePolicy] = useState(false);
-    const selectedPolicy = policies.find(p => p.id === value) ?? { name: "No Policy", description: "Objects are retained forever." };
-    const builtinPolicies = policies.filter(p => p.builtin);
-    const customPolicies = policies.filter(p => !p.builtin);
+    const selectedPolicy = lifecyclePolicies.find(p => p.id === value) ?? { name: "No Policy", description: "Objects are retained forever." };
+    const builtinPolicies = lifecyclePolicies.filter(p => p.builtin);
+    const customPolicies = lifecyclePolicies.filter(p => !p.builtin);
 
-    async function createPolicy(payload) {
-        const result = await PolicyAPI.create(payload);
+    async function createLifecyclePolicy(payload) {
+        const result = await LifecyclePolicyAPI.create(payload);
 
         if (result.error) {
             throw new Error(result.error);
         }
 
-        if (onPoliciesChange){
-            onPoliciesChange(prev => [
+        if (onLifecyclePoliciesChange){
+            onLifecyclePoliciesChange(prev => [
                 ...prev,
                 result.policy
             ]);
@@ -26,8 +26,8 @@ export default function PolicySelector({ value, onChange, policies = [], onPolic
         setShowCreatePolicy(false);
     }
 
-    async function deletePolicy(policy) {
-        const usage = await PolicyAPI.usage(policy.id);
+    async function deleteLifecyclePolicy(policy) {
+        const usage = await LifecyclePolicyAPI.usage(policy.id);
 
         if (usage.count > 0) {
             alert(
@@ -46,13 +46,13 @@ export default function PolicySelector({ value, onChange, policies = [], onPolic
             return;
         }
 
-        const result = await PolicyAPI.delete(policy.id);
+        const result = await LifecyclePolicyAPI.delete(policy.id);
 
         if (result.error) {
             throw new Error(result.error);
         }
 
-        onPoliciesChange(prev => prev.filter(p => p.id !== policy.id));
+        onLifecyclePoliciesChange(prev => prev.filter(p => p.id !== policy.id));
 
         if (value === policy.id) {
             onChange("none");
@@ -134,7 +134,7 @@ export default function PolicySelector({ value, onChange, policies = [], onPolic
                                                 </div>
 
                                                 <button
-                                                    onClick={() => deletePolicy(policy)}
+                                                    onClick={() => deleteLifecyclePolicy(policy)}
                                                     style={{
                                                         border: "none",
                                                         background: "transparent",
@@ -154,10 +154,10 @@ export default function PolicySelector({ value, onChange, policies = [], onPolic
                     </div>
                 )
             }
-            <CreatePolicyDialog
+            <CreateLifecyclePolicyDialog
                 open={showCreatePolicy}
                 onClose={() => setShowCreatePolicy(false)}
-                onCreate={createPolicy}
+                onCreate={createLifecyclePolicy}
             />
         </>
     );

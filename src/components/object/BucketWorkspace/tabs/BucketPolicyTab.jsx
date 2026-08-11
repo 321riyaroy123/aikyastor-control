@@ -1,11 +1,11 @@
-import PolicyTemplates from "./policy/PolicyTemplates";
-import PolicyPreview from "./policy/PolicyPreview";
-import PolicyBuilder from "./policy/PolicyBuilder";
-import PolicyValidator from "./policy/PolicyValidator";
-import useBucketPolicy from "../../../../hooks/useBucketPolicy";
+import PolicyTemplates from "./policy/PolicyTemplates.jsx";
+import PolicyPreview from "./policy/PolicyPreview.jsx";
+import PolicyBuilder from "./policy/PolicyBuilder.jsx";
+import PolicyValidator from "./policy/PolicyValidator.jsx";
+import useBucketPolicy from "../../../../hooks/useBucketPolicy.js";
 import { C, styles } from "../../../../styles/theme.js";
 
-export default function PoliciesTab({ bucket, toast }) {
+export default function BucketPolicyTab({ bucket, toast }) {
     const {
         loading,
         saving,
@@ -35,7 +35,6 @@ export default function PoliciesTab({ bucket, toast }) {
 
     return (
         <div style={styles.policiesPage}>
-            {/* Header */}
             <div>
                 <h2 style={styles.pageHeaderTitle}>
                     Bucket Policies
@@ -49,7 +48,6 @@ export default function PoliciesTab({ bucket, toast }) {
                 </p>
             </div>
 
-            {/* Policy Summary */}
             <div style={styles.workspaceCard}>
                 <div style={styles.workspaceCardTitle}>
                     Policy Summary
@@ -157,13 +155,11 @@ export default function PoliciesTab({ bucket, toast }) {
                 )}
             </div>
 
-            {/* Templates */}
             <PolicyTemplates
                 selectedTemplate={selectedTemplate?.id}
                 onSelect={applyTemplate}
             />
 
-            {/* Builder */}
             <PolicyBuilder
                 draft={policyDraft}
                 addStatement={addStatement}
@@ -173,19 +169,16 @@ export default function PoliciesTab({ bucket, toast }) {
                 toggleStatement={toggleStatement}
             />
 
-            {/* Preview */}
             <PolicyPreview
                 bucket={bucket}
                 draft={policyDraft}
             />
 
-            {/* Validation */}
             <PolicyValidator
                 bucket={bucket}
                 draft={policyDraft}
             />
 
-            {/* Security Summary */}
             <div style={styles.workspaceCard}>
                 <div style={styles.workspaceCardTitle}>
                     Security Summary
@@ -221,7 +214,6 @@ export default function PoliciesTab({ bucket, toast }) {
                 </div>
             </div>
 
-            {/* Footer */}
             <div style={styles.policyFooter}>
                 <button
                     style={{

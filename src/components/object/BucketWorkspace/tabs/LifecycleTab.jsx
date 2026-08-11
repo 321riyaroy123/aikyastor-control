@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import PolicySelector from "../../PolicySelector";
+import LifecyclePolicySelector from "../../LifecyclePolicySelector.jsx";
 import { C, styles } from "../../../../styles/theme.js";
 
-export default function LifecycleTab({ bucket, bucketLifecycle, policies, onPoliciesChange, onSaveLifecycle }) {
+export default function LifecycleTab({ bucket, bucketLifecycle, lifecyclePolicies, onLifecyclePoliciesChange, onSaveLifecycle }) {
     const lifecycle = bucketLifecycle?.lifecycle;
     const [selectedPolicy, setSelectedPolicy] = useState("none");
 
@@ -16,6 +16,7 @@ export default function LifecycleTab({ bucket, bucketLifecycle, policies, onPoli
     }, [lifecycle]);
 
     async function applyPolicy() {
+        console.log("LifecycleTab.applyPolicy firing", selectedPolicy);
         await onSaveLifecycle(selectedPolicy);
     }
 
@@ -55,8 +56,8 @@ export default function LifecycleTab({ bucket, bucketLifecycle, policies, onPoli
                 <PolicySelector
                     value={selectedPolicy}
                     onChange={setSelectedPolicy}
-                    policies={policies}
-                    onPoliciesChange={onPoliciesChange}
+                    lifecyclePolicies={lifecyclePolicies}
+                    onLifecyclePoliciesChange={onLifecyclePoliciesChange}
                     allowCreate={true}
                 />
 

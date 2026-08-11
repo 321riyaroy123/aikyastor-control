@@ -1,14 +1,14 @@
 import { useState } from "react";
 import Modal from "../common/Modal";
 import Button from "../common/Button";
-import PolicySelector from "./PolicySelector";
+import LifecyclePolicySelector from "./LifecyclePolicySelector";
 import { C, styles } from "../../styles/theme";
 import { validateBucketName } from "../../utils/validators";
 
 // Extracted from the "// NEW BUCKET" Modal in ObjectStorage in
 // AiKyaStorCONTROL.jsx. `onCreate` is expected to return a Promise: resolve
 // on success (dialog closes + resets), throw to show the error inline.
-export default function BucketDialog({ open, onClose, onCreate, users, existingBuckets, policies=[], onPoliciesChange }) {
+export default function BucketDialog({ open, onClose, onCreate, users, existingBuckets, lifecyclePolicies=[], onLifecyclePoliciesChange }) {
   const [form, setForm] = useState({ name: "", owner: "", acl: "private", versioning: false, locking: false, lifecycle: "none" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -61,7 +61,7 @@ export default function BucketDialog({ open, onClose, onCreate, users, existingB
           <option value="authenticated-read">Authenticated Read — Authenticated users can read</option>
         </select>
       </div>
-      <PolicySelector
+      <LifecyclePolicySelector
           value={form.lifecycle}
           onChange={(policyId) =>
               setForm(f => ({
@@ -69,8 +69,8 @@ export default function BucketDialog({ open, onClose, onCreate, users, existingB
                   lifecycle: policyId
               }))
           }
-          policies={policies}
-          onPoliciesChange={onPoliciesChange}
+          lifecyclePolicies={policies}
+          onLifecyclePoliciesChange={onPoliciesChange}
           allowCreate={true}
       />
       <div style={{ display: "flex", flexDirection: "column", gap: ".6rem", marginBottom: "1rem" }}>

@@ -1,11 +1,12 @@
 /**
-policyGenerator.js
+bucketPolicyGenerator.js
 ============================================================================
 
- * Converts the visual bucket policy model into an AWS S3-compatible
-    Bucket Policy document.
+ * Converts the visual BUCKET ACCESS policy model into an AWS S3-compatible
+   Bucket Policy document.
 
- * This module acts as the single source of truth for policy generation.
+ * Renamed from policyGenerator.js — this only concerns bucket ACCESS
+ * policies (who can do what), not lifecycle/retention policies.
  * ============================================================================
 */
 
@@ -53,7 +54,7 @@ function generateConditions(conditions) {
     return output;
 }
 
-export function generateStatement(statement, bucketName) {
+export function generateBucketPolicyStatement(statement, bucketName) {
     if (!statement.enabled) {
         return null;
     }
@@ -80,13 +81,13 @@ export function generateStatement(statement, bucketName) {
     };
 }
 
-export function generatePolicy(draft, bucketName) {
+export function generateBucketPolicy(draft, bucketName) {
     return {
         Version: draft.version,
         Statement:
             draft.statements
                 .map(statement =>
-                    generateStatement(
+                    generateBucketPolicyStatement(
                         statement,
                         bucketName
                     )
@@ -95,7 +96,7 @@ export function generatePolicy(draft, bucketName) {
     };
 }
 
-export function summarizePolicy(policy) {
+export function summarizeBucketPolicy(policy) {
     const summary = {
         statements: policy.Statement.length,
         publicAccess: false,

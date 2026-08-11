@@ -1,9 +1,9 @@
 import { FileCode2, Copy, Download } from "lucide-react";
-import { generatePolicy } from "../../../../../../backend/services/policyGenerator";
+import { generateBucketPolicy } from "../../../../../../backend/services/bucketPolicyGenerator";
 import { C, styles } from "../../../../../styles/theme.js";
 
 export default function PolicyPreview({ bucket, draft }) {
-    const policy = generatePolicy(draft, bucket.name);
+    const policy = generateBucketPolicy(draft, bucket.name);
     const json = JSON.stringify(policy, null, 4);
 
     function copyPolicy() {

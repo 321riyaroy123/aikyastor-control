@@ -1,11 +1,15 @@
 """
-services/object/policy_manager.py
-Retention policy management
+services/object/lifecycle_policy_manager.py
+Lifecycle (retention) policy management
 
-Moved from: policy_manager.py (project root)
+Renamed from services/object/policy_manager.py to make explicit this only
+concerns LIFECYCLE (retention/expiration) policies, as distinct from bucket
+ACCESS policies (services/object/bucket_policy.py /
+services/object/bucket_policy_converter.py).
+
 Responsibility: unchanged — built-in + custom lifecycle policy definitions,
-backed by a JSON file (now backend/data/policies.json). Used by
-policy_routes.py via get_all_policies().
+backed by a JSON file (now backend/data/lifecycle_policies.json). Used by
+lifecycle_policy_routes.py via get_all_lifecycle_policies().
 """
 
 import re
@@ -15,9 +19,9 @@ from typing import List, Dict
 from services.object.bucket_settings import get_all_bucket_settings
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-POLICY_FILE = os.path.join(BASE_DIR, "..", "..", "data", "policies.json")
+LIFECYCLE_POLICY_FILE = os.path.join(BASE_DIR, "..", "..", "data", "lifecycle_policies.json")
 
-BUILTIN_POLICIES = [
+BUILTIN_LIFECYCLE_POLICIES = [
     {
         "id": "none",
         "name": "No Policy",
@@ -55,27 +59,27 @@ BUILTIN_POLICIES = [
     },
 ]
 
-def _ensure_policy_file():
-    os.makedirs(os.path.dirname(POLICY_FILE), exist_ok=True)
+def _ensure_lifecycle_policy_file():
+    os.makedirs(os.path.dirname(LIFECYCLE_POLICY_FILE), exist_ok=True)
 
-    if not os.path.exists(POLICY_FILE):
-        with open(POLICY_FILE, "w") as f:
+    if not os.path.exists(LIFECYCLE_POLICY_FILE):
+        with open(LIFECYCLE_POLICY_FILE, "w") as f:
             json.dump([], f, indent=2)
 
-def get_custom_policies() -> List[Dict]:
-    _ensure_policy_file()
+def get_custom_lifecycle_policies() -> List[Dict]:
+    _ensure_lifecycle_policy_file()
 
-    with open(POLICY_FILE, "r") as f:
+    with open(LIFECYCLE_POLICY_FILE, "r") as f:
         return json.load(f)
 
-def save_custom_policies(policies: List[Dict]):
-    with open(POLICY_FILE, "w") as f:
+def save_custom_lifecycle_policies(policies: List[Dict]):
+    with open(LIFECYCLE_POLICY_FILE, "w") as f:
         json.dump(policies, f, indent=2)
 
-def get_all_policies() -> List[Dict]:
-    return BUILTIN_POLICIES + get_custom_policies()
+def get_all_lifecycle_policies() -> List[Dict]:
+    return BUILTIN_LIFECYCLE_POLICIES + get_custom_lifecycle_policies()
 
-def get_policy_usage(policy_id):
+def get_lifecycle_policy_usage(policy_id):
     settings = get_all_bucket_settings()
 
     buckets = []
@@ -90,8 +94,8 @@ def get_policy_usage(policy_id):
         "count": len(buckets)
     }
 
-def delete_policy(policy_id):
-    usage = get_policy_usage(policy_id)
+def delete_lifecycle_policy(policy_id):
+    usage = get_lifecycle_policy_usage(policy_id)
 
     if usage["count"] > 0:
         return {
@@ -99,7 +103,7 @@ def delete_policy(policy_id):
             "usage": usage
         }
 
-    policies = get_custom_policies()
+    policies = get_custom_lifecycle_policies()
 
     if not any(p["id"] == policy_id for p in policies):
         return {"error": "Policy not found"}
@@ -109,14 +113,14 @@ def delete_policy(policy_id):
         if p["id"] != policy_id
     ]
 
-    save_custom_policies(policies)
+    save_custom_lifecycle_policies(policies)
 
     return {
         "message": f"Policy '{policy_id}' deleted"
     }
 
-def get_policy(policy_id):
-    for p in get_all_policies():
+def get_lifecycle_policy(policy_id):
+    for p in get_all_lifecycle_policies():
         if p["id"] == policy_id:
             return p
 
@@ -125,7 +129,7 @@ def get_policy(policy_id):
 def normalize_name(name):
     return re.sub(r"\s+", " ", name.strip().lower())
 
-def create_policy(name, expire_days=None):
+def create_lifecycle_policy(name, expire_days=None):
     name = normalize_name(name)
 
     if not name:
@@ -153,7 +157,7 @@ def create_policy(name, expire_days=None):
             "error": "Retention period must be greater than zero."
         }
 
-    all_policies = get_all_policies()
+    all_policies = get_all_lifecycle_policies()
 
     if any(
         normalize_name(p["name"]) == name
@@ -187,10 +191,10 @@ def create_policy(name, expire_days=None):
         )
     }
 
-    policies = get_custom_policies()
+    policies = get_custom_lifecycle_policies()
     policies.append(policy)
 
-    save_custom_policies(policies)
+    save_custom_lifecycle_policies(policies)
 
     return {
         "message": f"Policy '{name}' created",

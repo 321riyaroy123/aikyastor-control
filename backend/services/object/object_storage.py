@@ -36,7 +36,7 @@ from core.logger import logger
 from config.config import CEPH_RGW_ENDPOINT, CEPH_ACCESS_KEY, CEPH_SECRET_KEY, CEPH_REGION
 from services.cluster.ceph_ops import run_ceph_cmd
 from core.activity import log_activity
-from services.object.policy_manager import get_policy, get_all_policies
+from services.object.lifecycle_policy_manager import get_lifecycle_policy, get_all_lifecycle_policies
 from services.object.lifecycle_converter import policy_to_lifecycle_configuration, lifecycle_configuration_to_policy
 from services.object.bucket_settings import initialize_bucket, delete_bucket_settings
 import xml.etree.ElementTree as ET
@@ -303,29 +303,27 @@ def get_bucket_lifecycle(bucket: str) -> Dict[str, Any]:
             "Rules": configuration
         }
 
-        policy = lifecycle_configuration_to_policy(
+        lifecycle_policy = lifecycle_configuration_to_policy(
             native_configuration,
-            get_all_policies()
+            get_all_lifecycle_policies()
         )
 
         return {
             "bucket": bucket,
-            "lifecycle": policy,
+            "lifecycle": lifecycle_policy,
             "configuration": native_configuration
         }
 
     except ClientError as e:
         code = e.response["Error"]["Code"]
 
-        # A bucket without lifecycle configuration is a
-        # normal state, not an error.
         if code in (
             "NoSuchLifecycleConfiguration",
             "NoSuchLifecycle"
         ):
             return {
                 "bucket": bucket,
-                "lifecycle": get_policy("none"),
+                "lifecycle": get_lifecycle_policy("none"),
                 "configuration": {
                     "Rules": []
                 }
@@ -363,18 +361,14 @@ def assign_bucket_lifecycle(
                 "error": "Lifecycle policy is required."
             }
 
-        policy = get_policy(policy_id)
+        lifecycle_policy = get_lifecycle_policy(policy_id)
 
-        if not policy:
+        if not lifecycle_policy:
             return {
                 "error": f"Lifecycle policy '{policy_id}' not found."
             }
 
         s3 = get_s3_client()
-
-        # --------------------------------------------------
-        # Remove lifecycle configuration
-        # --------------------------------------------------
 
         if policy_id == "none":
             try:
@@ -402,18 +396,14 @@ def assign_bucket_lifecycle(
                     f"Lifecycle policy removed from '{bucket}'."
                 ),
                 "bucket": bucket,
-                "lifecycle": policy,
+                "lifecycle": lifecycle_policy,
                 "configuration": {
                     "Rules": []
                 }
             }
 
-        # --------------------------------------------------
-        # Convert AiKyaStor policy → S3 lifecycle
-        # --------------------------------------------------
-
         configuration = policy_to_lifecycle_configuration(
-            policy
+            lifecycle_policy
         )
 
         logger.info(
@@ -421,10 +411,6 @@ def assign_bucket_lifecycle(
             bucket,
             json.dumps(configuration, indent=2)
         )
-
-        # --------------------------------------------------
-        # Apply directly to RGW
-        # --------------------------------------------------
 
         s3.put_bucket_lifecycle_configuration(
             Bucket=bucket,
@@ -440,11 +426,11 @@ def assign_bucket_lifecycle(
 
         return {
             "message": (
-                f"Lifecycle policy '{policy['name']}' "
+                f"Lifecycle policy '{lifecycle_policy['name']}' "
                 f"applied to '{bucket}'."
             ),
             "bucket": bucket,
-            "lifecycle": policy,
+            "lifecycle": lifecycle_policy,
             "configuration": configuration
         }
 
@@ -511,7 +497,7 @@ def delete_bucket_lifecycle(bucket: str) -> Dict[str, Any]:
                 f"Lifecycle policy removed from '{bucket}'."
             ),
             "bucket": bucket,
-            "lifecycle": get_policy("none")
+            "lifecycle": get_lifecycle_policy("none")
         }
 
     except ClientError as e:

@@ -6,7 +6,7 @@ import BucketTabs from "./BucketTabs";
 import BucketToolbar from "./BucketToolbar";
 
 import ObjectsTab from "./tabs/ObjectsTab";
-import PoliciesTab from "./tabs/PoliciesTab";
+import BucketPolicyTab from "./tabs/BucketPolicyTab";
 import LifecycleTab from "./tabs/LifecycleTab";
 import SettingsTab from "./tabs/SettingsTab";
 
@@ -23,8 +23,8 @@ export default function BucketWorkspace({
     downloadUrl,
 
     bucketLifecycle,
-    policies,
-    onPoliciesChange,
+    lifecyclePolicies,
+    onLifecyclePoliciesChange,
     onSaveLifecycle,
 
     onEditPolicy
@@ -47,7 +47,7 @@ export default function BucketWorkspace({
         ),
 
         policies: (
-            <PoliciesTab
+            <BucketPolicyTab
                 bucket={bucket}
                 toast={toast}
             />
@@ -61,10 +61,10 @@ export default function BucketWorkspace({
                     bucketLifecycle
                 }
 
-                policies={policies}
+                lifecyclePolicies={lifecyclePolicies}
 
-                onPoliciesChange={
-                    onPoliciesChange
+                onLifecyclePoliciesChange={
+                    onLifecyclePoliciesChange
                 }
 
                 onSaveLifecycle={
