@@ -59,22 +59,39 @@ def get_s3_client() -> boto3.client:
 
 def list_buckets() -> Dict[str, Any]:
     """
-    List all S3 buckets
-    
-    Returns:
-        Dictionary with bucket list
+    List all S3 buckets with their actual configuration.
     """
+
     try:
         s3 = get_s3_client()
         resp = s3.list_buckets()
-        buckets = [
-            {"name": b["Name"], "created": str(b["CreationDate"])}
-            for b in resp.get("Buckets", [])
-        ]
-        return {"buckets": buckets}
+
+        buckets = []
+
+        for b in resp.get("Buckets", []):
+            bucket_name = b["Name"]
+
+            status = get_bucket_status(
+                s3,
+                bucket_name
+            )
+
+            buckets.append({
+                "name": bucket_name,
+                "created": str(b["CreationDate"]),
+                **status
+            })
+
+        return {
+            "buckets": buckets
+        }
+
     except Exception as e:
         logger.exception("list_buckets error")
-        return {"error": str(e), "buckets": []}
+        return {
+            "error": str(e),
+            "buckets": []
+        }
 
 def list_bucket_objects(bucket: str) -> Dict[str, Any]:
     """
@@ -101,98 +118,154 @@ def list_bucket_objects(bucket: str) -> Dict[str, Any]:
         logger.exception(f"list_bucket_objects error for {bucket}")
         return {"error": str(e), "objects": []}
 
+def get_bucket_status(s3, bucket: str) -> Dict[str, Any]:
+    """
+    Get the actual configuration/status of an S3/RGW bucket.
+    """
+
+    # ---------------------------------------------------------
+    # ACL
+    # ---------------------------------------------------------
+    acl_response = s3.get_bucket_acl(Bucket=bucket)
+
+    grants = acl_response.get("Grants", [])
+
+    acl = "private"
+
+    for grant in grants:
+        grantee = grant.get("Grantee", {})
+        permission = grant.get("Permission")
+
+        grantee_type = grantee.get("Type")
+        grantee_uri = grantee.get("URI")
+
+        if (
+            grantee_type == "Group"
+            and grantee_uri == "http://acs.amazonaws.com/groups/global/AllUsers"
+        ):
+            if permission == "READ":
+                acl = "public-read"
+            elif permission == "WRITE":
+                acl = "public-read-write"
+
+        elif (
+            grantee_type == "Group"
+            and grantee_uri
+            == "http://acs.amazonaws.com/groups/global/AuthenticatedUsers"
+        ):
+            if permission == "READ":
+                acl = "authenticated-read"
+
+    # ---------------------------------------------------------
+    # Versioning
+    # ---------------------------------------------------------
+    versioning_response = s3.get_bucket_versioning(
+        Bucket=bucket
+    )
+
+    versioning = versioning_response.get(
+        "Status",
+        "Disabled"
+    )
+
+    # ---------------------------------------------------------
+    # Object Lock
+    # ---------------------------------------------------------
+    object_locking = False
+    object_lock = None
+
+    try:
+        object_lock_response = s3.get_object_lock_configuration(
+            Bucket=bucket
+        )
+
+        object_lock = object_lock_response.get(
+            "ObjectLockConfiguration"
+        )
+
+        object_locking = (
+            object_lock is not None
+            and object_lock.get("ObjectLockEnabled") == "Enabled"
+        )
+
+    except ClientError as e:
+        error_code = e.response.get("Error", {}).get("Code")
+
+        if error_code not in (
+            "NoSuchObjectLockConfiguration",
+            "ObjectLockConfigurationNotFoundError",
+        ):
+            raise
+
+    return {
+        "acl": acl,
+        "versioning": versioning,
+        "object_locking": object_locking,
+        "object_lock": object_lock,
+    }
+
 def create_bucket(
     bucket: str,
     owner: str = "admin",
     acl: str = "private",
     versioning: bool = False,
-    obj_lock: bool = False,
-    lifecycle: str | None = None
+    obj_lock: bool = False
 ) -> Dict[str, Any]:
-    """
-    Create a new bucket
-    
-    Args:
-        bucket: Bucket name
-        owner: Bucket owner user
-        acl: Access control level
-        versioning: Enable versioning
-        obj_lock: Enable object lock
-        
-    Returns:
-        Result dictionary
-    """
+
     try:
         s3 = get_s3_client()
-        try:
-            s3.create_bucket(Bucket=bucket)
-        except Exception as e:
-            err = str(e)
-            if "BucketAlreadyOwnedByYou" in err:
-                pass  # already exists and owned by us, continue
-            elif "BucketAlreadyExists" in err:
-                return {"error": f"Bucket '{bucket}' already exists"}
-            else:
-                logger.exception(f"create_bucket error for {bucket}")
-                log_activity("CREATE BUCKET", bucket, "error", err)
-                return {"error": err}
 
-        # Post-creation config — all non-fatal
-        if acl and acl != "private":
-            try:
-                s3.put_bucket_acl(Bucket=bucket, ACL=acl)
-            except Exception as e:
-                logger.warning(f"ACL failed: {e}")
-
-        if versioning or obj_lock:
-            try:
-                s3.put_bucket_versioning(
-                    Bucket=bucket,
-                    VersioningConfiguration={"Status": "Enabled"}
-                )
-            except Exception as e:
-                logger.warning(f"Versioning failed: {e}")
-
-        if owner:
-            try:
-                pass
-                # run_ceph_cmd(f"radosgw-admin bucket link --bucket={bucket} --uid={owner}")
-            except Exception as e:
-                logger.warning(f"Owner link failed: {e}")
-
-        lifecycle = lifecycle or "none"
-
-        lifecycle_result = assign_bucket_lifecycle(
-            bucket,
-            lifecycle
+        # Create bucket with the requested ACL and
+        # Object Lock capability.
+        s3.create_bucket(
+            Bucket=bucket,
+            ACL=acl,
+            ObjectLockEnabledForBucket=obj_lock
         )
 
-        if "error" in lifecycle_result:
-            logger.error(
-                f"Lifecycle configuration failed for newly "
-                f"created bucket '{bucket}': "
-                f"{lifecycle_result['error']}"
+        # Enable versioning after bucket creation.
+        if versioning:
+            s3.put_bucket_versioning(
+                Bucket=bucket,
+                VersioningConfiguration={
+                    "Status": "Enabled"
+                }
             )
 
-            return {
-                "error": (
-                    f"Bucket '{bucket}' was created, but "
-                    f"lifecycle configuration failed: "
-                    f"{lifecycle_result['error']}"
-                ),
-                "bucket": bucket
-            }
+        detail = (
+            f"Owner:{owner} "
+            f"ACL:{acl} "
+            f"Versioning:{versioning} "
+            f"ObjLock:{obj_lock}"
+        )
 
-        initialize_bucket(bucket, lifecycle)
+        log_activity(
+            "CREATE BUCKET",
+            bucket,
+            "success",
+            detail
+        )
 
-        detail = f"Owner:{owner or 'default'} ACL:{acl} Versioning:{versioning} ObjLock:{obj_lock}"
-        log_activity("CREATE BUCKET", bucket, "success", detail)
+        return {
+            "message": f"Bucket '{bucket}' created successfully",
+            "bucket": bucket
+        }
 
-        return {"message": f"Bucket '{bucket}' created successfully", "bucket": bucket}
     except Exception as e:
-        logger.exception(f"create_bucket error for {bucket}")
-        log_activity("CREATE BUCKET", bucket, "error", str(e))
-        return {"error": str(e)}
+        logger.exception(
+            f"create_bucket error for {bucket}"
+        )
+
+        log_activity(
+            "CREATE BUCKET",
+            bucket,
+            "error",
+            str(e)
+        )
+
+        return {
+            "error": str(e)
+        }
 
 def delete_bucket(bucket: str) -> Dict[str, Any]:
     """

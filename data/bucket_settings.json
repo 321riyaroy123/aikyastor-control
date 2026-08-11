@@ -4,5 +4,8 @@
     },
     "bukky": {
         "lifecycle": "keep7"
+    },
+    "versioning-test": {
+        "lifecycle": "keep7"
     }
 }

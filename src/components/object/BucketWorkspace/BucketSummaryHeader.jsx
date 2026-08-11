@@ -17,8 +17,13 @@ function formatBytes(bytes = 0) {
     return `${value.toFixed(index === 0 ? 0 : 1)} ${units[index]}`;
 }
 
-export default function BucketHeader({ bucket, objects = [], bucketPolicy, onBack }) {
+export default function BucketHeader({ bucket, objects = [], bucketLifecycle, onBack }) {
     const safeObjects = objects ?? [];
+    const lifecycle = bucketLifecycle?.lifecycle;
+
+    const isPrivate = bucket?.acl === "private";
+    const versioning = bucket?.versioning;
+    const objectLocking = bucket?.object_locking;
     const totalSize = safeObjects.reduce((sum, object) => sum + (object.size || 0), 0);
 
     // Placeholder until bucket quotas are implemented.
@@ -136,27 +141,67 @@ export default function BucketHeader({ bucket, objects = [], bucketPolicy, onBac
 
             {/* Status Badges */}
             <div style={styles.bucketStatusRow}>
-                <span style={{ ...styles.bucketBadge, ...styles.bucketBadgeSuccess }}>
+
+                {/* ACL */}
+                <span
+                    style={{
+                        ...styles.bucketBadge,
+                        ...(isPrivate
+                            ? styles.bucketBadgeSuccess
+                            : styles.bucketBadgeWarning)
+                    }}
+                >
                     <Shield size={14} />
-                    Private
+                    {bucket?.acl || "Unknown ACL"}
                 </span>
 
-                <span style={{ ...styles.bucketBadge, ...styles.bucketBadgeWarning }}>
+                {/* Lifecycle */}
+                <span
+                    style={{
+                        ...styles.bucketBadge,
+                        ...(lifecycle?.id && lifecycle.id !== "none"
+                            ? styles.bucketBadgeWarning
+                            : styles.bucketBadgeSecondary)
+                    }}
+                >
                     <Clock3 size={14} />
-                    {bucketPolicy?.lifecycle?.policy_name
-                        ? bucketPolicy.lifecycle.policy_name
+                    {lifecycle?.id && lifecycle.id !== "none"
+                        ? lifecycle.name
                         : "No Lifecycle"}
                 </span>
 
-                <span style={{ ...styles.bucketBadge, ...styles.bucketBadgeInfo }}>
+                {/* Versioning */}
+                <span
+                    style={{
+                        ...styles.bucketBadge,
+                        ...(versioning === "Enabled"
+                            ? styles.bucketBadgeInfo
+                            : styles.bucketBadgeSecondary)
+                    }}
+                >
                     <Database size={14} />
-                    Versioning Disabled
+                    {versioning === "Enabled"
+                        ? "Versioning Enabled"
+                        : versioning === "Suspended"
+                            ? "Versioning Suspended"
+                            : "Versioning Disabled"}
                 </span>
 
-                <span style={{ ...styles.bucketBadge, ...styles.bucketBadgeSecondary }}>
+                {/* Object Lock */}
+                <span
+                    style={{
+                        ...styles.bucketBadge,
+                        ...(objectLocking
+                            ? styles.bucketBadgeSuccess
+                            : styles.bucketBadgeSecondary)
+                    }}
+                >
                     <Lock size={14} />
-                    Object Lock Disabled
+                    {object
+                        ? "Object Lock Enabled"
+                        : "Object Lock Disabled"}
                 </span>
+
             </div>
         </div>
     );

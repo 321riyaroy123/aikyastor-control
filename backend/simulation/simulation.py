@@ -165,22 +165,34 @@ MOCK_LIFECYCLE_POLICIES = [
 MOCK_BUCKET_SETTINGS = {
     "media-assets": {
         "lifecycle": "none",
-        "bucket_policy": None
+        "bucket_policy": None,
+        "acl": "private",
+        "versioning": False,
+        "object_locking": False
     },
 
     "backups-daily": {
         "lifecycle": "keep30",
-        "bucket_policy": None
+        "bucket_policy": None,
+        "acl": "private",
+        "versioning": True,
+        "object_locking": False
     },
 
     "logs-archive": {
         "lifecycle": "keep90",
-        "bucket_policy": None
+        "bucket_policy": None,
+        "acl": "public-read",
+        "versioning": False,
+        "object_locking": True
     },
 
     "ml-datasets": {
         "lifecycle": "none",
-        "bucket_policy": None
+        "bucket_policy": None,
+        "acl": "private",
+        "versioning": True,
+        "object_locking": True
     }
 }
 
@@ -225,18 +237,41 @@ def get_mock_vault() -> Dict[str, Any]:
     return MOCK_VAULT.copy()
 
 def get_mock_buckets() -> List[Dict[str, Any]]:
-    """Get mock bucket list"""
-    return [b.copy() for b in MOCK_BUCKETS]
+    buckets = []
 
-def create_mock_bucket(bucket_name, lifecycle="none"):
+    for bucket in MOCK_BUCKETS:
+        name = bucket["name"]
+        settings = MOCK_BUCKET_SETTINGS.get(name, {})
+
+        buckets.append({
+            **bucket,
+            "acl": settings.get("acl", "private"),
+            "versioning": settings.get("versioning", False),
+            "object_locking": settings.get("object_locking", False)
+        })
+
+    return buckets
+
+def create_mock_bucket(
+    bucket_name,
+    owner="admin",
+    acl="private",
+    versioning=False,
+    object_locking=False,
+    lifecycle="none"
+):
     MOCK_BUCKETS.append({
         "name": bucket_name,
-        "created": datetime.utcnow().isoformat() + "Z"
+        "created": datetime.utcnow().isoformat() + "Z",
+        "owner": owner
     })
 
     MOCK_BUCKET_SETTINGS[bucket_name] = {
         "lifecycle": lifecycle,
-        "bucket_policy": None
+        "bucket_policy": None,
+        "acl": acl,
+        "versioning": versioning,
+        "object_locking": object_locking
     }
 
     MOCK_OBJECTS[bucket_name] = []

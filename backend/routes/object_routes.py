@@ -67,7 +67,7 @@ def api_create_bucket():
             data.get("owner", "").strip(),
             data.get("acl", "private"),
             data.get("versioning", False),
-            data.get("object_locking", data.get("obj_lock", False)),
+            data.get("object_locking", data.get("object_locking", False)),
             data.get("lifecycle", None)
         )
         if "error" in result:
