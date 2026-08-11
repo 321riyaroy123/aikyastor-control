@@ -37,7 +37,7 @@ export default function LifecycleTab({ bucket, bucketLifecycle, lifecyclePolicie
                     Current Policy
                 </div>
                 <h3 style={{ fontSize: "1rem", fontWeight: 600, color: C.text }}>
-                    {lifecycle?.policy_name || "No Lifecycle Policy"}
+                    {lifecycle?.name || "No Lifecycle Policy"}
                 </h3>
                 <p style={{ marginTop: ".4rem", fontSize: ".85rem", color: C.muted }}>
                     {
@@ -53,7 +53,7 @@ export default function LifecycleTab({ bucket, bucketLifecycle, lifecyclePolicie
                     Assign Lifecycle Policy
                 </div>
 
-                <PolicySelector
+                <LifecyclePolicySelector
                     value={selectedPolicy}
                     onChange={setSelectedPolicy}
                     lifecyclePolicies={lifecyclePolicies}

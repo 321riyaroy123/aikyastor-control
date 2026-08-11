@@ -14,7 +14,7 @@ import re
 from email import policy
 from typing import Dict, List, Any
 from datetime import datetime, timedelta
-from services.object.lifecycle_policy_manager import get_policy
+from services.object.lifecycle_policy_manager import get_lifecycle_policy
 
 SIMULATION_TIME = datetime.utcnow()
 

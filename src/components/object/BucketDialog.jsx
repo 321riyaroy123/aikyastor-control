@@ -69,8 +69,8 @@ export default function BucketDialog({ open, onClose, onCreate, users, existingB
                   lifecycle: policyId
               }))
           }
-          lifecyclePolicies={policies}
-          onLifecyclePoliciesChange={onPoliciesChange}
+          lifecyclePolicies={lifecyclePolicies}
+          onLifecyclePoliciesChange={onLifecyclePoliciesChange}
           allowCreate={true}
       />
       <div style={{ display: "flex", flexDirection: "column", gap: ".6rem", marginBottom: "1rem" }}>

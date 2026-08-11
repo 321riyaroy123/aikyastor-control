@@ -121,7 +121,7 @@ export const styles = {
   policySecurityRow: { display: "flex", alignItems: "center", gap: ".5rem", fontSize: ".85rem", color: C.text },
   policyFooter: { display: "flex", gap: ".75rem" },
   policySummaryGrid: { display: "grid", gridAutoRows: "min-content", gap: "0.3rem", },
-  policySummaryRow: { background: "red", display: "grid", gridTemplateColumns: "120px 1fr", alignItems: "center", gap: "0.35rem", padding: "0.1rem 0", borderBottom: `0.1px solid ${C.border}`, },
+  policySummaryRow: { display: "grid", gridTemplateColumns: "120px 1fr", alignItems: "center", gap: "0.35rem", padding: "0.1rem 0", borderBottom: `0.1px solid ${C.border}`, },
   policySummaryLabel: { color: C.muted, fontSize: ".85rem", fontWeight: 600, },
   policySummaryValue: { color: C.text, textAlign: "left", overflowWrap: "anywhere", },
 
