@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import { ArrowLeft, Database, Shield, Clock3, Lock } from "lucide-react";
 import { C, styles } from "../../../styles/theme.js";
+import { ObjectAPI } from "../../../api/objectStorage";
 
 function formatBytes(bytes = 0) {
     if (!bytes) return "0 B";
@@ -24,6 +26,41 @@ export default function BucketHeader({ bucket, objects = [], bucketLifecycle, on
     const isPrivate = bucket?.acl === "private";
     const versioning = bucket?.versioning;
     const objectLocking = bucket?.object_locking;
+
+    const [encryption, setEncryption] = useState(null);
+
+    useEffect(() => {
+        if (!bucket?.name) return;
+
+        let cancelled = false;
+
+        const loadEncryption = async () => {
+            try {
+                const result = await ObjectAPI.getBucketEncryption(
+                    bucket.name
+                );
+
+                if (!cancelled) {
+                    setEncryption(result);
+                }
+            } catch (error) {
+                console.error(
+                    `Failed to load encryption status for ${bucket.name}`,
+                    error
+                );
+
+                if (!cancelled) {
+                    setEncryption(null);
+                }
+            }
+        };
+
+        loadEncryption();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [bucket?.name]);
 
     const totalSize = safeObjects.reduce(
         (sum, object) => sum + (object.size || 0),
@@ -203,6 +240,21 @@ export default function BucketHeader({ bucket, objects = [], bucketLifecycle, on
                     {objectLocking
                         ? "Object Lock Enabled"
                         : "Object Lock Disabled"}
+                </span>
+
+                {/* Encryption */}
+                <span
+                    style={{
+                        ...styles.bucketBadge,
+                        ...(encryption?.enabled
+                            ? styles.bucketBadgeSuccess
+                            : styles.bucketBadgeSecondary)
+                    }}
+                >
+                    <Shield size={14} />
+                    {encryption?.enabled
+                        ? `Encryption: ${encryption.type || "Enabled"}`
+                        : "Encryption Disabled"}
                 </span>
 
             </div>

@@ -25,5 +25,22 @@ export const ObjectAPI = {
   deleteObject: (bucket, key) => req(`/object/buckets/${bucket}/objects/${key}`, { method: "DELETE" }),
 
   syncBucketVault: (bucket) => req(`/object/buckets/${bucket}/sync-vault`, { method: "POST" }),
+
+  getBucketEncryption: (bucket) =>
+      req(`/object/buckets/${bucket}/encryption`),
+
+  setBucketEncryption: (bucket, enabled, type = "AES256") =>
+      req(`/object/buckets/${bucket}/encryption`, {
+          method: "PUT",
+          body: JSON.stringify({
+              enabled,
+              type,
+          }),
+      }),
+
+  deleteBucketEncryption: (bucket) =>
+      req(`/object/buckets/${bucket}/encryption`, {
+          method: "DELETE",
+      }),
 };
 

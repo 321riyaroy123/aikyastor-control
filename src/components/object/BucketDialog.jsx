@@ -9,7 +9,7 @@ import { validateBucketName } from "../../utils/validators";
 // AiKyaStorCONTROL.jsx. `onCreate` is expected to return a Promise: resolve
 // on success (dialog closes + resets), throw to show the error inline.
 export default function BucketDialog({ open, onClose, onCreate, users, existingBuckets, lifecyclePolicies=[], onLifecyclePoliciesChange }) {
-  const [form, setForm] = useState({ name: "", owner: "", acl: "private", versioning: false, locking: false, lifecycle: "none" });
+  const [form, setForm] = useState({ name: "", owner: "", acl: "private", versioning: false, locking: false, lifecycle: "none", encryption: false, encryptionType: "AES256" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -26,8 +26,11 @@ export default function BucketDialog({ open, onClose, onCreate, users, existingB
         acl: form.acl,
         versioning: form.versioning,
         object_locking: form.locking,
+        lifecycle: form.lifecycle,
+        encryption_enabled: form.encryption,
+        encryption_type: form.encryptionType
       });
-      setForm({ name: "", owner: "", acl: "private", versioning: false, locking: false, lifecycle: "none" });
+      setForm({ name: "", owner: "", acl: "private", versioning: false, locking: false, lifecycle: "none", encryption: false, encryptionType: "AES256" });
       setError("");
       onClose();
     } catch (err) {
@@ -74,7 +77,7 @@ export default function BucketDialog({ open, onClose, onCreate, users, existingB
       />
       <div style={{ display: "flex", flexDirection: "column", gap: ".6rem", marginBottom: "1rem" }}>
         <div style={{ fontFamily: "'Space Mono',monospace", fontSize: ".7rem", color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: ".2rem" }}>Options</div>
-        {[["versioning", "Enable Versioning", "Keep multiple versions of each object"], ["locking", "Enable Object Locking (WORM)", "Write-once, read-many. Cannot be disabled later."]].map(([key, label, desc]) => (
+        {[["versioning", "Enable Versioning", "Keep multiple versions of each object"], ["locking", "Enable Object Locking (WORM)", "Write-once, read-many. Cannot be disabled later."], ["encryption", "Enable Server-Side Encryption", "Encrypt objects at rest using SSE-S3 (AES256)."]].map(([key, label, desc]) => (
           <label key={key} style={{ display: "flex", alignItems: "flex-start", gap: ".6rem", cursor: "pointer", padding: ".6rem .8rem", background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 6 }}>
             <input type="checkbox" checked={form[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.checked }))} style={{ marginTop: 2, accentColor: C.accent }} />
             <div>
@@ -84,6 +87,35 @@ export default function BucketDialog({ open, onClose, onCreate, users, existingB
           </label>
         ))}
       </div>
+      {form.encryption && (
+      <div
+        style={{
+          marginBottom: "1rem",
+          padding: ".6rem .8rem",
+          background: C.surface2,
+          border: `1px solid ${C.border}`,
+          borderRadius: 6,
+          fontSize: ".8rem",
+        }}
+      >
+        <div
+          style={{
+            color: C.muted,
+            fontSize: ".7rem",
+            textTransform: "uppercase",
+            letterSpacing: 1,
+            marginBottom: ".25rem",
+            fontFamily: "'Space Mono',monospace",
+          }}
+        >
+          Encryption Type
+        </div>
+
+        <div style={{ fontWeight: 500 }}>
+          SSE-S3 — AES256
+        </div>
+      </div>
+    )}
       {error && <div style={{ padding: ".6rem .8rem", background: "rgba(248,113,113,.1)", border: "1px solid rgba(248,113,113,.3)", borderRadius: 6, color: C.red, fontSize: ".82rem", marginBottom: ".75rem" }}>{error}</div>}
       <div style={{ display: "flex", gap: ".75rem", marginTop: "1.5rem", justifyContent: "flex-end" }}>
         <Button variant="ghost" onClick={close}>Cancel</Button>

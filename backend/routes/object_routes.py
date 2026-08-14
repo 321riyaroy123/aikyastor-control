@@ -24,8 +24,17 @@ import config.config as config
 from core.logger import logger
 from core.activity import log_activity
 from services.object.object_storage import (
-    list_buckets, list_bucket_objects, create_bucket, delete_bucket,
-    upload_object, delete_object, list_rgw_users, get_object
+    list_buckets,
+    list_bucket_objects,
+    create_bucket,
+    delete_bucket,
+    upload_object,
+    delete_object,
+    list_rgw_users,
+    get_object,
+    assign_bucket_lifecycle,
+    get_bucket_encryption,
+    set_bucket_encryption,
 )
 from services.object.bucket_policy import get_bucket_policy, put_bucket_policy, delete_bucket_policy
 from services.vault.vault_ops import start_bucket_sync_background
@@ -48,35 +57,131 @@ def api_list_buckets():
 @object_bp.route("/buckets", methods=["POST"])
 def api_create_bucket():
     """Create a new bucket"""
+
     if config.IS_SIMULATION:
         data = request.json or {}
+
         bucket = data.get("bucket", "new-bucket")
         lifecycle = data.get("lifecycle", "none")
-        simulation.create_mock_bucket(bucket, lifecycle)
-        log_activity("CREATE BUCKET", bucket, "success", "Simulation mode")
-        return jsonify({"message": f"Bucket '{bucket}' created"}), 201
+
+        simulation.create_mock_bucket(
+            bucket,
+            lifecycle
+        )
+
+        log_activity(
+            "CREATE BUCKET",
+            bucket,
+            "success",
+            "Simulation mode"
+        )
+
+        return jsonify({
+            "message": f"Bucket '{bucket}' created"
+        }), 201
 
     try:
         data = request.json or {}
+
         bucket = data.get("bucket", "").strip()
+
         if not bucket:
-            return jsonify({"error": "Bucket name is required"}), 400
+            return jsonify({
+                "error": "Bucket name is required"
+            }), 400
+
+        # ---------------------------------------------
+        # Extract bucket configuration
+        # ---------------------------------------------
+
+        owner = data.get("owner", "").strip()
+        acl = data.get("acl", "private")
+        versioning = data.get("versioning", False)
+        object_locking = data.get("object_locking", False)
+
+        lifecycle = data.get(
+            "lifecycle",
+            "none"
+        )
+
+        encryption_enabled = data.get(
+            "encryption_enabled",
+            False
+        )
+
+        encryption_type = data.get(
+            "encryption_type",
+            "AES256"
+        )
+
+        # ---------------------------------------------
+        # Create bucket
+        # ---------------------------------------------
 
         result = create_bucket(
             bucket,
-            data.get("owner", "").strip(),
-            data.get("acl", "private"),
-            data.get("versioning", False),
-            data.get("object_locking", data.get("object_locking", False)),
+            owner,
+            acl,
+            versioning,
+            object_locking,
+            encryption_enabled,
+            encryption_type,
         )
-        if "error" in result:
-            status = 409 if "already exists" in result["error"] else 500
-            return jsonify(result), status
-        return jsonify(result), 201
-    except Exception as e:
-        logger.exception("create_bucket error")
-        return jsonify({"error": str(e)}), 500
 
+        if "error" in result:
+            status = (
+                409
+                if "already exists" in result["error"]
+                else 500
+            )
+
+            return jsonify(result), status
+
+        # ---------------------------------------------
+        # Apply lifecycle policy
+        # ---------------------------------------------
+
+        if lifecycle and lifecycle != "none":
+
+            lifecycle_result = assign_bucket_lifecycle(
+                bucket,
+                lifecycle
+            )
+
+            if "error" in lifecycle_result:
+
+                logger.error(
+                    "Bucket '%s' was created, but lifecycle "
+                    "policy '%s' could not be applied: %s",
+                    bucket,
+                    lifecycle,
+                    lifecycle_result["error"]
+                )
+
+                return jsonify({
+                    "error": (
+                        f"Bucket created, but lifecycle policy "
+                        f"'{lifecycle}' could not be applied: "
+                        f"{lifecycle_result['error']}"
+                    ),
+                    "bucket": bucket
+                }), 500
+
+        # ---------------------------------------------
+        # Success
+        # ---------------------------------------------
+
+        return jsonify(result), 201
+
+    except Exception as e:
+        logger.exception(
+            "create_bucket error"
+        )
+
+        return jsonify({
+            "error": str(e)
+        }), 500
+        
 @object_bp.route("/buckets/<bucket>/objects", methods=["GET"])
 def api_list_objects(bucket):
     """List objects in a bucket"""
@@ -358,6 +463,118 @@ def api_delete_bucket_policy(bucket):
     except Exception as e:
         logger.exception(
             f"delete_bucket_policy error for {bucket}"
+        )
+
+        return jsonify({
+            "error": str(e)
+        }), 500
+
+@object_bp.route("/buckets/<bucket>/encryption", methods=["GET"])
+def api_get_bucket_encryption(bucket):
+    """
+    Retrieve the actual server-side encryption
+    configuration from Ceph RGW.
+    """
+
+    if config.IS_SIMULATION:
+        return jsonify({
+            "bucket": bucket,
+            "enabled": False,
+            "type": None,
+            "configuration": {
+                "Rules": []
+            }
+        })
+
+    try:
+        result = get_bucket_encryption(bucket)
+
+        return jsonify(result), 200 if "error" not in result else 500
+
+    except Exception as e:
+        logger.exception(
+            f"get_bucket_encryption error for {bucket}"
+        )
+
+        return jsonify({
+            "error": str(e)
+        }), 500
+
+@object_bp.route("/buckets/<bucket>/encryption", methods=["PUT"])
+def api_put_bucket_encryption(bucket):
+    """
+    Enable or configure server-side encryption
+    for a bucket.
+    """
+
+    if config.IS_SIMULATION:
+        data = request.get_json(silent=True) or {}
+
+        enabled = data.get("enabled", False)
+        encryption_type = data.get("type", "AES256")
+
+        return jsonify({
+            "message": (
+                f"Encryption {'enabled' if enabled else 'disabled'} "
+                f"for '{bucket}'."
+            ),
+            "bucket": bucket,
+            "enabled": enabled,
+            "type": encryption_type if enabled else None
+        }), 200
+
+    try:
+        data = request.get_json(silent=True) or {}
+
+        enabled = data.get("enabled", False)
+        encryption_type = data.get("type", "AES256")
+
+        result = set_bucket_encryption(
+            bucket,
+            enabled,
+            encryption_type
+        )
+
+        return jsonify(result), 200 if "error" not in result else 400
+
+    except Exception as e:
+        logger.exception(
+            f"set_bucket_encryption error for {bucket}"
+        )
+
+        return jsonify({
+            "error": str(e)
+        }), 500
+
+@object_bp.route("/buckets/<bucket>/encryption", methods=["DELETE"])
+def api_delete_bucket_encryption(bucket):
+    """
+    Remove server-side encryption configuration
+    from a bucket.
+    """
+
+    if config.IS_SIMULATION:
+        return jsonify({
+            "message": (
+                f"Server-side encryption disabled "
+                f"for '{bucket}'."
+            ),
+            "bucket": bucket,
+            "enabled": False,
+            "type": None
+        }), 200
+
+    try:
+        result = set_bucket_encryption(
+            bucket,
+            False
+        )
+
+        return jsonify(result), 200 if "error" not in result else 400
+
+    except Exception as e:
+        logger.exception(
+            f"delete_bucket_encryption error for {bucket}"
         )
 
         return jsonify({

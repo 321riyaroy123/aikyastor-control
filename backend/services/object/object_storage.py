@@ -38,7 +38,12 @@ from services.cluster.ceph_ops import run_ceph_cmd
 from core.activity import log_activity
 from services.object.lifecycle_policy_manager import get_lifecycle_policy, get_all_lifecycle_policies
 from services.object.lifecycle_converter import policy_to_lifecycle_configuration, lifecycle_configuration_to_policy
-from services.object.bucket_settings import initialize_bucket, delete_bucket_settings
+from services.object.bucket_settings import (
+    initialize_bucket,
+    delete_bucket_settings,
+    get_bucket_encryption as get_saved_bucket_encryption,
+    set_bucket_encryption as save_bucket_encryption,
+)
 import xml.etree.ElementTree as ET
 
 def get_s3_client() -> boto3.client:
@@ -204,14 +209,217 @@ def get_bucket_status(s3, bucket: str) -> Dict[str, Any]:
         "object_lock": object_lock,
     }
 
+def get_bucket_encryption(bucket: str) -> Dict[str, Any]:
+    """
+    Retrieve the actual server-side encryption configuration
+    from Ceph RGW.
+
+    RGW is the source of truth for production state.
+    """
+
+    try:
+        s3 = get_s3_client()
+
+        response = s3.get_bucket_encryption(
+            Bucket=bucket
+        )
+
+        configuration = response.get(
+            "ServerSideEncryptionConfiguration",
+            {}
+        )
+
+        rules = configuration.get("Rules", [])
+
+        if not rules:
+            return {
+                "bucket": bucket,
+                "enabled": False,
+                "type": None,
+                "configuration": configuration
+            }
+
+        default_encryption = rules[0].get(
+            "ApplyServerSideEncryptionByDefault",
+            {}
+        )
+
+        algorithm = default_encryption.get(
+            "SSEAlgorithm"
+        )
+
+        return {
+            "bucket": bucket,
+            "enabled": True,
+            "type": algorithm,
+            "configuration": configuration
+        }
+
+    except ClientError as e:
+        code = e.response.get(
+            "Error", {}
+        ).get("Code")
+
+        if code in (
+            "ServerSideEncryptionConfigurationNotFoundError",
+            "NoSuchBucket",
+        ):
+            if code == "ServerSideEncryptionConfigurationNotFoundError":
+                return {
+                    "bucket": bucket,
+                    "enabled": False,
+                    "type": None,
+                    "configuration": {
+                        "Rules": []
+                    }
+                }
+
+        logger.exception(
+            f"Failed to retrieve encryption for '{bucket}'"
+        )
+
+        return {
+            "error": e.response.get(
+                "Error", {}
+            ).get("Message", str(e))
+        }
+
+    except Exception as e:
+        logger.exception(
+            f"Unexpected error retrieving encryption for '{bucket}'"
+        )
+
+        return {
+            "error": str(e)
+        }
+
+
+def set_bucket_encryption(
+    bucket: str,
+    enabled: bool,
+    encryption_type: str = "AES256"
+) -> Dict[str, Any]:
+    """
+    Enable or disable server-side encryption for a bucket.
+
+    Currently supported:
+        AES256 (SSE-S3)
+    """
+
+    try:
+        s3 = get_s3_client()
+
+        if enabled:
+            if encryption_type != "AES256":
+                return {
+                    "error": (
+                        f"Unsupported encryption type "
+                        f"'{encryption_type}'. "
+                        f"Currently only AES256 is supported."
+                    )
+                }
+
+            configuration = {
+                "Rules": [
+                    {
+                        "ApplyServerSideEncryptionByDefault": {
+                            "SSEAlgorithm": "AES256"
+                        }
+                    }
+                ]
+            }
+
+            s3.put_bucket_encryption(
+                Bucket=bucket,
+                ServerSideEncryptionConfiguration=configuration
+            )
+
+            save_bucket_encryption(
+                bucket,
+                True,
+                "AES256"
+            )
+
+            log_activity(
+                "BUCKET ENCRYPTION",
+                bucket,
+                "success",
+                "Enabled SSE-S3 (AES256)"
+            )
+
+            return {
+                "message": (
+                    f"Server-side encryption enabled "
+                    f"for '{bucket}'."
+                ),
+                "bucket": bucket,
+                "enabled": True,
+                "type": "AES256",
+                "configuration": configuration
+            }
+
+        # Disable encryption
+        s3.delete_bucket_encryption(
+            Bucket=bucket
+        )
+
+        save_bucket_encryption(
+            bucket,
+            False,
+            "AES256"
+        )
+
+        log_activity(
+            "BUCKET ENCRYPTION",
+            bucket,
+            "success",
+            "Server-side encryption disabled"
+        )
+
+        return {
+            "message": (
+                f"Server-side encryption disabled "
+                f"for '{bucket}'."
+            ),
+            "bucket": bucket,
+            "enabled": False,
+            "type": None,
+            "configuration": {
+                "Rules": []
+            }
+        }
+
+    except ClientError as e:
+        logger.exception(
+            f"Failed to configure encryption "
+            f"for '{bucket}'"
+        )
+
+        return {
+            "error": e.response.get(
+                "Error", {}
+            ).get("Message", str(e))
+        }
+
+    except Exception as e:
+        logger.exception(
+            f"Unexpected error configuring encryption "
+            f"for '{bucket}'"
+        )
+
+        return {
+            "error": str(e)
+        }
+
 def create_bucket(
     bucket: str,
     owner: str = "admin",
     acl: str = "private",
     versioning: bool = False,
-    object_locking: bool = False
+    object_locking: bool = False,
+    encryption_enabled: bool = False,
+    encryption_type: str = "AES256"
 ) -> Dict[str, Any]:
-
     try:
         s3 = get_s3_client()
 
@@ -232,11 +440,52 @@ def create_bucket(
                 }
             )
 
+                # Configure server-side encryption.
+        if encryption_enabled:
+            if encryption_type != "AES256":
+                return {
+                    "error": (
+                        f"Unsupported encryption type "
+                        f"'{encryption_type}'. "
+                        f"Currently only AES256 is supported."
+                    )
+                }
+
+            encryption_configuration = {
+                "Rules": [
+                    {
+                        "ApplyServerSideEncryptionByDefault": {
+                            "SSEAlgorithm": "AES256"
+                        }
+                    }
+                ]
+            }
+
+            s3.put_bucket_encryption(
+                Bucket=bucket,
+                ServerSideEncryptionConfiguration=
+                    encryption_configuration
+            )
+
+            save_bucket_encryption(
+                bucket,
+                True,
+                "AES256"
+            )
+        else:
+            save_bucket_encryption(
+                bucket,
+                False,
+                "AES256"
+            )
+
         detail = (
             f"Owner:{owner} "
             f"ACL:{acl} "
             f"Versioning:{versioning} "
-            f"ObjLock:{object_locking}"
+            f"ObjLock:{object_locking} "
+            f"Encryption:"
+            f"{'SSE-S3(AES256)' if encryption_enabled else 'Disabled'}"
         )
 
         log_activity(

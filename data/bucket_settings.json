@@ -4,5 +4,17 @@
     },
     "versioning-test": {
         "lifecycle": "keep7"
+    },
+    "encryption-test": {
+        "encryption": {
+            "enabled": true,
+            "type": "AES256"
+        }
+    },
+    "lifecycle-encryption-test": {
+        "encryption": {
+            "enabled": true,
+            "type": "AES256"
+        }
     }
 }
