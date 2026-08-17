@@ -3,15 +3,20 @@ import Button from "../common/Button";
 
 // Extracted from the bucket-grid branch (!currentBucket) of ObjectStorage
 // in AiKyaStorCONTROL.jsx.
-export default function BucketTable({ buckets, onOpen, onDelete, onCreateClick }) {
+export default function BucketTable({ buckets, onOpen, onDelete, onCreateClick, onReplicationClick }) {
   return (
     <>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.5rem", flexWrap: "wrap", gap: ".5rem" }}>
         <div style={{ fontFamily: "'Space Mono',monospace", fontSize: "1rem", color: C.text, display: "flex", alignItems: "center", gap: ".75rem" }}>
           ◉ Object Storage <span style={{ fontSize: ".65rem", padding: ".2rem .6rem", borderRadius: 3, background: "rgba(249,115,22,.15)", color: C.accent, border: "1px solid rgba(249,115,22,.3)" }}>S3 / RGW</span>
         </div>
-        <Button variant="primary" size="sm" onClick={onCreateClick}>+ New Bucket</Button>
-      </div>
+        <div style={{ display: "flex", gap: ".5rem" }}>
+          <Button variant="secondary" size="sm" onClick={onReplicationClick}>  ⇄ Replication </Button>
+          <Button variant="primary" size="sm" onClick={onCreateClick}>
+            + New Bucket
+          </Button>
+        </div>    
+    </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(200px,1fr))", gap: "1rem", marginBottom: "1.5rem" }}>
         {buckets.map(b => (

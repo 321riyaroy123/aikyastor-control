@@ -16,5 +16,11 @@
             "enabled": true,
             "type": "AES256"
         }
+    },
+    "krishjeet": {
+        "encryption": {
+            "enabled": false,
+            "type": "AES256"
+        }
     }
 }

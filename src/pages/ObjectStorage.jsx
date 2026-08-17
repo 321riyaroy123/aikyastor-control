@@ -4,11 +4,12 @@ import { ObjectAPI } from "../api/objectStorage";
 import { LifecyclePolicyAPI, BucketLifecycleAPI } from "../api/lifecyclePolicies";
 
 import { useObjects } from "../hooks/useObjects";
-
+import { ReplicationAPI } from "../api/replication";
 import BucketTable from "../components/object/BucketTable";
 import BucketDialog from "../components/object/BucketDialog";
 import BucketWorkspace from "../components/object/BucketWorkspace/BucketWorkspace";
 import VaultPopup from "../components/vault/VaultPopup";
+import ReplicationPanel from "../components/object/ReplicationPanel";
 
 export default function ObjectStoragePage({
     toast,
@@ -33,6 +34,13 @@ export default function ObjectStoragePage({
     // Lifecycle currently assigned to the selected bucket
     const [bucketLifecycle, setBucketLifecycle] = useState(null);
 
+    const [showReplication, setShowReplication] = useState(false);
+    const [replicationStatus, setReplicationStatus] = useState(null);
+    const [replicatedBuckets, setReplicatedBuckets] = useState([]);
+    const [replicationLoading, setReplicationLoading] = useState(false);
+    const [replicationConfiguring, setReplicationConfiguring] = useState(false);
+    const [replicationProvisioning, setReplicationProvisioning] = useState(false);
+    
     /*
      * Load RGW lifecycle configuration for a bucket.
      *
@@ -315,6 +323,100 @@ export default function ObjectStoragePage({
         }
     };
 
+    const loadReplication = async () => {
+        setReplicationLoading(true);
+
+        try {
+            const [status, bucketResult] =
+                await Promise.all([
+                    ReplicationAPI.getStatus(),
+                    ReplicationAPI.getBuckets()
+                ]);
+
+            setReplicationStatus(status);
+            setReplicatedBuckets(
+                bucketResult.buckets || []
+            );
+
+        } catch (err) {
+            console.error(
+                "Failed to load replication:",
+                err
+            );
+
+            toast(
+                err.message ||
+                "Failed to load replication status.",
+                "error"
+            );
+
+        } finally {
+            setReplicationLoading(false);
+        }
+    };
+
+    const configureReplication = async (config) => {
+        setReplicationConfiguring(true);
+
+        try {
+            await ReplicationAPI.configure(config);
+
+            toast(
+                "Replication configuration applied successfully.",
+                "success"
+            );
+
+            await loadReplication();
+        } catch (err) {
+            console.error(
+                "Failed to configure replication:",
+                err
+            );
+
+            toast(
+                err.message ||
+                "Failed to configure replication.",
+                "error"
+            );
+        } finally {
+            setReplicationConfiguring(false);
+        }
+    };
+
+    const provisionReplication = async (config) => {
+        setReplicationProvisioning(true);
+
+        try {
+            const result =
+                await ReplicationAPI.provision(config);
+
+            toast(
+                result.message ||
+                "Secondary replication site provisioned successfully.",
+                "success",
+                6000
+            );
+
+            await loadReplication();
+
+        } catch (err) {
+            console.error(
+                "Failed to provision replication:",
+                err
+            );
+
+            toast(
+                err.message ||
+                "Failed to provision secondary replication site.",
+                "error",
+                6000
+            );
+
+        } finally {
+            setReplicationProvisioning(false);
+        }
+    };
+
     return (
         <div>
             {vaultPopup && (
@@ -328,17 +430,36 @@ export default function ObjectStoragePage({
             )}
 
             {!currentBucket ? (
-                <BucketTable
-                    buckets={buckets}
-
-                    onOpen={handleOpenBucket}
-
-                    onDelete={deleteBucket}
-
-                    onCreateClick={() =>
-                        setShowCreate(true)
-                    }
-                />
+                showReplication ? (
+                    <ReplicationPanel
+                        status={replicationStatus}
+                        buckets={replicatedBuckets}
+                        loading={replicationLoading}
+                        configuring={replicationConfiguring}
+                        provisioning={replicationProvisioning}
+                        onBack={() => {
+                            setShowReplication(false);
+                            setReplicationStatus(null);
+                            setReplicatedBuckets([]);
+                        }}
+                        onRefresh={loadReplication}
+                        onConfigure={configureReplication}
+                        onProvision={provisionReplication}
+                    />
+                ) : (
+                    <BucketTable
+                        buckets={buckets}
+                        onOpen={handleOpenBucket}
+                        onDelete={deleteBucket}
+                        onCreateClick={() =>
+                            setShowCreate(true)
+                        }
+                        onReplicationClick={() => {
+                            setShowReplication(true);
+                            loadReplication();
+                        }}
+                    />
+                )
             ) : (
                 <BucketWorkspace
                     bucket={currentBucket}

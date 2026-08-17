@@ -10,6 +10,7 @@ from routes.object_routes import object_bp
 from routes.block_routes import block_bp
 from routes.file_routes import file_bp
 from routes.vault_routes import vault_bp
+from routes.replication_routes import replication_bp
 from routes.lifecycle_policy_routes import lifecycle_policy_bp
 from routes.simulation_routes import simulation_bp
 
@@ -27,6 +28,7 @@ app.register_blueprint(file_bp)        # /api/file/...
 app.register_blueprint(vault_bp)       # /api/vault/status, /api/block/images/<name>/export-vault, /api/file/sync-vault
 app.register_blueprint(lifecycle_policy_bp)  # /api/policies..., /api/object/buckets/<bucket>/lifecycle
 app.register_blueprint(simulation_bp)  # /api/simulation/time
+app.register_blueprint(replication_bp)  # /api/replication/...
 
 # ═════════════════════════════════════════════════════════════════════════════
 # FRONTEND SERVING
