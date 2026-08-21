@@ -1,4 +1,4 @@
-const API_BASE = "/api/replication";
+const API_BASE = `${import.meta.env.VITE_API_URL || "http://localhost:5000/api"}/replication`;
 
 export const ReplicationAPI = {
     async getStatus() {
@@ -6,17 +6,17 @@ export const ReplicationAPI = {
             `${API_BASE}/status`
         );
 
-        if (!response.ok) {
-            const error =
-                await response.json().catch(() => ({}));
+        const data =
+            await response.json().catch(() => ({}));
 
+        if (!response.ok) {
             throw new Error(
-                error.error ||
+                data.error ||
                 "Failed to fetch replication status"
             );
         }
 
-        return response.json();
+        return data;
     },
 
     async getBuckets() {
@@ -24,19 +24,19 @@ export const ReplicationAPI = {
             `${API_BASE}/buckets`
         );
 
-        if (!response.ok) {
-            const error =
-                await response.json().catch(() => ({}));
+        const data =
+            await response.json().catch(() => ({}));
 
+        if (!response.ok) {
             throw new Error(
-                error.error ||
+                data.error ||
                 "Failed to fetch replicated buckets"
             );
         }
 
-        return response.json();
+        return data;
     },
-
+    
     async configure({
         secondary_zone,
         secondary_endpoint,

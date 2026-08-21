@@ -33,7 +33,7 @@ from botocore.client import Config
 from botocore.exceptions import ClientError
 from typing import Dict, List, Any, Tuple
 from core.logger import logger
-from config.config import CEPH_RGW_ENDPOINT, CEPH_ACCESS_KEY, CEPH_SECRET_KEY, CEPH_REGION
+from config.config import CEPH_RGW_ENDPOINT, CEPH_RGW_ENDPOINT_SECURE, CEPH_ACCESS_KEY, CEPH_SECRET_KEY, CEPH_REGION
 from services.cluster.ceph_ops import run_ceph_cmd
 from core.activity import log_activity
 from services.object.lifecycle_policy_manager import get_lifecycle_policy, get_all_lifecycle_policies
@@ -46,20 +46,23 @@ from services.object.bucket_settings import (
 )
 import xml.etree.ElementTree as ET
 
-def get_s3_client() -> boto3.client:
+def get_s3_client(secure: bool = False) -> boto3.client:
     """
-    Create and return an S3 client configured for Ceph RGW
-    
-    Returns:
-        boto3 S3 client
+    Create and return an S3 client configured for Ceph RGW.
+
+    Args:
+        secure: If True, uses the HTTPS endpoint (required for buckets
+            with SSE-S3 enabled, since RGW refuses to negotiate
+            server-side encryption over plain HTTP).
     """
     return boto3.client(
         "s3",
-        endpoint_url=CEPH_RGW_ENDPOINT,
+        endpoint_url=CEPH_RGW_ENDPOINT_SECURE if secure else CEPH_RGW_ENDPOINT,
         aws_access_key_id=CEPH_ACCESS_KEY,
         aws_secret_access_key=CEPH_SECRET_KEY,
         config=Config(signature_version="s3v4"),
         region_name=CEPH_REGION,
+        verify=not secure,  # self-signed cert in dev; skip verification on HTTPS
     )
 
 def list_buckets() -> Dict[str, Any]:
@@ -299,16 +302,7 @@ def set_bucket_encryption(
     enabled: bool,
     encryption_type: str = "AES256"
 ) -> Dict[str, Any]:
-    """
-    Enable or disable server-side encryption for a bucket.
-
-    Currently supported:
-        AES256 (SSE-S3)
-    """
-
     try:
-        s3 = get_s3_client()
-
         if enabled:
             if encryption_type != "AES256":
                 return {
@@ -329,6 +323,7 @@ def set_bucket_encryption(
                 ]
             }
 
+            s3 = get_s3_client(secure=True)
             s3.put_bucket_encryption(
                 Bucket=bucket,
                 ServerSideEncryptionConfiguration=configuration
@@ -359,9 +354,8 @@ def set_bucket_encryption(
             }
 
         # Disable encryption
-        s3.delete_bucket_encryption(
-            Bucket=bucket
-        )
+        s3 = get_s3_client()
+        s3.delete_bucket_encryption(Bucket=bucket)
 
         save_bucket_encryption(
             bucket,
@@ -423,8 +417,7 @@ def create_bucket(
     try:
         s3 = get_s3_client()
 
-        # Create bucket with the requested ACL and
-        # Object Lock capability.
+        # Create bucket with the requested ACL and Object Lock capability.
         s3.create_bucket(
             Bucket=bucket,
             ACL=acl,
@@ -435,12 +428,10 @@ def create_bucket(
         if versioning:
             s3.put_bucket_versioning(
                 Bucket=bucket,
-                VersioningConfiguration={
-                    "Status": "Enabled"
-                }
+                VersioningConfiguration={"Status": "Enabled"}
             )
 
-                # Configure server-side encryption.
+        # Configure server-side encryption.
         if encryption_enabled:
             if encryption_type != "AES256":
                 return {
@@ -461,23 +452,16 @@ def create_bucket(
                 ]
             }
 
-            s3.put_bucket_encryption(
+            # SSE-S3 requires the secure endpoint
+            s3_secure = get_s3_client(secure=True)
+            s3_secure.put_bucket_encryption(
                 Bucket=bucket,
-                ServerSideEncryptionConfiguration=
-                    encryption_configuration
+                ServerSideEncryptionConfiguration=encryption_configuration
             )
 
-            save_bucket_encryption(
-                bucket,
-                True,
-                "AES256"
-            )
+            save_bucket_encryption(bucket, True, "AES256")
         else:
-            save_bucket_encryption(
-                bucket,
-                False,
-                "AES256"
-            )
+            save_bucket_encryption(bucket, False, "AES256")
 
         detail = (
             f"Owner:{owner} "
@@ -842,21 +826,12 @@ def delete_bucket_lifecycle(bucket: str) -> Dict[str, Any]:
         }
 
 def upload_object(bucket: str, key: str, file_content: bytes, to_vault: bool = False) -> Dict[str, Any]:
-    """
-    Upload an object to a bucket
-    
-    Args:
-        bucket: Bucket name
-        key: Object key/path
-        file_content: File content bytes
-        to_vault: Whether to also sync this object to vault after upload
-        
-    Returns:
-        Result dictionary
-    """
     try:
-        s3 = get_s3_client()
-        s3.put_object(Bucket=bucket, Key=key, Body=file_content, Metadata={"uploaded_at": datetime.now(timezone.utc).isoformat()})
+        encryption_status = get_saved_bucket_encryption(bucket)
+        use_secure = encryption_status.get("enabled", False)
+
+        s3 = get_s3_client(secure=use_secure)
+        s3.put_object(Bucket=bucket, Key=key, Body=file_content)
         log_activity("UPLOAD", f"{bucket}/{key}", "success", "Saved to S3")
         message = f"Object '{key}' uploaded to '{bucket}'"
 

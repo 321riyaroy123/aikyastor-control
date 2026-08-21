@@ -22,5 +22,17 @@
             "enabled": false,
             "type": "AES256"
         }
+    },
+    "aikyastor": {
+        "encryption": {
+            "enabled": true,
+            "type": "AES256"
+        }
+    },
+    "bukky": {
+        "encryption": {
+            "enabled": true,
+            "type": "AES256"
+        }
     }
 }

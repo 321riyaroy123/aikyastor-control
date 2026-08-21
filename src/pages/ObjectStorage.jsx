@@ -323,8 +323,10 @@ export default function ObjectStoragePage({
         }
     };
 
-    const loadReplication = async () => {
-        setReplicationLoading(true);
+    const loadReplication = async (silent = false) => {
+        if (!silent) {
+            setReplicationLoading(true);
+        }
 
         try {
             const [status, bucketResult] =
@@ -344,16 +346,32 @@ export default function ObjectStoragePage({
                 err
             );
 
-            toast(
-                err.message ||
-                "Failed to load replication status.",
-                "error"
-            );
+            if (!silent) {
+                toast(
+                    err.message ||
+                    "Failed to load replication status.",
+                    "error"
+                );
+            }
 
         } finally {
-            setReplicationLoading(false);
+            if (!silent) {
+                setReplicationLoading(false);
+            }
         }
     };
+
+    useEffect(() => {
+        if (!showReplication) {
+            return;
+        }
+
+        const interval = setInterval(() => {
+            loadReplication(true);
+        }, 5000);
+
+        return () => clearInterval(interval);
+    }, [showReplication]);
 
     const configureReplication = async (config) => {
         setReplicationConfiguring(true);

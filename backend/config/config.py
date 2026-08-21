@@ -35,6 +35,7 @@ FLASK_PORT = int(os.getenv("FLASK_PORT", "5000"))
 
 # ─── Ceph RGW (S3) Configuration ─────────────────────────────────────────────
 CEPH_RGW_ENDPOINT = os.getenv("CEPH_RGW_ENDPOINT", "http://192.168.29.252:80")
+CEPH_RGW_ENDPOINT_SECURE = os.getenv("CEPH_RGW_ENDPOINT_SECURE", "https://192.168.56.110:443")
 CEPH_ACCESS_KEY = os.getenv("CEPH_ACCESS_KEY", "")
 CEPH_SECRET_KEY = os.getenv("CEPH_SECRET_KEY", "")
 CEPH_REGION = os.getenv("CEPH_REGION", "us-east-1")
@@ -61,3 +62,13 @@ LOG_FORMAT = os.getenv("LOG_FORMAT", "standard")
 
 # ─── Command Execution ────────────────────────────────────────────────────────
 CMD_TIMEOUT = int(os.getenv("CMD_TIMEOUT", "30"))
+
+REPLICATION_SECONDARY_HOST = os.getenv(
+    "REPLICATION_SECONDARY_HOST",
+    ""
+)
+
+REPLICATION_SECONDARY_USER = os.getenv(
+    "REPLICATION_SECONDARY_USER",
+    ""
+)

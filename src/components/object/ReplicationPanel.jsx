@@ -24,11 +24,41 @@ function StatusBadge({ status }) {
       background: "rgba(249,115,22,.12)",
       border: "rgba(249,115,22,.3)",
     },
+    replicated: {
+      label: "Replicated",
+      color: "#22c55e",
+      background: "rgba(34,197,94,.12)",
+      border: "rgba(34,197,94,.3)",
+    },
+    mismatch: {
+      label: "Object Mismatch",
+      color: "#eab308",
+      background: "rgba(234,179,8,.12)",
+      border: "rgba(234,179,8,.3)",
+    },
+    missing_secondary: {
+      label: "Missing on Secondary",
+      color: "#ef4444",
+      background: "rgba(239,68,68,.12)",
+      border: "rgba(239,68,68,.3)",
+    },
+    unverified: {
+      label: "Unverified",
+      color: C.muted,
+      background: "rgba(148,163,184,.12)",
+      border: "rgba(148,163,184,.3)",
+    },
     syncing: {
       label: "Syncing",
       color: "#eab308",
       background: "rgba(234,179,8,.12)",
       border: "rgba(234,179,8,.3)",
+    },
+    no_sync: {
+      label: "Not Applicable",
+      color: C.muted,
+      background: "rgba(148,163,184,.12)",
+      border: "rgba(148,163,184,.3)",
     },
     error: {
       label: "Error",
@@ -390,10 +420,11 @@ export default function ReplicationPanel({
                     width: "100%",
                     boxSizing: "border-box",
                     padding: ".65rem",
-                    background: C.background,
+                    background: C.surface2,
                     border: `1px solid ${C.border}`,
                     borderRadius: 5,
-                    color: C.muted,
+                    color: C.text,
+                    outline: "none",
                 }}
                 />
             </div>
@@ -420,10 +451,11 @@ export default function ReplicationPanel({
                     width: "100%",
                     boxSizing: "border-box",
                     padding: ".65rem",
-                    background: C.background,
+                    background: C.surface2,
                     border: `1px solid ${C.border}`,
                     borderRadius: 5,
                     color: C.text,
+                    outline: "none",
                 }}
                 />
             </div>
@@ -601,7 +633,7 @@ export default function ReplicationPanel({
             marginBottom: ".75rem",
           }}
         >
-          REPLICATED BUCKETS
+          REPLICATION VERIFICATION
         </div>
 
         <div
@@ -612,6 +644,26 @@ export default function ReplicationPanel({
             overflow: "hidden",
           }}
         >
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns:
+                "minmax(180px, 1.5fr) 150px 150px 140px",
+              gap: "1rem",
+              padding: ".75rem 1.25rem",
+              background: C.surface2,
+              borderBottom: `1px solid ${C.border}`,
+              fontFamily: "'Space Mono', monospace",
+              fontSize: ".65rem",
+              color: C.muted,
+            }}
+          >
+            <div>BUCKET</div>
+            <div>PRIMARY</div>
+            <div>SECONDARY</div>
+            <div>STATUS</div>
+          </div>
+
           {buckets.length === 0 ? (
             <div
               style={{
@@ -630,7 +682,7 @@ export default function ReplicationPanel({
                 style={{
                   display: "grid",
                   gridTemplateColumns:
-                    "minmax(160px, 1.5fr) 100px 100px 120px",
+                    "minmax(180px, 1.5fr) 150px 150px 140px",
                   alignItems: "center",
                   gap: "1rem",
                   padding: "1rem 1.25rem",
@@ -642,8 +694,7 @@ export default function ReplicationPanel({
               >
                 <div
                   style={{
-                    fontFamily:
-                      "'Space Mono', monospace",
+                    fontFamily: "'Space Mono', monospace",
                     color: C.text,
                     fontSize: ".78rem",
                     wordBreak: "break-word",
@@ -658,7 +709,8 @@ export default function ReplicationPanel({
                     fontSize: ".75rem",
                   }}
                 >
-                  {bucket.objects ?? 0} objects
+                  <div>{bucket.objects ?? 0} objects</div>
+                  <div>{formatBytes(bucket.size)}</div>
                 </div>
 
                 <div
@@ -667,17 +719,30 @@ export default function ReplicationPanel({
                     fontSize: ".75rem",
                   }}
                 >
-                  {formatBytes(bucket.size)}
+                  <div>{bucket.secondary_objects ?? 0} objects</div>
+                  <div>{formatBytes(bucket.secondary_size ?? 0)}</div>
                 </div>
 
                 <div>
-                  <StatusBadge
-                    status={bucket.status}
-                  />
+                  <StatusBadge status={bucket.status} />
                 </div>
               </div>
             ))
           )}
+        </div>
+
+        <div
+          style={{
+            marginTop: ".6rem",
+            color: C.muted,
+            fontSize: ".68rem",
+            lineHeight: 1.5,
+          }}
+        >
+          Replicated means the bucket exists on the secondary and its
+          object count matches the primary.
+        </div>
+      </div>
 
           {showProvisioningForm && (
           <div
@@ -740,10 +805,11 @@ export default function ReplicationPanel({
                     width: "100%",
                     boxSizing: "border-box",
                     padding: ".65rem",
-                    background: C.background,
+                    background: C.surface2,
                     border: `1px solid ${C.border}`,
                     borderRadius: 5,
                     color: C.text,
+                    outline: "none",
                   }}
                 />
               </div>
@@ -769,10 +835,11 @@ export default function ReplicationPanel({
                     width: "100%",
                     boxSizing: "border-box",
                     padding: ".65rem",
-                    background: C.background,
+                    background: C.surface2,
                     border: `1px solid ${C.border}`,
                     borderRadius: 5,
                     color: C.text,
+                    outline: "none",
                   }}
                 />
               </div>
@@ -798,10 +865,11 @@ export default function ReplicationPanel({
                     width: "100%",
                     boxSizing: "border-box",
                     padding: ".65rem",
-                    background: C.background,
+                    background: C.surface2,
                     border: `1px solid ${C.border}`,
                     borderRadius: 5,
                     color: C.text,
+                    outline: "none",
                   }}
                 />
               </div>
@@ -827,10 +895,11 @@ export default function ReplicationPanel({
                     width: "100%",
                     boxSizing: "border-box",
                     padding: ".65rem",
-                    background: C.background,
+                    background: C.surface2,
                     border: `1px solid ${C.border}`,
                     borderRadius: 5,
                     color: C.text,
+                    outline: "none",
                   }}
                 />
               </div>
@@ -841,7 +910,7 @@ export default function ReplicationPanel({
                   style={{
                     display: "block",
                     fontSize: ".7rem",
-                    color: C.muted,
+                    color: C.formInput,
                     marginBottom: ".4rem",
                   }}
                 >
@@ -860,10 +929,11 @@ export default function ReplicationPanel({
                     width: "100%",
                     boxSizing: "border-box",
                     padding: ".65rem",
-                    background: C.background,
+                    background: C.surface2,
                     border: `1px solid ${C.border}`,
                     borderRadius: 5,
                     color: C.text,
+                    outline: "none",
                   }}
                 />
               </div>
@@ -934,8 +1004,6 @@ export default function ReplicationPanel({
             </div>
           </div>
         )}
-        </div>
-      </div>
     </div>
   );
 }

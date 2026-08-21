@@ -3,12 +3,16 @@ Ceph RGW multisite replication status.
 
 Production-only implementation.
 """
+import os
 import re
 import json
 import shlex
 import subprocess
 from typing import Dict, Any
-
+from config.config import (
+    REPLICATION_SECONDARY_HOST,
+    REPLICATION_SECONDARY_USER,
+)
 from core.logger import logger
 from services.cluster.ceph_ops import run_ceph_cmd
 
@@ -16,7 +20,19 @@ REALM = "aikyastor"
 SECONDARY_ZONE = "aikyastor-secondary"
 PRIMARY_ZONE = "aikyastor-primary"
 SYNC_USER = "aikyastor-sync"
-PRIMARY_ENDPOINT = "http://192.168.56.110:80"
+PRIMARY_ENDPOINT = os.getenv(
+    "PRIMARY_RGW_ENDPOINT",
+    "http://192.168.0.116:80"
+)
+SECONDARY_SSH_HOST = os.getenv(
+    "SECONDARY_SSH_HOST",
+    "192.168.0.160"
+)
+
+SECONDARY_SSH_USER = os.getenv(
+    "SECONDARY_SSH_USER",
+    "riya"
+)
 
 def _get_sync_user():
     """
@@ -27,6 +43,68 @@ def _get_sync_user():
         f"user info --uid={SYNC_USER}"
     )
 
+def _get_remote_bucket_snapshot(
+    host: str,
+    user: str,
+) -> Dict[str, Dict[str, int]]:
+    """
+    Get bucket statistics directly from the secondary Ceph cluster.
+
+    This is intentionally administrative rather than S3-user based,
+    so bucket visibility is not limited by the credentials of a
+    particular S3 user.
+    """
+
+    bucket_list_command = (
+        "sudo radosgw-admin bucket list "
+        f"--rgw-realm={shlex.quote(REALM)} "
+        f"--rgw-zone={shlex.quote(SECONDARY_ZONE)} "
+        "--format=json"
+    )
+
+    output = _run_remote(
+        host,
+        user,
+        bucket_list_command,
+    )
+
+    buckets = json.loads(output or "[]")
+
+    snapshot = {}
+
+    for bucket in buckets:
+        stats_command = (
+            "sudo radosgw-admin bucket stats "
+            f"--bucket={shlex.quote(bucket)} "
+            f"--rgw-realm={shlex.quote(REALM)} "
+            f"--rgw-zone={shlex.quote(SECONDARY_ZONE)} "
+            "--format=json"
+        )
+
+        stats_output = _run_remote(
+            host,
+            user,
+            stats_command,
+        )
+
+        stats = json.loads(stats_output or "{}")
+
+        usage = (
+            stats
+            .get("usage", {})
+            .get("rgw.main", {})
+        )
+
+        snapshot[bucket] = {
+            "objects": int(
+                usage.get("num_objects", 0)
+            ),
+            "size": int(
+                usage.get("size", 0)
+            ),
+        }
+
+    return snapshot
 
 def _ensure_sync_user():
     """
@@ -142,21 +220,33 @@ def _run_rgw_admin(args: str):
 def _parse_sync_status(output: str) -> Dict[str, Any]:
     text = output.lower()
 
-    metadata_caught_up = "metadata is caught up with master" in text
-    data_caught_up = "data is caught up with source" in text
+    if "metadata is caught up with master" in text:
+        metadata_status = "caught_up"
+    elif "metadata sync syncing" in text:
+        metadata_status = "syncing"
+    else:
+        metadata_status = "unknown"
+
+    if "data is caught up with source" in text:
+        data_status = "caught_up"
+    elif "data sync" in text and "syncing" in text:
+        data_status = "syncing"
+    else:
+        data_status = "unknown"
 
     return {
         "metadata": {
-            "status": "caught_up" if metadata_caught_up else "syncing"
+            "status": metadata_status
         },
         "data": {
-            "status": "caught_up" if data_caught_up else "syncing"
+            "status": data_status
         }
     }
 
 def get_replication_status() -> Dict[str, Any]:
     """
-    Return the current Ceph RGW multisite configuration and sync state.
+    Return the current Ceph RGW multisite configuration
+    and sync state.
     """
 
     try:
@@ -166,20 +256,36 @@ def get_replication_status() -> Dict[str, Any]:
 
         zonegroup = _run_rgw_admin(
             f"zonegroup get "
-            f"--rgw-zonegroup=aikyastor-primary "
+            f"--rgw-zonegroup={PRIMARY_ZONE} "
             f"--rgw-realm={REALM}"
         )
 
-        sync_stdout, sync_stderr, sync_code = run_ceph_cmd(
-            f"radosgw-admin sync status "
-            f"--rgw-realm={REALM} "
-            f"--rgw-zone={SECONDARY_ZONE}"
+        # ---------------------------------------------------------
+        # Sync status belongs to the secondary cluster.
+        # Query it remotely instead of asking the primary cluster.
+        # ---------------------------------------------------------
+
+        if not REPLICATION_SECONDARY_HOST:
+            raise RuntimeError(
+                "Secondary host is not configured"
+            )
+
+        if not REPLICATION_SECONDARY_USER:
+            raise RuntimeError(
+                "Secondary SSH user is not configured"
+            )
+
+        sync_command = (
+            "sudo radosgw-admin sync status "
+            f"--rgw-realm={shlex.quote(REALM)} "
+            f"--rgw-zone={shlex.quote(SECONDARY_ZONE)}"
         )
 
-        if sync_code != 0:
-            raise RuntimeError(
-                sync_stderr or "Failed to retrieve RGW sync status"
-            )
+        sync_stdout = _run_remote(
+            REPLICATION_SECONDARY_HOST,
+            REPLICATION_SECONDARY_USER,
+            sync_command,
+        )
 
         sync = _parse_sync_status(sync_stdout)
 
@@ -188,7 +294,7 @@ def get_replication_status() -> Dict[str, Any]:
         primary = next(
             (
                 z for z in zones
-                if z.get("name") == "aikyastor-primary"
+                if z.get("name") == PRIMARY_ZONE
             ),
             {}
         )
@@ -237,68 +343,220 @@ def get_replication_status() -> Dict[str, Any]:
 
     except Exception as e:
         logger.exception("get_replication_status error")
+
         return {
             "enabled": False,
             "error": str(e)
         }
 
+def _get_secondary_s3_snapshot(endpoint: str) -> Dict[str, Dict[str, int]]:
+    """
+    Read the secondary RGW through its S3 endpoint.
+
+    The sync system user's credentials are used because that user is
+    replicated as RGW metadata to the secondary zone. This makes the
+    verification S3-facing instead of inspecting the primary cluster's
+    local RGW pools.
+    """
+    try:
+        import boto3
+        from botocore.client import Config as BotoConfig
+
+        sync_user = _get_sync_user()
+        keys = sync_user.get("keys", [])
+
+        if not keys:
+            raise RuntimeError(
+                f"Sync user '{SYNC_USER}' has no access keys"
+            )
+
+        access_key = keys[0].get("access_key")
+        secret_key = keys[0].get("secret_key")
+
+        if not access_key or not secret_key:
+            raise RuntimeError(
+                f"Sync user '{SYNC_USER}' has incomplete credentials"
+            )
+
+        s3 = boto3.client(
+            "s3",
+            endpoint_url=endpoint,
+            aws_access_key_id=access_key,
+            aws_secret_access_key=secret_key,
+            region_name="us-east-1",
+            config=BotoConfig(
+                signature_version="s3v4",
+                s3={"addressing_style": "path"},
+            ),
+        )
+
+        response = s3.list_buckets()
+        snapshots: Dict[str, Dict[str, int]] = {}
+
+        for bucket_info in response.get("Buckets", []):
+            bucket_name = bucket_info["Name"]
+            object_count = 0
+            total_size = 0
+
+            paginator = s3.get_paginator("list_objects_v2")
+
+            for page in paginator.paginate(Bucket=bucket_name):
+                for obj in page.get("Contents", []):
+                    object_count += 1
+                    total_size += int(obj.get("Size", 0))
+
+            snapshots[bucket_name] = {
+                "objects": object_count,
+                "size": total_size,
+            }
+
+        return snapshots
+
+    except Exception as e:
+        raise RuntimeError(
+            f"Unable to verify secondary RGW through S3 endpoint '{endpoint}': {e}"
+        ) from e
+
 def get_replicated_buckets() -> Dict[str, Any]:
     """
-    Return buckets in the primary RGW zone.
+    Compare bucket state between the Rocky primary and
+    Ubuntu secondary.
 
-    These are the buckets participating in the multisite
-    configuration. Actual replication health is reported
-    separately through sync status.
+    Primary:
+        radosgw-admin on Rocky
+
+    Secondary:
+        radosgw-admin executed remotely on Ubuntu
+
+    Verification is independent of S3 user visibility.
     """
 
     try:
-        result = _run_rgw_admin(
+        # ---------------------------------------------------------
+        # PRIMARY
+        # ---------------------------------------------------------
+
+        primary_result = _run_rgw_admin(
             f"bucket list "
             f"--rgw-realm={REALM} "
-            f"--rgw-zone=aikyastor-primary"
+            f"--rgw-zone={PRIMARY_ZONE}"
+        )
+
+        primary_buckets = {}
+
+        for bucket in primary_result:
+            stats = _run_rgw_admin(
+                f"bucket stats "
+                f"--bucket={shlex.quote(bucket)} "
+                f"--rgw-realm={REALM} "
+                f"--rgw-zone={PRIMARY_ZONE}"
+            )
+
+            usage = (
+                stats
+                .get("usage", {})
+                .get("rgw.main", {})
+            )
+
+            primary_buckets[bucket] = {
+                "objects": int(
+                    usage.get("num_objects", 0)
+                ),
+                "size": int(
+                    usage.get("size", 0)
+                ),
+            }
+
+        # ---------------------------------------------------------
+        # SECONDARY
+        # ---------------------------------------------------------
+
+        secondary_buckets = _get_remote_bucket_snapshot(
+            SECONDARY_SSH_HOST,
+            SECONDARY_SSH_USER,
+        )
+
+        # ---------------------------------------------------------
+        # COMPARE
+        # ---------------------------------------------------------
+
+        all_bucket_names = sorted(
+            set(primary_buckets) |
+            set(secondary_buckets)
         )
 
         buckets = []
 
-        for bucket in result:
-            try:
-                stats = _run_rgw_admin(
-                    f"bucket stats "
-                    f"--bucket={bucket} "
-                    f"--rgw-realm={REALM} "
-                    f"--rgw-zone=aikyastor-primary"
-                )
+        for name in all_bucket_names:
 
-                usage = (
-                    stats
-                    .get("usage", {})
-                    .get("rgw.main", {})
-                )
+            primary = primary_buckets.get(name)
+            secondary = secondary_buckets.get(name)
 
-                buckets.append({
-                    "name": bucket,
-                    "objects": usage.get("num_objects", 0),
-                    "size": usage.get("size", 0),
-                    "status": "replicating",
-                })
+            primary_objects = (
+                primary["objects"]
+                if primary
+                else 0
+            )
 
-            except Exception:
-                buckets.append({
-                    "name": bucket,
-                    "objects": 0,
-                    "size": 0,
-                    "status": "unknown",
-                })
+            primary_size = (
+                primary["size"]
+                if primary
+                else 0
+            )
+
+            secondary_objects = (
+                secondary["objects"]
+                if secondary
+                else 0
+            )
+
+            secondary_size = (
+                secondary["size"]
+                if secondary
+                else 0
+            )
+
+            if not primary:
+                status = "secondary_only"
+
+            elif not secondary:
+                status = "missing_secondary"
+
+            elif (
+                primary_objects == secondary_objects
+                and primary_size == secondary_size
+            ):
+                status = "replicated"
+
+            else:
+                status = "mismatch"
+
+            buckets.append({
+                "name": name,
+
+                "objects": primary_objects,
+                "size": primary_size,
+
+                "secondary_objects": secondary_objects,
+                "secondary_size": secondary_size,
+
+                "status": status,
+            })
 
         return {
-            "buckets": buckets
+            "buckets": buckets,
+            "secondary_host": SECONDARY_SSH_HOST,
+            "secondary_zone": SECONDARY_ZONE,
         }
 
     except Exception as e:
-        logger.exception("get_replicated_buckets error")
+        logger.exception(
+            "get_replicated_buckets error"
+        )
+
         return {
             "buckets": [],
-            "error": str(e)
+            "error": str(e),
         }
 
 def configure_replication(
