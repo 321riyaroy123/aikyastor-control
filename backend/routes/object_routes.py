@@ -108,7 +108,7 @@ def api_create_bucket():
             "encryption_enabled",
             False
         )
-
+ 
         encryption_type = data.get(
             "encryption_type",
             "AES256"

@@ -25,11 +25,41 @@
     },
     "aikyastor": {
         "encryption": {
-            "enabled": true,
+            "enabled": false,
             "type": "AES256"
         }
     },
     "bukky": {
+        "encryption": {
+            "enabled": false,
+            "type": "AES256"
+        }
+    },
+    "bukky2": {
+        "encryption": {
+            "enabled": true,
+            "type": "AES256"
+        }
+    },
+    "app-repro-test": {
+        "encryption": {
+            "enabled": true,
+            "type": "AES256"
+        }
+    },
+    "clean-test-2": {
+        "encryption": {
+            "enabled": false,
+            "type": "AES256"
+        }
+    },
+    "aikyastor-fresh-v2": {
+        "encryption": {
+            "enabled": false,
+            "type": "AES256"
+        }
+    },
+    "vault-sse-test": {
         "encryption": {
             "enabled": true,
             "type": "AES256"

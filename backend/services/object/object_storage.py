@@ -66,40 +66,37 @@ def get_s3_client(secure: bool = False) -> boto3.client:
     )
 
 def list_buckets() -> Dict[str, Any]:
-    """
-    List all S3 buckets with their actual configuration.
-    """
-
     try:
         s3 = get_s3_client()
         resp = s3.list_buckets()
-
         buckets = []
-
         for b in resp.get("Buckets", []):
             bucket_name = b["Name"]
+            status = get_bucket_status(s3, bucket_name)
 
-            status = get_bucket_status(
-                s3,
-                bucket_name
+            # Fold in encryption status so the bucket list/dashboard can
+            # show it without a second per-bucket request. Uses the
+            # already-existing get_bucket_encryption(), which queries
+            # RGW directly (source of truth) -- no new Vault calls here,
+            # this only reads RGW's own SSE-S3 config for the bucket.
+            encryption = get_bucket_encryption(bucket_name)
+            encryption_summary = (
+                {"enabled": False, "type": None}
+                if "error" in encryption
+                else {"enabled": encryption["enabled"], "type": encryption["type"]}
             )
 
             buckets.append({
                 "name": bucket_name,
                 "created": str(b["CreationDate"]),
-                **status
+                **status,
+                "encryption": encryption_summary,
             })
-
-        return {
-            "buckets": buckets
-        }
-
+        return {"buckets": buckets}
     except Exception as e:
         logger.exception("list_buckets error")
-        return {
-            "error": str(e),
-            "buckets": []
-        }
+        return {"error": str(e), "buckets": []}
+
 
 def list_bucket_objects(bucket: str) -> Dict[str, Any]:
     """

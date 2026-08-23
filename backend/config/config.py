@@ -13,6 +13,16 @@ Behavior preserved exactly from the original config.py:
     - Outside simulation mode, CEPH_ACCESS_KEY and CEPH_SECRET_KEY are
       REQUIRED and the app refuses to start (RuntimeError) if missing.
       There are no built-in default/hardcoded credentials.
+
+NEW in this revision:
+    - VAULT_ADDR / VAULT_TOKEN: direct HTTP connection settings for the
+      Flask app to reach HashiCorp Vault itself (separate from RGW's own
+      Vault connection, which lives entirely in Ceph's rgw_crypt_sse_s3_
+      vault_* config and is untouched by this app). Used by the new
+      Vault health/status dashboard tab.
+    - Same "required outside simulation mode, no hardcoded default"
+      pattern as CEPH_ACCESS_KEY/CEPH_SECRET_KEY is applied to
+      VAULT_TOKEN, since it is equally sensitive credential material.
 """
 
 import os
@@ -53,8 +63,32 @@ CEPHFS_MOUNT = os.getenv("CEPHFS_MOUNT", "/mnt/cephfs")
 RBD_POOL = os.getenv("RBD_POOL", "rbd")
 CEPH_CONF = os.getenv("CEPH_CONF", "/etc/ceph/ceph.conf")
 
-# ─── Vault Configuration ─────────────────────────────────────────────────────
+# ─── Vault Configuration (CephFS mirror vault — file/RBD backups) ────────────
 VAULT_PATH = os.getenv("VAULT_PATH", "/vault")
+
+# ─── HashiCorp Vault Configuration (direct API — encryption backend) ────────
+# This is a SEPARATE Vault connection from VAULT_PATH above. VAULT_PATH is
+# a local mount used for filesystem/RBD backup mirroring (see
+# services/vault/vault_ops.py). VAULT_ADDR/VAULT_TOKEN below are for the
+# Flask app to talk directly to the HashiCorp Vault server that backs
+# Ceph RGW's SSE-S3 encryption (Transit secrets engine), used only by the
+# read-only Vault health/status dashboard tab.
+#
+# This should be a narrowly-scoped, read-only token (e.g. read access to
+# sys/health and transit/keys/*) — NOT the same token provisioned into
+# RGW's container, and NEVER the Vault root token.
+HASHICORP_VAULT_ADDR = os.getenv("HASHICORP_VAULT_ADDR", "http://127.0.0.1:8200")
+HASHICORP_VAULT_TOKEN = os.getenv("HASHICORP_VAULT_TOKEN", "")
+
+# No hardcoded credentials: outside simulation mode, a Vault token is
+# mandatory if the app is expected to report real Vault health/status.
+if not IS_SIMULATION and not HASHICORP_VAULT_TOKEN:
+    raise RuntimeError(
+        "HASHICORP_VAULT_TOKEN must be set via environment variables when "
+        "APP_MODE != simulation. There is no default credential for "
+        "production mode. Use a narrowly-scoped, read-only Vault token — "
+        "not the RGW integration token, and never the Vault root token."
+    )
 
 # ─── Logging ──────────────────────────────────────────────────────────────────
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
