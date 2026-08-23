@@ -5,5 +5,12 @@
     "builtin": false,
     "expire_days": 3,
     "description": "Delete after 3 days"
+  },
+  {
+    "id": "keep-1-day",
+    "name": "keep 1 day",
+    "builtin": false,
+    "expire_days": 1,
+    "description": "Delete after 1 days"
   }
 ]
