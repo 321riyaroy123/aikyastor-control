@@ -361,13 +361,31 @@ export default function ObjectStoragePage({
         }
     };
 
+    const loadReplicationStatus = async () => {
+        try {
+            const status = await ReplicationAPI.getStatus();
+            setReplicationStatus(status);
+        } catch (err) {
+            console.error(
+                "Failed to load replication status:",
+                err
+            );
+
+            toast(
+                err.message ||
+                "Failed to load replication status.",
+                "error"
+            );
+        }
+    };
+
     useEffect(() => {
         if (!showReplication) {
             return;
         }
 
         const interval = setInterval(() => {
-            loadReplication(true);
+            loadReplicationStatus();
         }, 5000);
 
         return () => clearInterval(interval);
@@ -384,7 +402,7 @@ export default function ObjectStoragePage({
                 "success"
             );
 
-            await loadReplication();
+            await loadReplicationStatus();
         } catch (err) {
             console.error(
                 "Failed to configure replication:",
@@ -415,7 +433,7 @@ export default function ObjectStoragePage({
                 6000
             );
 
-            await loadReplication();
+            await loadReplicationStatus();
 
         } catch (err) {
             console.error(
@@ -474,7 +492,7 @@ export default function ObjectStoragePage({
                         }
                         onReplicationClick={() => {
                             setShowReplication(true);
-                            loadReplication();
+                            loadReplicationStatus();
                         }}
                     />
                 )

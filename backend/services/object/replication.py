@@ -7,7 +7,9 @@ import os
 import re
 import json
 import shlex
+import time
 import subprocess
+import threading
 from typing import Dict, Any
 from config.config import (
     REPLICATION_SECONDARY_HOST,
@@ -15,24 +17,22 @@ from config.config import (
 )
 from core.logger import logger
 from services.cluster.ceph_ops import run_ceph_cmd
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 REALM = "aikyastor"
 SECONDARY_ZONE = "aikyastor-secondary"
 PRIMARY_ZONE = "aikyastor-primary"
 SYNC_USER = "aikyastor-sync"
-PRIMARY_ENDPOINT = os.getenv(
-    "PRIMARY_RGW_ENDPOINT",
-    "http://192.168.0.116:80"
-)
-SECONDARY_SSH_HOST = os.getenv(
-    "SECONDARY_SSH_HOST",
-    "192.168.0.160"
-)
-
-SECONDARY_SSH_USER = os.getenv(
-    "SECONDARY_SSH_USER",
-    "riya"
-)
+PRIMARY_ENDPOINT = os.getenv("PRIMARY_RGW_ENDPOINT", "http://192.168.0.116:80")
+SECONDARY_SSH_HOST = os.getenv("SECONDARY_SSH_HOST", "192.168.0.160")
+SECONDARY_SSH_USER = os.getenv("SECONDARY_SSH_USER", "riya")
+REPLICATION_CACHE_TTL = 15
+_replication_cache = {
+    "timestamp": 0,
+    "data": None,
+    "refreshing": False,
+}
+_replication_refresh_lock = threading.Lock()
 
 def _get_sync_user():
     """
@@ -48,61 +48,137 @@ def _get_remote_bucket_snapshot(
     user: str,
 ) -> Dict[str, Dict[str, int]]:
     """
-    Get bucket statistics directly from the secondary Ceph cluster.
+    Get bucket statistics from the secondary Ceph cluster.
 
-    This is intentionally administrative rather than S3-user based,
-    so bucket visibility is not limited by the credentials of a
-    particular S3 user.
+    Uses one SSH session for the bucket list and all bucket stats.
     """
+    command = f"""
+set -e
 
-    bucket_list_command = (
-        "sudo radosgw-admin bucket list "
-        f"--rgw-realm={shlex.quote(REALM)} "
-        f"--rgw-zone={shlex.quote(SECONDARY_ZONE)} "
-        "--format=json"
-    )
+buckets=$(sudo radosgw-admin bucket list \
+    --rgw-realm={shlex.quote(REALM)} \
+    --rgw-zone={shlex.quote(SECONDARY_ZONE)} \
+    --format=json)
+
+echo "__BUCKET_LIST_START__"
+printf '%s\\n' "$buckets"
+echo "__BUCKET_LIST_END__"
+
+for bucket in $(printf '%s' "$buckets" | python3 -c '
+import sys, json
+for b in json.load(sys.stdin):
+    print(b)
+'); do
+
+    echo "__BUCKET_START__:$bucket"
+
+    sudo radosgw-admin bucket stats \
+        --bucket="$bucket" \
+        --rgw-realm={shlex.quote(REALM)} \
+        --rgw-zone={shlex.quote(SECONDARY_ZONE)} \
+        --format=json
+
+    printf '\n__BUCKET_END__\n'
+done
+"""
 
     output = _run_remote(
         host,
         user,
-        bucket_list_command,
+        command,
+        timeout=90,
     )
 
-    buckets = json.loads(output or "[]")
+    logger.info("SECONDARY RAW OUTPUT:\n%s", output,)
+    logger.info(
+        "Secondary replication snapshot returned %d bytes",
+        len(output),
+    )
 
-    snapshot = {}
+    snapshot: Dict[str, Dict[str, int]] = {}
 
-    for bucket in buckets:
-        stats_command = (
-            "sudo radosgw-admin bucket stats "
-            f"--bucket={shlex.quote(bucket)} "
-            f"--rgw-realm={shlex.quote(REALM)} "
-            f"--rgw-zone={shlex.quote(SECONDARY_ZONE)} "
-            "--format=json"
-        )
+    current_bucket = None
+    json_lines = []
 
-        stats_output = _run_remote(
-            host,
-            user,
-            stats_command,
-        )
+    for line in output.splitlines():
+        line = line.strip()
 
-        stats = json.loads(stats_output or "{}")
+        if line.startswith("__BUCKET_START__:"):
+            current_bucket = line.split(
+                "__BUCKET_START__:",
+                1,
+            )[1].strip()
 
-        usage = (
-            stats
-            .get("usage", {})
-            .get("rgw.main", {})
-        )
+            json_lines = []
 
-        snapshot[bucket] = {
-            "objects": int(
-                usage.get("num_objects", 0)
-            ),
-            "size": int(
-                usage.get("size", 0)
-            ),
-        }
+            logger.info(
+                "PARSER: started bucket '%s'",
+                current_bucket,
+            )
+
+            continue
+
+        if "__BUCKET_END__" in line:
+            before_marker = line.split(
+                "__BUCKET_END__",
+                1,
+            )[0].strip()
+
+            if before_marker:
+                json_lines.append(before_marker)
+
+            if current_bucket and json_lines:
+                try:
+                    stats = json.loads(
+                        "\n".join(json_lines)
+                    )
+
+                    usage = (
+                        stats
+                        .get("usage", {})
+                        .get("rgw.main", {})
+                    )
+
+                    snapshot[current_bucket] = {
+                        "objects": int(
+                            usage.get(
+                                "num_objects",
+                                0,
+                            )
+                        ),
+                        "size": int(
+                            usage.get(
+                                "size",
+                                0,
+                            )
+                        ),
+                    }
+
+                    logger.info(
+                        "PARSER: parsed bucket '%s': objects=%d size=%d",
+                        current_bucket,
+                        snapshot[current_bucket]["objects"],
+                        snapshot[current_bucket]["size"],
+                    )
+
+                except (json.JSONDecodeError, TypeError, ValueError) as exc:
+                    logger.warning(
+                        "Failed to parse secondary stats for '%s': %s",
+                        current_bucket,
+                        exc,
+                    )
+
+            current_bucket = None
+            json_lines = []
+            continue
+
+        if current_bucket:
+            json_lines.append(line)
+
+    logger.info(
+        "Secondary replication snapshot contains %d buckets",
+        len(snapshot),
+    )
 
     return snapshot
 
@@ -417,64 +493,97 @@ def _get_secondary_s3_snapshot(endpoint: str) -> Dict[str, Dict[str, int]]:
             f"Unable to verify secondary RGW through S3 endpoint '{endpoint}': {e}"
         ) from e
 
-def get_replicated_buckets() -> Dict[str, Any]:
+def _get_primary_bucket_snapshot() -> Dict[str, Dict[str, int]]:
     """
-    Compare bucket state between the Rocky primary and
-    Ubuntu secondary.
-
-    Primary:
-        radosgw-admin on Rocky
-
-    Secondary:
-        radosgw-admin executed remotely on Ubuntu
-
-    Verification is independent of S3 user visibility.
+    Get bucket statistics from the primary Ceph cluster.
     """
 
-    try:
-        # ---------------------------------------------------------
-        # PRIMARY
-        # ---------------------------------------------------------
+    bucket_result = _run_rgw_admin(
+        f"bucket list "
+        f"--rgw-realm={REALM} "
+        f"--rgw-zone={PRIMARY_ZONE}"
+    )
 
-        primary_result = _run_rgw_admin(
-            f"bucket list "
+    if not bucket_result:
+        return {}
+
+    def get_bucket_stats(bucket: str):
+        stats = _run_rgw_admin(
+            f"bucket stats "
+            f"--bucket={shlex.quote(bucket)} "
             f"--rgw-realm={REALM} "
             f"--rgw-zone={PRIMARY_ZONE}"
         )
 
-        primary_buckets = {}
-
-        for bucket in primary_result:
-            stats = _run_rgw_admin(
-                f"bucket stats "
-                f"--bucket={shlex.quote(bucket)} "
-                f"--rgw-realm={REALM} "
-                f"--rgw-zone={PRIMARY_ZONE}"
-            )
-
-            usage = (
-                stats
-                .get("usage", {})
-                .get("rgw.main", {})
-            )
-
-            primary_buckets[bucket] = {
-                "objects": int(
-                    usage.get("num_objects", 0)
-                ),
-                "size": int(
-                    usage.get("size", 0)
-                ),
-            }
-
-        # ---------------------------------------------------------
-        # SECONDARY
-        # ---------------------------------------------------------
-
-        secondary_buckets = _get_remote_bucket_snapshot(
-            SECONDARY_SSH_HOST,
-            SECONDARY_SSH_USER,
+        usage = (
+            stats
+            .get("usage", {})
+            .get("rgw.main", {})
         )
+
+        return bucket, {
+            "objects": int(
+                usage.get("num_objects", 0)
+            ),
+            "size": int(
+                usage.get("size", 0)
+            ),
+        }
+
+    snapshot = {}
+
+    with ThreadPoolExecutor(
+        max_workers=min(4, len(bucket_result))
+    ) as executor:
+
+        futures = {
+            executor.submit(
+                get_bucket_stats,
+                bucket
+            ): bucket
+            for bucket in bucket_result
+        }
+
+        for future in as_completed(futures):
+            bucket = futures[future]
+
+            try:
+                name, stats = future.result()
+                snapshot[name] = stats
+
+            except Exception as exc:
+                logger.warning(
+                    "Failed to get stats for primary bucket '%s': %s",
+                    bucket,
+                    exc,
+                )
+
+    return snapshot
+
+def _refresh_replication_cache():
+    global _replication_cache
+
+    try:
+        logger.info("Refreshing replication bucket cache")
+
+        # ---------------------------------------------------------
+        # COLLECT PRIMARY + SECONDARY IN PARALLEL
+        # ---------------------------------------------------------
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+
+            primary_future = executor.submit(
+                _get_primary_bucket_snapshot
+            )
+
+            secondary_future = executor.submit(
+                _get_remote_bucket_snapshot,
+                SECONDARY_SSH_HOST,
+                SECONDARY_SSH_USER,
+            )
+
+            primary_buckets = primary_future.result()
+            secondary_buckets = secondary_future.result()
 
         # ---------------------------------------------------------
         # COMPARE
@@ -533,31 +642,92 @@ def get_replicated_buckets() -> Dict[str, Any]:
 
             buckets.append({
                 "name": name,
-
                 "objects": primary_objects,
                 "size": primary_size,
-
                 "secondary_objects": secondary_objects,
                 "secondary_size": secondary_size,
-
                 "status": status,
             })
 
-        return {
+        result = {
             "buckets": buckets,
             "secondary_host": SECONDARY_SSH_HOST,
             "secondary_zone": SECONDARY_ZONE,
         }
 
-    except Exception as e:
-        logger.exception(
-            "get_replicated_buckets error"
+        _replication_cache["data"] = result
+        _replication_cache["timestamp"] = time.time()
+
+        logger.info(
+            "Replication bucket cache refreshed successfully"
         )
 
-        return {
-            "buckets": [],
-            "error": str(e),
-        }
+    except Exception:
+        logger.exception(
+            "Failed to refresh replication bucket cache"
+        )
+
+    finally:
+        with _replication_refresh_lock:
+            _replication_cache["refreshing"] = False
+
+def get_replicated_buckets() -> Dict[str, Any]:
+    global _replication_cache
+
+    now = time.time()
+    data = _replication_cache["data"]
+    timestamp = _replication_cache["timestamp"]
+
+    # ---------------------------------------------------------
+    # CACHE HIT
+    # ---------------------------------------------------------
+
+    if (
+        data is not None
+        and now - timestamp < REPLICATION_CACHE_TTL
+    ):
+        return data
+
+    # ---------------------------------------------------------
+    # CACHE EXPIRED — RETURN OLD DATA AND REFRESH IN BACKGROUND
+    # ---------------------------------------------------------
+
+    if data is not None:
+
+        with _replication_refresh_lock:
+
+            if not _replication_cache["refreshing"]:
+
+                _replication_cache["refreshing"] = True
+
+                thread = threading.Thread(
+                    target=_refresh_replication_cache,
+                    daemon=True,
+                )
+
+                thread.start()
+
+        return data
+
+    # ---------------------------------------------------------
+    # FIRST REQUEST — NO CACHE EXISTS
+    # ---------------------------------------------------------
+
+    should_refresh = False
+
+    with _replication_refresh_lock:
+
+        if not _replication_cache["refreshing"]:
+            _replication_cache["refreshing"] = True
+            should_refresh = True
+
+    if should_refresh:
+        _refresh_replication_cache()
+
+    return _replication_cache["data"] or {
+        "buckets": [],
+        "error": "Replication data unavailable",
+    }
 
 def configure_replication(
     secondary_zone: str,

@@ -193,19 +193,19 @@ export default function ReplicationPanel({
   const [secondaryPort, setSecondaryPort] = useState(7480);
   const [provisionReadOnly, setProvisionReadOnly] = useState(false);
 
-  if (loading) {
-    return (
-      <div
-        style={{
-          padding: "2rem",
-          color: C.muted,
-          fontFamily: "'Space Mono', monospace",
-          fontSize: ".8rem",
-        }}
-      >
-        Loading replication status...
-      </div>
-    );
+  if (!status) {
+      return (
+          <div
+              style={{
+                  padding: "2rem",
+                  color: C.muted,
+                  fontFamily: "'Space Mono', monospace",
+                  fontSize: ".8rem",
+              }}
+          >
+              Loading replication configuration...
+          </div>
+      );
   }
 
   if (!status?.enabled) {
@@ -664,18 +664,37 @@ export default function ReplicationPanel({
             <div>STATUS</div>
           </div>
 
-          {buckets.length === 0 ? (
-            <div
-              style={{
-                padding: "1.5rem",
-                textAlign: "center",
-                color: C.muted,
-                fontSize: ".8rem",
-              }}
-            >
-              No replicated buckets found.
-            </div>
-          ) : (
+          {loading ? (
+                <div
+                    style={{
+                        padding: "1.5rem",
+                        textAlign: "center",
+                        color: C.muted,
+                        fontSize: ".8rem",
+                    }}
+                >
+                    Refreshing bucket replication data...
+                </div>
+            ) : buckets.length === 0 ? (
+                <div
+                    style={{
+                        padding: "1.5rem",
+                        textAlign: "center",
+                        color: C.muted,
+                        fontSize: ".8rem",
+                    }}
+                >
+                    No replication data loaded.
+                    <div
+                        style={{
+                            marginTop: ".5rem",
+                            fontSize: ".72rem",
+                        }}
+                    >
+                        Click Refresh to compare primary and secondary buckets.
+                    </div>
+                </div>
+            ) : (
             buckets.map((bucket, index) => (
               <div
                 key={bucket.name}
