@@ -20,6 +20,65 @@ from core.logger import logger
 from core.activity import log_activity
 from services.cluster.ceph_ops import run_ceph_cmd
 
+def create_nfs_cluster(cluster_id: str, host: str) -> Dict[str, Any]:
+    """
+    Create and deploy a Ceph NFS cluster on the specified host.
+
+    Args:
+        cluster_id: Ceph NFS cluster/service ID.
+        host: Ceph host where NFS-Ganesha should run.
+
+    Returns:
+        Result dictionary describing the operation.
+    """
+    try:
+        cluster_id = cluster_id.strip()
+        host = host.strip()
+
+        if not cluster_id:
+            return {"error": "NFS cluster ID is required"}
+
+        if not host:
+            return {"error": "NFS host is required"}
+
+        cmd = (
+            f"ceph nfs cluster create "
+            f"{cluster_id} {host}"
+        )
+
+        stdout, stderr, code = run_ceph_cmd(cmd)
+
+        if code != 0:
+            return {
+                "error": stderr or stdout or "Failed to create NFS cluster"
+            }
+
+        log_activity(
+            "CREATE NFS CLUSTER",
+            cluster_id,
+            "success",
+            f"NFS cluster deployed on {host}"
+        )
+
+        return {
+            "message": f"NFS cluster '{cluster_id}' created successfully",
+            "cluster": cluster_id,
+            "host": host,
+        }
+
+    except Exception as e:
+        logger.exception(
+            f"create_nfs_cluster error for {cluster_id}"
+        )
+
+        log_activity(
+            "CREATE NFS CLUSTER",
+            cluster_id,
+            "error",
+            str(e)
+        )
+
+        return {"error": str(e)}
 
 def list_nfs_clusters() -> Dict[str, Any]:
     """List all Ceph-managed NFS clusters."""

@@ -1,6 +1,14 @@
 import { req } from "./client";
 
 export const NFSAPI = {
+  createCluster: (clusterId, host) =>
+    req("/nfs/clusters", {
+        method: "POST",
+        body: JSON.stringify({
+        cluster_id: clusterId,
+        host,
+        }),
+    }),
   /**
    * List all Ceph NFS clusters.
    */

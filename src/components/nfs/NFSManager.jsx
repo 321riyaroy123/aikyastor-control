@@ -12,10 +12,10 @@ export default function NFSManager({ toast }) {
   const [buckets, setBuckets] = useState([]);
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [newExport, setNewExport] = useState({
-    bucket: "",
-    pseudoPath: "",
-  });
+  const [newExport, setNewExport] = useState({ bucket: "", pseudoPath: "", });
+  const [newCluster, setNewCluster] = useState({ clusterId: "", host: "", });
+  const [showCreateCluster, setShowCreateCluster] = useState(false);
+  const [creatingCluster, setCreatingCluster] = useState(false);
 
   const loadNFS = useCallback(async () => {
     setLoading(true);
@@ -77,6 +77,45 @@ export default function NFSManager({ toast }) {
       toast(err.message, "error");
     }
   };
+
+  const createCluster = async () => {
+    if (!newCluster.clusterId.trim()) {
+        toast("Enter an NFS cluster ID", "error");
+        return;
+    }
+
+    if (!newCluster.host.trim()) {
+        toast("Enter a Ceph host", "error");
+        return;
+    }
+
+    try {
+        setCreatingCluster(true);
+
+        await NFSAPI.createCluster(
+        newCluster.clusterId.trim(),
+        newCluster.host.trim()
+        );
+
+        toast(
+        `NFS cluster '${newCluster.clusterId.trim()}' created successfully`,
+        "success"
+        );
+
+        setShowCreateCluster(false);
+
+        setNewCluster({
+        clusterId: "",
+        host: "",
+        });
+
+        await loadNFS();
+    } catch (err) {
+        toast(err.message, "error");
+    } finally {
+        setCreatingCluster(false);
+    }
+    };
 
   const createExport = async () => {
     if (!newExport.bucket) {
@@ -166,19 +205,195 @@ export default function NFSManager({ toast }) {
 
   if (!cluster) {
     return (
-      <div style={styles.bucketWorkspaceContent}>
-        <div style={styles.workspaceCard}>
-          <div style={styles.workspaceCardTitle}>
-            NFS
-          </div>
+        <div style={styles.bucketWorkspaceContent}>
+        <div
+            style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            gap: "1rem",
+            marginBottom: "1.5rem",
+            }}
+        >
+            <div>
+            <h2 style={styles.pageHeaderTitle}>NFS</h2>
+            <p style={styles.pageHeaderSubtitle}>
+                Network access to RGW object-storage buckets through NFS.
+            </p>
+            </div>
 
-          <div style={{ color: C.muted, fontSize: ".85rem" }}>
-            No NFS cluster is currently configured.
-          </div>
+            <button
+            type="button"
+            style={{
+                ...styles.btn,
+                ...styles.btnPrimary,
+            }}
+            onClick={() => setShowCreateCluster(true)}
+            >
+            + Create NFS Cluster
+            </button>
         </div>
-      </div>
+
+        <div style={styles.workspaceCard}>
+            <div style={styles.workspaceCardTitle}>
+            NFS Infrastructure
+            </div>
+
+            <div
+            style={{
+                color: C.muted,
+                fontSize: ".85rem",
+                lineHeight: 1.6,
+            }}
+            >
+            No NFS cluster is currently configured.
+            <br />
+            Create an NFS cluster to expose RGW object-storage
+            buckets through NFS.
+            </div>
+        </div>
+
+        {showCreateCluster && (
+            <div
+            style={{
+                position: "fixed",
+                inset: 0,
+                background: "rgba(0,0,0,.65)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                zIndex: 1000,
+            }}
+            onClick={() => setShowCreateCluster(false)}
+            >
+            <div
+                style={{
+                ...styles.workspaceCard,
+                width: "min(520px, 90vw)",
+                boxShadow: "0 20px 60px rgba(0,0,0,.4)",
+                }}
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div
+                style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: "1.25rem",
+                }}
+                >
+                <div style={styles.workspaceCardTitle}>
+                    Create NFS Cluster
+                </div>
+
+                <button
+                    type="button"
+                    style={{
+                    ...styles.btn,
+                    ...styles.btnGhost,
+                    ...styles.btnSm,
+                    }}
+                    onClick={() => setShowCreateCluster(false)}
+                >
+                    Close
+                </button>
+                </div>
+
+                <div style={{ marginBottom: "1rem" }}>
+                <label
+                    style={{
+                    display: "block",
+                    marginBottom: ".4rem",
+                    color: C.text,
+                    fontSize: ".8rem",
+                    fontWeight: 700,
+                    }}
+                >
+                    Cluster ID
+                </label>
+
+                <input
+                    type="text"
+                    value={newCluster.clusterId}
+                    onChange={(e) =>
+                    setNewCluster((prev) => ({
+                        ...prev,
+                        clusterId: e.target.value,
+                    }))
+                    }
+                    placeholder="aikyastor-nfs"
+                    style={styles.formInput}
+                    disabled={creatingCluster}
+                />
+                </div>
+
+                <div style={{ marginBottom: "1.25rem" }}>
+                <label
+                    style={{
+                    display: "block",
+                    marginBottom: ".4rem",
+                    color: C.text,
+                    fontSize: ".8rem",
+                    fontWeight: 700,
+                    }}
+                >
+                    Ceph Host
+                </label>
+
+                <input
+                    type="text"
+                    value={newCluster.host}
+                    onChange={(e) =>
+                    setNewCluster((prev) => ({
+                        ...prev,
+                        host: e.target.value,
+                    }))
+                    }
+                    placeholder="localhost.localdomain"
+                    style={styles.formInput}
+                    disabled={creatingCluster}
+                />
+                </div>
+
+                <div
+                style={{
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    gap: ".6rem",
+                }}
+                >
+                <button
+                    type="button"
+                    style={{
+                    ...styles.btn,
+                    ...styles.btnGhost,
+                    }}
+                    onClick={() => setShowCreateCluster(false)}
+                    disabled={creatingCluster}
+                >
+                    Cancel
+                </button>
+
+                <button
+                    type="button"
+                    style={{
+                    ...styles.btn,
+                    ...styles.btnPrimary,
+                    }}
+                    onClick={createCluster}
+                    disabled={creatingCluster}
+                >
+                    {creatingCluster
+                    ? "Creating..."
+                    : "Create NFS Cluster"}
+                </button>
+                </div>
+            </div>
+            </div>
+        )}
+        </div>
     );
-  }
+    }
 
   return (
     <div style={styles.bucketWorkspaceContent}>

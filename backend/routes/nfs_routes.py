@@ -21,6 +21,7 @@ from flask import Blueprint, request, jsonify
 
 from core.logger import logger
 from services.nfs.nfs_ops import (
+    create_nfs_cluster,
     list_nfs_clusters,
     get_nfs_cluster_info,
     list_nfs_exports,
@@ -66,6 +67,42 @@ def valid_pseudo_path(value: str) -> bool:
 # ---------------------------------------------------------------------------
 # Cluster operations
 # ---------------------------------------------------------------------------
+
+@nfs_bp.route("/clusters", methods=["POST"])
+def api_create_nfs_cluster():
+    data = request.get_json(silent=True) or {}
+
+    cluster_id = data.get("cluster_id", "").strip()
+    host = data.get("host", "").strip()
+
+    if not cluster_id:
+        return jsonify({
+            "error": "NFS cluster ID is required"
+        }), 400
+
+    if not host:
+        return jsonify({
+            "error": "NFS host is required"
+        }), 400
+
+    try:
+        result = create_nfs_cluster(
+            cluster_id,
+            host
+        )
+
+        return jsonify(result), (
+            201 if "error" not in result else 500
+        )
+
+    except Exception as e:
+        logger.exception(
+            "create_nfs_cluster route error"
+        )
+
+        return jsonify({
+            "error": str(e)
+        }), 500
 
 @nfs_bp.route("/clusters", methods=["GET"])
 def api_list_nfs_clusters():
