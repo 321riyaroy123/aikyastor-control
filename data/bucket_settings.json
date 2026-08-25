@@ -59,18 +59,6 @@
             "type": "AES256"
         }
     },
-    "vault-sse-test": {
-        "encryption": {
-            "enabled": true,
-            "type": "AES256"
-        }
-    },
-    "encyption-test": {
-        "encryption": {
-            "enabled": true,
-            "type": "AES256"
-        }
-    },
     "meow": {
         "encryption": {
             "enabled": true,

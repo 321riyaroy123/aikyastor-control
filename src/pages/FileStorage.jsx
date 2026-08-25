@@ -1,13 +1,16 @@
 import { useState, useCallback, useEffect } from "react";
 import { FileAPI } from "../api/fileStorage";
+import { C, styles } from "../styles/theme";
 import FileExplorer from "../components/file/FileExplorer";
 import VaultPopup from "../components/vault/VaultPopup";
+import NFSManager from "../components/nfs/NFSManager";
 
 // Extracted/wired from the FileStorage component in AiKyaStorCONTROL.jsx.
 export default function FileStoragePage({ toast }) {
   const [path, setPath] = useState("");
   const [entries, setEntries] = useState([]);
   const [vaultPopup, setVaultPopup] = useState(null);
+  const [storageMode, setStorageMode] = useState("cephfs");
 
   const browse = useCallback(async (p) => {
     setPath(p);
@@ -70,17 +73,54 @@ export default function FileStoragePage({ toast }) {
 
   return (
     <div>
-      {vaultPopup && <VaultPopup file={vaultPopup.file} onDecide={vaultPopup.cb} onClose={() => setVaultPopup(null)} />}
-      <FileExplorer
-        path={path}
-        entries={entries}
-        onBrowse={browse}
-        onUpload={handleUpload}
-        onDelete={deleteEntry}
-        onMkdir={mkdir}
-        onSyncVault={syncVault}
-        downloadUrl={FileAPI.downloadUrl}
-      />
+      {vaultPopup && (
+        <VaultPopup
+          file={vaultPopup.file}
+          onDecide={vaultPopup.cb}
+          onClose={() => setVaultPopup(null)}
+        />
+      )}
+
+      <div style={styles.bucketPanel}>
+      <div style={styles.bucketTabs}>
+        <button
+          type="button"
+          style={{
+            ...styles.bucketTab,
+            ...(storageMode === "cephfs" ? styles.bucketTabActive : {}),
+          }}
+          onClick={() => setStorageMode("cephfs")}
+        >
+          CephFS
+        </button>
+
+        <button
+          type="button"
+          style={{
+            ...styles.bucketTab,
+            ...(storageMode === "nfs" ? styles.bucketTabActive : {}),
+          }}
+          onClick={() => setStorageMode("nfs")}
+        >
+          NFS
+        </button>
+      </div>
+
+      {storageMode === "cephfs" ? (
+        <FileExplorer
+          path={path}
+          entries={entries}
+          onBrowse={browse}
+          onUpload={handleUpload}
+          onDelete={deleteEntry}
+          onMkdir={mkdir}
+          onSyncVault={syncVault}
+          downloadUrl={FileAPI.downloadUrl}
+        />
+      ) : (
+        <NFSManager toast={toast} />
+      )}
+    </div>
     </div>
   );
 }

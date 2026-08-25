@@ -735,8 +735,8 @@ def configure_replication(
     read_only: bool = False,
 ) -> Dict[str, Any]:
     """
-    Modify the existing secondary RGW zone and commit
-    the updated multisite period.
+    Modify the existing secondary RGW zone, verify the resulting
+    zonegroup configuration, and commit the updated multisite period.
 
     Production-only implementation.
     """
@@ -773,12 +773,77 @@ def configure_replication(
             f"zone modify "
             f"--rgw-realm={REALM} "
             f"--rgw-zone={secondary_zone} "
-            f"--endpoints={secondary_endpoint} "
+            f"--endpoints={shlex.quote(secondary_endpoint)} "
             f"--read-only={read_only_value}"
         )
 
         # ---------------------------------------------------------
-        # 3. Commit the new multisite period
+        # 3. Verify the configuration in the zonegroup
+        # ---------------------------------------------------------
+
+        zonegroup = _run_rgw_admin(
+            f"zonegroup get "
+            f"--rgw-realm={REALM} "
+            f"--rgw-zonegroup={PRIMARY_ZONE} "
+            f"--format=json"
+        )
+
+        configured_zone = next(
+            (
+                z
+                for z in zonegroup.get("zones", [])
+                if z.get("name") == secondary_zone
+            ),
+            None,
+        )
+
+        if configured_zone is None:
+            raise RuntimeError(
+                f"Zone '{secondary_zone}' was not found "
+                "in the primary zonegroup after configuration"
+            )
+
+        configured_endpoints = configured_zone.get(
+            "endpoints",
+            [],
+        )
+
+        configured_read_only = configured_zone.get(
+            "read_only"
+        )
+
+        expected_endpoints = [secondary_endpoint]
+
+        # Ceph may represent read_only as a boolean or string
+        configured_read_only_bool = (
+            configured_read_only is True
+            or str(configured_read_only).lower() == "true"
+        )
+
+        if configured_endpoints != expected_endpoints:
+            raise RuntimeError(
+                "Secondary endpoint was not applied correctly. "
+                f"Expected {expected_endpoints}, "
+                f"got {configured_endpoints}"
+            )
+
+        if configured_read_only_bool != read_only:
+            raise RuntimeError(
+                "Secondary read-only setting was not applied correctly. "
+                f"Expected {read_only}, "
+                f"got {configured_read_only}"
+            )
+
+        logger.info(
+            "Replication configuration verified: "
+            "zone=%s endpoint=%s read_only=%s",
+            secondary_zone,
+            secondary_endpoint,
+            read_only,
+        )
+
+        # ---------------------------------------------------------
+        # 4. Commit the new multisite period
         # ---------------------------------------------------------
 
         stdout, stderr, code = run_ceph_cmd(
@@ -793,17 +858,13 @@ def configure_replication(
             )
 
         # ---------------------------------------------------------
-        # 4. Return fresh configuration
+        # 5. Return verified configuration
         # ---------------------------------------------------------
 
         return {
             "success": True,
             "message": "Replication configuration applied successfully.",
-            "zone": _run_rgw_admin(
-                f"zone get "
-                f"--rgw-realm={REALM} "
-                f"--rgw-zone={secondary_zone}"
-            ),
+            "zone": configured_zone,
         }
 
     except Exception as e:

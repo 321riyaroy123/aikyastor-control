@@ -497,24 +497,18 @@ export default function ReplicationPanel({
                 </Button>
 
                 <Button
-                size="sm"
-                onClick={() =>
-                    onConfigure({
-                    secondary_zone:
-                        status.secondary?.name,
-                    secondary_endpoint: endpoint,
-                    read_only: readOnly,
-                    })
-                }
-                disabled={
-                    configuring ||
-                    !endpoint.trim()
-                }
-                >
-                {configuring
-                    ? "Applying..."
-                    : "Apply Configuration"}
-                </Button>
+                  size="sm"
+                  onClick={() =>
+                      onConfigure({
+                          secondary_zone: status.secondary?.name,
+                          secondary_endpoint: endpoint,
+                          read_only: readOnly,
+                      })
+                  }
+                  disabled={configuring || !endpoint.trim()}
+              >
+                  {configuring ? "Applying..." : "Apply Configuration"}
+              </Button>
             </div>
             </div>
         </div>

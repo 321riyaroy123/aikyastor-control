@@ -13,6 +13,7 @@ from routes.vault_routes import vault_bp
 from routes.replication_routes import replication_bp
 from routes.lifecycle_policy_routes import lifecycle_policy_bp
 from routes.simulation_routes import simulation_bp
+from routes.nfs_routes import nfs_bp
 
 # ─── Initialize Flask App ─────────────────────────────────────────────────────
 app = Flask(__name__)
@@ -29,6 +30,7 @@ app.register_blueprint(vault_bp)       # /api/vault/status, /api/block/images/<n
 app.register_blueprint(lifecycle_policy_bp)  # /api/policies..., /api/object/buckets/<bucket>/lifecycle
 app.register_blueprint(simulation_bp)  # /api/simulation/time
 app.register_blueprint(replication_bp)  # /api/replication/...
+app.register_blueprint(nfs_bp)
 
 # ═════════════════════════════════════════════════════════════════════════════
 # FRONTEND SERVING
