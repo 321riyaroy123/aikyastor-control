@@ -72,11 +72,9 @@ export default function NFSManager({ toast }) {
   const viewExport = async (pseudoPath) => {
     try {
       const result = await NFSAPI.exportInfo(cluster, pseudoPath);
-      console.log("Export info result:", result);
       setSelectedExport(result);
     } catch (err) {
       toast(err.message, "error");
-      console.error("viewExport error:", err);
     }
   };
 
@@ -461,16 +459,6 @@ export default function NFSManager({ toast }) {
                 <span style={styles.policySummaryValue}>
                   {selectedExport.transports?.join(", ") || "TCP"}
                 </span>
-              </div>
-
-              {/* Debug: show raw selectedExport structure */}
-              <div style={{ marginTop: "1rem", paddingTop: "1rem", borderTop: `1px solid ${C.border}` }}>
-                <div style={{ color: C.muted, fontSize: ".7rem", marginBottom: ".5rem" }}>
-                  Debug Info
-                </div>
-                <pre style={{ fontSize: ".7rem", color: C.muted, background: C.surface2, padding: ".5rem", borderRadius: "4px", overflow: "auto" }}>
-                  {JSON.stringify(selectedExport, null, 2)}
-                </pre>
               </div>
             </div>
 

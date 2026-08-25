@@ -96,13 +96,24 @@ def get_nfs_export(
         stdout, stderr, code = run_ceph_cmd(
             f"ceph nfs export info "
             f"{cluster_id} "
-            f"{pseudo_path}"
+            f"{pseudo_path} "
+            f"--format json"
         )
 
         if code != 0:
             return {"error": stderr or "Failed to get NFS export info"}
 
-        data = json.loads(stdout) if stdout else {}
+        if not stdout:
+            return {"error": "NFS export info returned no data"}
+
+        try:
+            data = json.loads(stdout)
+        except json.JSONDecodeError as e:
+            logger.error(
+                f"get_nfs_export: failed to parse JSON for "
+                f"{cluster_id}:{pseudo_path}. Raw output: {stdout!r}"
+            )
+            return {"error": f"Invalid JSON from Ceph: {e}"}
 
         return data
 
