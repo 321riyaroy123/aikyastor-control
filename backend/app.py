@@ -64,5 +64,6 @@ if __name__ == "__main__":
     app.run(
         host=config.FLASK_HOST,
         port=config.FLASK_PORT,
-        debug=True
+        debug=True,
+        threaded=config.FLASK_THREADED,
     )
