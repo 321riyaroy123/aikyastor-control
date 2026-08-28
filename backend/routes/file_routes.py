@@ -25,10 +25,95 @@ from services.file.file_storage import (
     browse_directory, upload_file, download_file, delete_file_or_dir,
     create_directory, get_directory_stats
 )
+from services.file.cephfs_mount import get_mount_status, test_connection, mount_cephfs, unmount_cephfs
 import simulation.simulation as simulation
 
 file_bp = Blueprint("file", __name__, url_prefix="/api/file")
 
+# ─── CephFS Mount Management ──────────────────────────────────────────────────
+
+@file_bp.route("/cephfs/status", methods=["GET"])
+def api_cephfs_status():
+    """Return CephFS configuration and current mount status."""
+    try:
+        result = get_mount_status()
+        return jsonify(result), 200
+    except Exception as e:
+        logger.exception("cephfs_status error")
+        return jsonify({"error": str(e)}), 500
+
+
+@file_bp.route("/cephfs/config", methods=["GET"])
+def api_cephfs_config():
+    """Return the non-sensitive CephFS configuration."""
+    try:
+        result = get_mount_status()
+
+        # Do not expose the keyring path or any credential information.
+        return jsonify({
+            "configured": result["configured"],
+            "filesystem": result["filesystem"],
+            "user": result["user"],
+            "mount_point": result["mount_point"],
+        }), 200
+
+    except Exception as e:
+        logger.exception("cephfs_config error")
+        return jsonify({"error": str(e)}), 500
+
+
+@file_bp.route("/cephfs/test", methods=["POST"])
+def api_cephfs_test():
+    """Test access to the configured CephFS without mounting it."""
+    if config.IS_SIMULATION:
+        return jsonify({
+            "success": False,
+            "error": "CephFS mount management is unavailable in simulation mode"
+        }), 409
+
+    try:
+        result = test_connection()
+        return jsonify(result), 200 if result.get("success") else 500
+
+    except Exception as e:
+        logger.exception("cephfs_test error")
+        return jsonify({"error": str(e)}), 500
+
+
+@file_bp.route("/cephfs/mount", methods=["POST"])
+def api_cephfs_mount():
+    """Mount the configured CephFS."""
+    if config.IS_SIMULATION:
+        return jsonify({
+            "success": False,
+            "error": "CephFS mount management is unavailable in simulation mode"
+        }), 409
+
+    try:
+        result = mount_cephfs()
+        return jsonify(result), 200 if result.get("success") else 500
+
+    except Exception as e:
+        logger.exception("cephfs_mount error")
+        return jsonify({"error": str(e)}), 500
+
+
+@file_bp.route("/cephfs/unmount", methods=["POST"])
+def api_cephfs_unmount():
+    """Unmount the configured CephFS."""
+    if config.IS_SIMULATION:
+        return jsonify({
+            "success": False,
+            "error": "CephFS mount management is unavailable in simulation mode"
+        }), 409
+
+    try:
+        result = unmount_cephfs()
+        return jsonify(result), 200 if result.get("success") else 500
+
+    except Exception as e:
+        logger.exception("cephfs_unmount error")
+        return jsonify({"error": str(e)}), 500
 
 @file_bp.route("/browse", methods=["GET"])
 def api_browse():

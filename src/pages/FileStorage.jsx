@@ -4,6 +4,7 @@ import { C, styles } from "../styles/theme";
 import FileExplorer from "../components/file/FileExplorer";
 import VaultPopup from "../components/vault/VaultPopup";
 import NFSManager from "../components/nfs/NFSManager";
+import CephFSManager from "../components/file/CephFSManager";
 
 // File storage page combining CephFS file operations with the NFS
 // manager used to expose RGW buckets through Ceph NFS.
@@ -24,7 +25,16 @@ export default function FileStoragePage({ toast }) {
     }
   }, [toast]);
 
-  useEffect(() => { browse(""); }, [browse]);
+  const [cephfsMounted, setCephfsMounted] = useState(false);
+  useEffect(() => {
+    FileAPI.cephfsStatus()
+      .then((status) => {
+        setCephfsMounted(Boolean(status.mounted));
+      })
+      .catch(() => {
+        setCephfsMounted(false);
+      });
+  }, []);
 
   const handleUpload = (file) => {
     setVaultPopup({ file, cb: async (toVault) => {
@@ -83,45 +93,85 @@ export default function FileStoragePage({ toast }) {
       )}
 
       <div style={styles.bucketPanel}>
-      <div style={styles.bucketTabs}>
-        <button
-          type="button"
-          style={{
-            ...styles.bucketTab,
-            ...(storageMode === "cephfs" ? styles.bucketTabActive : {}),
-          }}
-          onClick={() => setStorageMode("cephfs")}
-        >
-          CephFS
-        </button>
+        <div style={styles.bucketTabs}>
+          <button
+            type="button"
+            style={{
+              ...styles.bucketTab,
+              ...(storageMode === "cephfs" ? styles.bucketTabActive : {}),
+            }}
+            onClick={() => setStorageMode("cephfs")}
+          >
+            CephFS
+          </button>
 
-        <button
-          type="button"
-          style={{
-            ...styles.bucketTab,
-            ...(storageMode === "nfs" ? styles.bucketTabActive : {}),
-          }}
-          onClick={() => setStorageMode("nfs")}
-        >
-          NFS
-        </button>
+          <button
+            type="button"
+            style={{
+              ...styles.bucketTab,
+              ...(storageMode === "nfs" ? styles.bucketTabActive : {}),
+            }}
+            onClick={() => setStorageMode("nfs")}
+          >
+            NFS
+          </button>
+        </div>
+
+        {storageMode === "cephfs" ? (
+          <>
+            <CephFSManager
+              toast={toast}
+              onMounted={async () => {
+                setCephfsMounted(true);
+                await browse("");
+              }}
+              onUnmounted={() => {
+                setCephfsMounted(false);
+                setPath("");
+                setEntries([]);
+              }}
+            />
+
+            {cephfsMounted ? (
+              <FileExplorer
+                path={path}
+                entries={entries}
+                onBrowse={browse}
+                onUpload={handleUpload}
+                onDelete={deleteEntry}
+                onMkdir={mkdir}
+                onSyncVault={syncVault}
+                downloadUrl={FileAPI.downloadUrl}
+              />
+            ) : (
+              <div
+                style={{
+                  padding: "2rem",
+                  textAlign: "center",
+                  color: C.muted,
+                  fontFamily: "'Space Mono', monospace",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: ".9rem",
+                    color: C.text,
+                    marginBottom: ".5rem",
+                  }}
+                >
+                  CephFS is not mounted
+                </div>
+
+                <div style={{ fontSize: ".78rem" }}>
+                  Mount CephFS above to access File Storage.
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <NFSManager toast={toast} />
+        )}
       </div>
-
-      {storageMode === "cephfs" ? (
-        <FileExplorer
-          path={path}
-          entries={entries}
-          onBrowse={browse}
-          onUpload={handleUpload}
-          onDelete={deleteEntry}
-          onMkdir={mkdir}
-          onSyncVault={syncVault}
-          downloadUrl={FileAPI.downloadUrl}
-        />
-      ) : (
-        <NFSManager toast={toast} />
-      )}
-    </div>
     </div>
   );
 }

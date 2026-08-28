@@ -1,6 +1,27 @@
 import { req, BASE } from "./client";
 
 export const FileAPI = {
+  cephfsStatus: () =>
+    req("/file/cephfs/status"),
+
+  cephfsConfig: () =>
+    req("/file/cephfs/config"),
+
+  testCephFS: () =>
+    req("/file/cephfs/test", {
+      method: "POST",
+    }),
+
+  mountCephFS: () =>
+    req("/file/cephfs/mount", {
+      method: "POST",
+    }),
+
+  unmountCephFS: () =>
+    req("/file/cephfs/unmount", {
+      method: "POST",
+    }),
+
   browse: (path = "") => req(`/file/browse?path=${encodeURIComponent(path)}`),
 
   upload: (path, file, toVault) => {
@@ -13,14 +34,19 @@ export const FileAPI = {
 
   downloadUrl: (path) => `${BASE}/file/download?path=${encodeURIComponent(path)}`,
 
-  delete: (path) => req(`/file/delete?path=${encodeURIComponent(path)}`, { method: "DELETE" }),
+  delete: (path) =>
+    req(`/file/delete?path=${encodeURIComponent(path)}`, {
+      method: "DELETE",
+    }),
 
-  mkdir: (path) => req("/file/mkdir", {
-    method: "POST",
-    body: JSON.stringify({ path }),
-  }),
+  mkdir: (path) =>
+    req("/file/mkdir", {
+      method: "POST",
+      body: JSON.stringify({ path }),
+    }),
 
-  stats: (path = "") => req(`/file/stats?path=${encodeURIComponent(path)}`),
+  stats: (path = "") =>
+    req(`/file/stats?path=${encodeURIComponent(path)}`),
 
   syncVault: () => req("/file/sync-vault", { method: "POST" }),
 };
