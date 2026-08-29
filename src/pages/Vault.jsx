@@ -6,7 +6,8 @@ import VaultStatus from "../components/vault/VaultStatus";
 import ActivityPanel from "../components/activity/ActivityPanel";
 import { C } from "../styles/theme";
 
-// Extracted/wired from the VaultSection component in AiKyaStorCONTROL.jsx.
+// Vault Backup page for the filesystem-backed `/vault` mirror used by
+// bucket syncs, CephFS syncs, and RBD exports.
 export default function VaultPage({ vault, buckets, images, activity, toast, onRefreshVault, onRefreshActivity }) {
   const [selBucket, setSelBucket] = useState(buckets[0]?.name || "");
   const [selImage, setSelImage] = useState(images[0]?.name || "");

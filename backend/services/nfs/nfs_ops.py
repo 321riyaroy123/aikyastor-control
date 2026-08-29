@@ -1,16 +1,10 @@
 """
-services/nfs/nfs_ops.py
+Ceph NFS service helpers.
 
-NFS management operations for AiKyaStor CONTROL.
-
-Handles:
-- NFS cluster listing and information
-- NFS export listing and information
-- RGW bucket exports
-- NFS export deletion
-
-All Ceph/NFS command execution happens here.
-Routes should call these functions instead of executing Ceph commands directly.
+This module manages Ceph NFS clusters and RGW-backed NFS exports:
+creating clusters, listing cluster metadata, creating exports for RGW
+buckets, inspecting export details, and removing exports without
+touching the underlying bucket.
 """
 
 import json

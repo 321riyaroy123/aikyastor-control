@@ -1,22 +1,10 @@
 """
-services/vault/vault_health.py - HashiCorp Vault health & status checks
+Read-only HashiCorp Vault health checks for Encryption Vault.
 
-Responsibility:
-    Read-only HTTP calls directly against the HashiCorp Vault server that
-    backs Ceph RGW's SSE-S3 encryption (Transit engine). This is entirely
-    separate from services/vault/vault_ops.py, which manages the
-    filesystem/RBD backup "vault" mount (VAULT_PATH) — different system,
-    same name, easy to confuse.
-
-    This module performs NO encryption operations and holds no ability to
-    create/rotate/delete keys. It only reports:
-        - whether Vault is reachable, initialized, sealed
-        - whether the transit/ secrets engine is mounted
-        - basic metadata about the token in use (policies, TTL) so a
-          dashboard can flag an expiring/misconfigured token before RGW
-          itself starts failing
-
-    Used by: routes/vault_routes.py (new /api/vault/hashicorp/... endpoints)
+The functions here call Vault's HTTP API to report reachability, seal
+state, transit-engine availability, and dashboard-token metadata for the
+Vault instance backing Ceph RGW SSE-S3 encryption. This is separate from
+the filesystem backup vault managed by `services.vault.vault_ops`.
 """
 
 import requests

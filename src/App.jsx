@@ -15,8 +15,8 @@ import FileStoragePage from "./pages/FileStorage";
 import VaultPage from "./pages/Vault";
 import EncryptionVaultPage from "./pages/EncryptionVault";
 
-// Root shell extracted from the `App` component (the default export) in
-// AiKyaStorCONTROL.jsx: header, sidebar nav, section routing, and toasts.
+// Root UI shell for the dashboard: global status bars, sidebar
+// navigation, page switching, and toast notifications.
 export default function App() {
   const [section, setSection] = useState("dashboard");
   const [stats, setStats] = useState(null);

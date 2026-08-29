@@ -5,16 +5,10 @@ import { Th, TableWrap } from "../components/common/Table";
 import { C, styles } from "../styles/theme";
 import { EncryptionVaultAPI } from "../api/encryptionVault";
 
-// Encryption Vault: health & status for the HashiCorp Vault server
-// (Transit secrets engine) that backs Ceph RGW's SSE-S3 encryption.
-//
-// Read-only: this page cannot rotate tokens, create keys, or change
-// Vault's seal state. Per-bucket encryption enable/disable already
-// lives in that bucket's Settings -> Encryption tab (SettingsTab.jsx)
-// and is intentionally NOT duplicated here, since Vault's health
-// (reachable / sealed / transit mounted) is a cluster-wide property,
-// not a per-bucket one -- every bucket depends on the same Vault
-// instance, so there is nothing bucket-specific to show on this page.
+// Read-only Encryption Vault page for the HashiCorp Vault transit
+// backend used by Ceph RGW SSE-S3. Bucket-level encryption settings live
+// in the object-storage workspace; this page only shows cluster-wide
+// Vault health, transit status, and dashboard-token metadata.
 export default function EncryptionVaultPage({ toast }) {
     const [statusData, setStatusData] = useState(null);
     const [loading, setLoading] = useState(true);

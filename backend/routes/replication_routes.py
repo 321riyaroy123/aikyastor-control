@@ -1,5 +1,9 @@
 """
-RGW multisite replication routes.
+HTTP routes for RGW multisite replication.
+
+These endpoints expose replication health, replicated bucket visibility,
+secondary-zone configuration, provisioning, and manual circuit-breaker
+reset actions for the object-storage UI.
 """
 
 from flask import Blueprint, jsonify, request

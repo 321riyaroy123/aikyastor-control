@@ -1,28 +1,12 @@
 """
-config/config.py - Configuration management with .env support
+Centralized runtime configuration for AiKyaStor CONTROL.
 
-Moved from: config.py (project root)
+This module loads environment-backed settings for Flask, Ceph RGW,
+CephFS, RBD, the backup vault mount, HashiCorp Vault status checks,
+replication, logging, and command execution timeouts.
 
-Responsibility:
-    Single source of truth for all environment-driven settings
-    (app mode, Flask host/port, Ceph/RGW credentials, CephFS mount,
-    RBD pool, vault path, logging, and command timeouts).
-
-Behavior preserved exactly from the original config.py:
-    - APP_MODE defaults to "simulation"; IS_SIMULATION is derived from it.
-    - Outside simulation mode, CEPH_ACCESS_KEY and CEPH_SECRET_KEY are
-      REQUIRED and the app refuses to start (RuntimeError) if missing.
-      There are no built-in default/hardcoded credentials.
-
-NEW in this revision:
-    - VAULT_ADDR / VAULT_TOKEN: direct HTTP connection settings for the
-      Flask app to reach HashiCorp Vault itself (separate from RGW's own
-      Vault connection, which lives entirely in Ceph's rgw_crypt_sse_s3_
-      vault_* config and is untouched by this app). Used by the new
-      Vault health/status dashboard tab.
-    - Same "required outside simulation mode, no hardcoded default"
-      pattern as CEPH_ACCESS_KEY/CEPH_SECRET_KEY is applied to
-      VAULT_TOKEN, since it is equally sensitive credential material.
+Outside simulation mode the app refuses to start unless both Ceph
+credentials and the HashiCorp Vault dashboard token are provided.
 """
 
 import os

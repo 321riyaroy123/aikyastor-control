@@ -1,3 +1,12 @@
+"""
+Flask application entrypoint for AiKyaStor CONTROL.
+
+This module wires together the backend surface for the dashboard:
+cluster monitoring, object/block/file operations, lifecycle policies,
+replication, NFS management, vault backup actions, simulation helpers,
+and read-only HashiCorp Vault status endpoints for encryption health.
+"""
+
 import os
 from flask import Flask, jsonify, send_file
 from flask_cors import CORS

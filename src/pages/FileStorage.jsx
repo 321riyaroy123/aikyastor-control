@@ -5,7 +5,8 @@ import FileExplorer from "../components/file/FileExplorer";
 import VaultPopup from "../components/vault/VaultPopup";
 import NFSManager from "../components/nfs/NFSManager";
 
-// Extracted/wired from the FileStorage component in AiKyaStorCONTROL.jsx.
+// File storage page combining CephFS file operations with the NFS
+// manager used to expose RGW buckets through Ceph NFS.
 export default function FileStoragePage({ toast }) {
   const [path, setPath] = useState("");
   const [entries, setEntries] = useState([]);

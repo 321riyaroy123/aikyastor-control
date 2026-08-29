@@ -1,32 +1,11 @@
 """
-routes/vault_routes.py - Vault Backup Blueprint
+Vault-related HTTP endpoints.
 
-Moved from: app.py
-    - GET  /api/vault/status
-    - POST /api/block/images/<name>/export-vault
-    - POST /api/file/sync-vault
-
-Added:
-    - GET  /api/vault/hashicorp/status
-    - GET  /api/vault/hashicorp/health
-    - GET  /api/vault/hashicorp/transit
-    - GET  /api/vault/hashicorp/token
-
-    These wrap services/vault/vault_health.py, which was already written
-    (its own docstring says "Used by: routes/vault_routes.py (new
-    /api/vault/hashicorp/... endpoints)") but was never actually
-    registered as a route. That gap is why the EncryptionVault dashboard
-    page always rendered "Unreachable"/"Unknown" regardless of Vault's
-    real state — the frontend was hitting Flask's 404 handler, not
-    Vault itself.
-
-Responsibility:
-    Thin HTTP layer for vault mount status and the two "bulk" vault
-    operations (RBD export, full CephFS sync), plus read-only
-    HashiCorp Vault health/status reporting for the dashboard. The
-    bucket-level sync-vault endpoint lives in object_routes.py since
-    it's namespaced under /api/object/ in the original app — kept
-    there to avoid changing any URL.
+This blueprint serves two distinct workflows:
+- backup-vault endpoints for the local `VAULT_PATH` mirror used by object,
+  block, and file backup actions
+- read-only HashiCorp Vault status endpoints used by the Encryption Vault
+  page to inspect the transit-backed SSE-S3 dependency
 """
 
 from flask import Blueprint, jsonify
