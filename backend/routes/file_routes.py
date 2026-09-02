@@ -26,7 +26,7 @@ from services.file.file_storage import (
     browse_directory, upload_file, download_file, delete_file_or_dir,
     create_directory, get_directory_stats
 )
-from services.file.cephfs_mount import get_mount_status, get_saved_config, test_connection, mount_cephfs, unmount_cephfs, list_filesystems
+from services.file.cephfs_mount import get_mount_status, get_saved_config, test_connection, mount_cephfs, unmount_cephfs, list_filesystems, create_cephfs
 import simulation.simulation as simulation
 
 file_bp = Blueprint("file", __name__, url_prefix="/api/file")
@@ -82,6 +82,55 @@ def api_cephfs_filesystems():
     except Exception as e:
         logger.exception("cephfs_filesystems error")
         return jsonify({"error": str(e)}), 500
+
+@file_bp.route("/cephfs/create", methods=["POST"])
+def api_cephfs_create():
+    """Create a new CephFS filesystem."""
+    if config.IS_SIMULATION:
+        return jsonify({
+            "success": False,
+            "error": "CephFS creation is unavailable in simulation mode",
+        }), 409
+
+    try:
+        data = request.get_json(silent=True) or {}
+
+        filesystem = str(data.get("filesystem", "")).strip()
+        metadata_pool = str(data.get("metadata_pool", "")).strip()
+        data_pool = str(data.get("data_pool", "")).strip()
+
+        if not filesystem:
+            return jsonify({
+                "success": False,
+                "error": "Filesystem name is required",
+            }), 400
+
+        if not metadata_pool:
+            return jsonify({
+                "success": False,
+                "error": "Metadata pool name is required",
+            }), 400
+
+        if not data_pool:
+            return jsonify({
+                "success": False,
+                "error": "Data pool name is required",
+            }), 400
+
+        result = create_cephfs(
+            filesystem=filesystem,
+            metadata_pool=metadata_pool,
+            data_pool=data_pool,
+        )
+
+        return jsonify(result), 200 if result.get("success") else 400
+
+    except Exception as e:
+        logger.exception("cephfs_create error")
+        return jsonify({
+            "success": False,
+            "error": str(e),
+        }), 500
 
 @file_bp.route("/cephfs/status", methods=["GET"])
 def api_cephfs_status():

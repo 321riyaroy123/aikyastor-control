@@ -15,6 +15,13 @@ export default function CephFSManager({ toast, onMounted, onUnmounted }) {
   const [filesystems, setFilesystems] = useState([]);
   const [form, setForm] = useState(DEFAULT_FORM);
   const [busy, setBusy] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+
+  const [createForm, setCreateForm] = useState({
+    filesystem: "",
+    metadata_pool: "",
+    data_pool: "",
+  });
 
   const refreshStatus = async () => {
     try {
@@ -40,19 +47,34 @@ export default function CephFSManager({ toast, onMounted, onUnmounted }) {
     }
   };
 
+  const refreshFilesystems = async () => {
+    try {
+      const data = await FileAPI.cephfsFilesystems();
+
+      if (data?.success) {
+        setFilesystems(data.filesystems || []);
+        return data.filesystems || [];
+      }
+
+      throw new Error(
+        data?.error || "Unable to list CephFS filesystems"
+      );
+    } catch (err) {
+      toast(
+        err.message || "Unable to list CephFS filesystems",
+        "error"
+      );
+      return [];
+    }
+  };
+
   useEffect(() => {
     const load = async () => {
       try {
-        const [statusData, filesystemData] = await Promise.all([
+        await Promise.all([
           refreshStatus(),
-          FileAPI.cephfsFilesystems(),
+          refreshFilesystems(),
         ]);
-
-        if (filesystemData?.success) {
-          setFilesystems(filesystemData.filesystems || []);
-        }
-
-        return statusData;
       } catch (err) {
         toast(
           err.message || "Unable to load CephFS configuration",
@@ -145,6 +167,71 @@ export default function CephFSManager({ toast, onMounted, onUnmounted }) {
         monitors: "",
         mount_point: "",
       }));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const createFilesystem = async () => {
+    const filesystem = createForm.filesystem.trim();
+    const metadataPool = createForm.metadata_pool.trim();
+    const dataPool = createForm.data_pool.trim();
+
+    if (!filesystem) {
+      toast("Enter a filesystem name", "error");
+      return;
+    }
+
+    if (!metadataPool) {
+      toast("Enter a metadata pool name", "error");
+      return;
+    }
+
+    if (!dataPool) {
+      toast("Enter a data pool name", "error");
+      return;
+    }
+
+    setBusy(true);
+
+    try {
+      const result = await FileAPI.createCephFS({
+        filesystem,
+        metadata_pool: metadataPool,
+        data_pool: dataPool,
+      });
+
+      if (!result.success) {
+        throw new Error(
+          result.error || "CephFS creation failed"
+        );
+      }
+
+      toast(
+        result.message ||
+          `CephFS '${filesystem}' created successfully`,
+        "success"
+      );
+
+      setShowCreateForm(false);
+
+      setCreateForm({
+        filesystem: "",
+        metadata_pool: "",
+        data_pool: "",
+      });
+
+      const updatedFilesystems = await refreshFilesystems();
+
+      // Automatically select the newly created filesystem.
+      if (updatedFilesystems.includes(filesystem)) {
+        await selectFilesystem(filesystem);
+      }
+    } catch (err) {
+      toast(
+        err.message || "CephFS creation failed",
+        "error"
+      );
     } finally {
       setBusy(false);
     }
@@ -272,14 +359,176 @@ export default function CephFSManager({ toast, onMounted, onUnmounted }) {
     >
       <div
         style={{
-          fontFamily: "'Space Mono',monospace",
-          fontSize: ".9rem",
-          color: C.text,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "1rem",
           marginBottom: "1rem",
+          flexWrap: "wrap",
         }}
       >
-        CephFS Configuration
+        <div
+          style={{
+            fontFamily: "'Space Mono',monospace",
+            fontSize: ".9rem",
+            color: C.text,
+          }}
+        >
+          CephFS Configuration
+        </div>
+
+        {!status.mounted && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowCreateForm((current) => !current)}
+            disabled={busy}
+          >
+            {showCreateForm
+              ? "Cancel Create"
+              : "+ Create New Filesystem"}
+          </Button>
+        )}
       </div>
+
+      {showCreateForm && !status.mounted && (
+        <div
+          style={{
+            border: `1px solid ${C.border}`,
+            borderRadius: 6,
+            padding: "1rem",
+            marginBottom: "1rem",
+          }}
+        >
+          <div
+            style={{
+              fontFamily: "'Space Mono',monospace",
+              fontSize: ".8rem",
+              color: C.text,
+              marginBottom: "1rem",
+            }}
+          >
+            Create New CephFS
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns:
+                "repeat(auto-fit, minmax(220px, 1fr))",
+              gap: "1rem",
+              marginBottom: "1rem",
+            }}
+          >
+            <div>
+              <label
+                style={{
+                  display: "block",
+                  color: C.muted,
+                  fontSize: ".72rem",
+                  marginBottom: ".4rem",
+                  fontFamily: "'Space Mono',monospace",
+                }}
+              >
+                Filesystem Name
+              </label>
+
+              <input
+                style={styles.formInput}
+                value={createForm.filesystem}
+                onChange={(e) =>
+                  setCreateForm((current) => ({
+                    ...current,
+                    filesystem: e.target.value,
+                  }))
+                }
+                placeholder="research_fs"
+                disabled={busy}
+              />
+            </div>
+
+            <div>
+              <label
+                style={{
+                  display: "block",
+                  color: C.muted,
+                  fontSize: ".72rem",
+                  marginBottom: ".4rem",
+                  fontFamily: "'Space Mono',monospace",
+                }}
+              >
+                Metadata Pool
+              </label>
+
+              <input
+                style={styles.formInput}
+                value={createForm.metadata_pool}
+                onChange={(e) =>
+                  setCreateForm((current) => ({
+                    ...current,
+                    metadata_pool: e.target.value,
+                  }))
+                }
+                placeholder="research_fs_metadata"
+                disabled={busy}
+              />
+            </div>
+
+            <div>
+              <label
+                style={{
+                  display: "block",
+                  color: C.muted,
+                  fontSize: ".72rem",
+                  marginBottom: ".4rem",
+                  fontFamily: "'Space Mono',monospace",
+                }}
+              >
+                Data Pool
+              </label>
+
+              <input
+                style={styles.formInput}
+                value={createForm.data_pool}
+                onChange={(e) =>
+                  setCreateForm((current) => ({
+                    ...current,
+                    data_pool: e.target.value,
+                  }))
+                }
+                placeholder="research_fs_data"
+                disabled={busy}
+              />
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              gap: ".5rem",
+            }}
+          >
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowCreateForm(false)}
+              disabled={busy}
+            >
+              Cancel
+            </Button>
+
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={createFilesystem}
+              disabled={busy}
+            >
+              {busy ? "Creating..." : "Create Filesystem"}
+            </Button>
+          </div>
+        </div>
+      )}
 
       <div
         style={{

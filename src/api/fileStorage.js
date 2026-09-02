@@ -14,6 +14,12 @@ export const FileAPI = {
   cephfsFilesystems: () =>
     req("/file/cephfs/filesystems"),
 
+  createCephFS: (config) =>
+    req("/file/cephfs/create", {
+      method: "POST",
+      body: JSON.stringify(config),
+    }),
+
   testCephFS: (config) =>
     req("/file/cephfs/test", {
       method: "POST",

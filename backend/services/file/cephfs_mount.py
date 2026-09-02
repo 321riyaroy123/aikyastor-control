@@ -29,6 +29,7 @@ from core.activity import log_activity
 # These are the only privileged commands AiKyaStor is allowed to execute.
 MOUNT_HELPER = "/usr/local/sbin/aikyastor-cephfs-mount"
 UNMOUNT_HELPER = "/usr/local/sbin/aikyastor-cephfs-unmount"
+CREATE_HELPER = "/usr/local/sbin/aikyastor-cephfs-create"
 # Runtime CephFS configuration.
 # This stores only non-secret configuration. CephX credentials
 # remain in the system keyring under /etc/ceph/.
@@ -327,6 +328,144 @@ def list_filesystems() -> Dict[str, Any]:
 
     except Exception as e:
         logger.exception("CephFS filesystem listing failed")
+
+        return {
+            "success": False,
+            "error": str(e),
+        }
+
+def create_cephfs(
+    filesystem: str,
+    metadata_pool: str,
+    data_pool: str,
+) -> Dict[str, Any]:
+    """
+    Create a new CephFS filesystem through the restricted
+    system helper.
+
+    The helper creates the metadata/data pools if necessary
+    and then creates the CephFS.
+    """
+    try:
+        # Basic validation.
+        if not filesystem or not filesystem.strip():
+            return {
+                "success": False,
+                "error": "Filesystem name is required",
+            }
+
+        if not metadata_pool or not metadata_pool.strip():
+            return {
+                "success": False,
+                "error": "Metadata pool name is required",
+            }
+
+        if not data_pool or not data_pool.strip():
+            return {
+                "success": False,
+                "error": "Data pool name is required",
+            }
+
+        filesystem = filesystem.strip()
+        metadata_pool = metadata_pool.strip()
+        data_pool = data_pool.strip()
+
+        # Keep these names compatible with normal Ceph identifiers.
+        import re
+
+        name_pattern = r"^[A-Za-z0-9_.-]+$"
+
+        for value, label in (
+            (filesystem, "Filesystem"),
+            (metadata_pool, "Metadata pool"),
+            (data_pool, "Data pool"),
+        ):
+            if not re.fullmatch(name_pattern, value):
+                return {
+                    "success": False,
+                    "error": (
+                        f"{label} name may contain only "
+                        "letters, numbers, '.', '_' and '-'"
+                    ),
+                }
+
+        # Prevent accidental duplicate creation.
+        existing = list_filesystems()
+
+        if existing.get("success"):
+            if filesystem in existing.get("filesystems", []):
+                return {
+                    "success": False,
+                    "error": (
+                        f"CephFS filesystem "
+                        f"'{filesystem}' already exists"
+                    ),
+                }
+
+        result = subprocess.run(
+            [
+                "sudo",
+                "-n",
+                CREATE_HELPER,
+                filesystem,
+                metadata_pool,
+                data_pool,
+            ],
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+
+        if result.returncode != 0:
+            error = (
+                result.stderr.strip()
+                or result.stdout.strip()
+                or "CephFS creation failed"
+            )
+
+            log_activity(
+                "CREATE (CephFS)",
+                filesystem,
+                "error",
+                error,
+            )
+
+            return {
+                "success": False,
+                "error": error,
+            }
+
+        log_activity(
+            "CREATE (CephFS)",
+            filesystem,
+            "success",
+            f"Created CephFS {filesystem}",
+        )
+
+        return {
+            "success": True,
+            "filesystem": filesystem,
+            "metadata_pool": metadata_pool,
+            "data_pool": data_pool,
+            "message": f"CephFS '{filesystem}' created successfully",
+        }
+
+    except subprocess.TimeoutExpired:
+        logger.error(
+            "CephFS creation timed out for %s",
+            filesystem,
+        )
+
+        return {
+            "success": False,
+            "error": "CephFS creation operation timed out",
+        }
+
+    except Exception as e:
+        logger.exception(
+            "CephFS creation failed for %s",
+            filesystem,
+        )
 
         return {
             "success": False,
