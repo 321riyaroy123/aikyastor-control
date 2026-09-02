@@ -20,6 +20,15 @@ export const FileAPI = {
       body: JSON.stringify(config),
     }),
 
+  deleteCephFS: async (filesystem) => {
+    return request(
+      `/file/cephfs/${encodeURIComponent(filesystem)}`,
+      {
+        method: "DELETE",
+      }
+    );
+  },
+
   testCephFS: (config) =>
     req("/file/cephfs/test", {
       method: "POST",

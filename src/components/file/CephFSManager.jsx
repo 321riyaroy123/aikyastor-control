@@ -237,6 +237,61 @@ export default function CephFSManager({ toast, onMounted, onUnmounted }) {
     }
   };
 
+  const deleteFilesystem = async () => {
+    const filesystem = form.filesystem;
+
+    if (!filesystem) {
+      toast("Select a CephFS filesystem to delete", "error");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Delete CephFS filesystem "${filesystem}"?\n\n` +
+        "This permanently deletes the filesystem and its associated " +
+        "metadata and data pools. This action cannot be undone."
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setBusy(true);
+
+    try {
+      const result = await FileAPI.deleteCephFS(filesystem);
+
+      if (!result.success) {
+        throw new Error(
+          result.error || "CephFS deletion failed"
+        );
+      }
+
+      toast(
+        result.message ||
+          `CephFS '${filesystem}' deleted successfully`,
+        "success"
+      );
+
+      // Clear the currently selected filesystem.
+      setForm(DEFAULT_FORM);
+
+      // Refresh the dropdown after deletion.
+      await refreshFilesystems();
+
+      // Refresh mount status in case the deleted filesystem
+      // was previously associated with saved configuration.
+      await refreshStatus();
+
+    } catch (err) {
+      toast(
+        err.message || "CephFS deletion failed",
+        "error"
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const mount = async () => {
     if (!form.filesystem) {
       toast("Select a CephFS filesystem", "error");
@@ -703,6 +758,15 @@ export default function CephFSManager({ toast, onMounted, onUnmounted }) {
                 disabled={busy}
               >
                 Mount CephFS
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={deleteFilesystem}
+                disabled={busy || !form.filesystem}
+              >
+                Delete Filesystem
               </Button>
             </>
           )}

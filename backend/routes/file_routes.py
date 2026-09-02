@@ -26,7 +26,7 @@ from services.file.file_storage import (
     browse_directory, upload_file, download_file, delete_file_or_dir,
     create_directory, get_directory_stats
 )
-from services.file.cephfs_mount import get_mount_status, get_saved_config, test_connection, mount_cephfs, unmount_cephfs, list_filesystems, create_cephfs
+from services.file.cephfs_mount import get_mount_status, test_connection, mount_cephfs, unmount_cephfs, list_filesystems, create_cephfs, delete_cephfs
 import simulation.simulation as simulation
 
 file_bp = Blueprint("file", __name__, url_prefix="/api/file")
@@ -127,6 +127,53 @@ def api_cephfs_create():
 
     except Exception as e:
         logger.exception("cephfs_create error")
+        return jsonify({
+            "success": False,
+            "error": str(e),
+        }), 500
+
+@file_bp.route("/cephfs/<filesystem>", methods=["DELETE"])
+def api_cephfs_delete(filesystem):
+    """Delete a CephFS filesystem and its associated pools."""
+
+    if config.IS_SIMULATION:
+        return jsonify({
+            "success": False,
+            "error": (
+                "CephFS filesystem deletion is unavailable "
+                "in simulation mode"
+            ),
+        }), 409
+
+    filesystem = str(filesystem).strip()
+
+    if not filesystem or not _CEPHFS_NAME_RE.fullmatch(filesystem):
+        return jsonify({
+            "success": False,
+            "error": "Invalid filesystem name",
+        }), 400
+
+    try:
+        result = delete_cephfs(filesystem)
+
+        if result.get("success"):
+            return jsonify(result), 200
+
+        error = result.get("error", "CephFS deletion failed")
+
+        # The service explicitly prevents deleting a mounted filesystem.
+        if "currently mounted" in error:
+            return jsonify(result), 409
+
+        # A missing filesystem is a client-side request problem.
+        if "does not exist" in error:
+            return jsonify(result), 404
+
+        return jsonify(result), 500
+
+    except Exception as e:
+        logger.exception("cephfs_delete error")
+
         return jsonify({
             "success": False,
             "error": str(e),

@@ -30,6 +30,7 @@ from core.activity import log_activity
 MOUNT_HELPER = "/usr/local/sbin/aikyastor-cephfs-mount"
 UNMOUNT_HELPER = "/usr/local/sbin/aikyastor-cephfs-unmount"
 CREATE_HELPER = "/usr/local/sbin/aikyastor-cephfs-create"
+DELETE_HELPER = "/usr/local/sbin/aikyastor-cephfs-delete"
 # Runtime CephFS configuration.
 # This stores only non-secret configuration. CephX credentials
 # remain in the system keyring under /etc/ceph/.
@@ -125,6 +126,24 @@ def _save_runtime_store(store: Dict[str, Any]) -> None:
 
     os.replace(temp_path, RUNTIME_CONFIG)
 
+def remove_saved_config(filesystem: str) -> None:
+    """
+    Remove the saved configuration for a deleted filesystem.
+
+    If the deleted filesystem was the active filesystem,
+    clear the active selection as well.
+    """
+    store = _load_runtime_store()
+
+    filesystems = store.get("filesystems", {})
+
+    if filesystem in filesystems:
+        del filesystems[filesystem]
+
+    if store.get("active") == filesystem:
+        store["active"] = None
+
+    _save_runtime_store(store)
 
 def get_active_config() -> Dict[str, Any]:
     """
@@ -151,7 +170,6 @@ def get_active_config() -> Dict[str, Any]:
 
     return _default_config()
 
-
 def get_saved_config(filesystem: str) -> Dict[str, Any] | None:
     """
     Return the saved configuration for a specific filesystem.
@@ -176,7 +194,6 @@ def get_saved_config(filesystem: str) -> Dict[str, Any] | None:
         ),
     }
 
-
 def save_active_config(
     filesystem: str,
     user: str,
@@ -199,6 +216,149 @@ def save_active_config(
     store["active"] = filesystem
 
     _save_runtime_store(store)
+
+def delete_cephfs(filesystem: str) -> Dict[str, Any]:
+    """
+    Delete a CephFS filesystem through the restricted system helper.
+
+    The helper removes:
+    - The CephFS filesystem
+    - Its metadata pool
+    - Its data pool(s)
+    """
+    try:
+        if not filesystem or not filesystem.strip():
+            return {
+                "success": False,
+                "error": "Filesystem name is required",
+            }
+
+        filesystem = filesystem.strip()
+
+        import re
+
+        name_pattern = r"^[A-Za-z0-9_.-]+$"
+
+        if not re.fullmatch(name_pattern, filesystem):
+            return {
+                "success": False,
+                "error": (
+                    "Filesystem name may contain only letters, "
+                    "numbers, '.', '_' and '-'"
+                ),
+            }
+
+        # Do not allow deletion of a filesystem that is currently
+        # mounted by this AiKyaStor instance.
+        store = _load_runtime_store()
+        saved = store.get("filesystems", {}).get(filesystem)
+
+        if saved:
+            mount_point = saved.get("mount_point")
+
+            if mount_point and is_mounted(mount_point):
+                return {
+                    "success": False,
+                    "error": (
+                        f"CephFS filesystem '{filesystem}' is currently "
+                        f"mounted at '{mount_point}'. Unmount it before "
+                        "deleting."
+                    ),
+                }
+
+        # Confirm that the filesystem exists before invoking the
+        # destructive helper.
+        existing = list_filesystems()
+
+        if not existing.get("success"):
+            return {
+                "success": False,
+                "error": (
+                    existing.get("error")
+                    or "Unable to verify CephFS filesystem"
+                ),
+            }
+
+        if filesystem not in existing.get("filesystems", []):
+            return {
+                "success": False,
+                "error": (
+                    f"CephFS filesystem '{filesystem}' does not exist"
+                ),
+            }
+
+        result = subprocess.run(
+            [
+                "sudo",
+                "-n",
+                DELETE_HELPER,
+                filesystem,
+            ],
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+
+        if result.returncode != 0:
+            error = (
+                result.stderr.strip()
+                or result.stdout.strip()
+                or "CephFS deletion failed"
+            )
+
+            log_activity(
+                "DELETE (CephFS)",
+                filesystem,
+                "error",
+                error,
+            )
+
+            return {
+                "success": False,
+                "error": error,
+            }
+
+        # Remove stale dashboard configuration only after the Ceph
+        # filesystem and pools were successfully deleted.
+        remove_saved_config(filesystem)
+
+        log_activity(
+            "DELETE (CephFS)",
+            filesystem,
+            "success",
+            f"Deleted CephFS {filesystem}",
+        )
+
+        return {
+            "success": True,
+            "filesystem": filesystem,
+            "message": (
+                f"CephFS '{filesystem}' and its associated pools "
+                "were deleted successfully"
+            ),
+        }
+
+    except subprocess.TimeoutExpired:
+        logger.error(
+            "CephFS deletion timed out for %s",
+            filesystem,
+        )
+
+        return {
+            "success": False,
+            "error": "CephFS deletion operation timed out",
+        }
+
+    except Exception as e:
+        logger.exception(
+            "CephFS deletion failed for %s",
+            filesystem,
+        )
+
+        return {
+            "success": False,
+            "error": str(e),
+        }
     
 def get_active_mount_point() -> str:
     """Return the mount point used by the active CephFS configuration."""
