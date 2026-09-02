@@ -7,14 +7,19 @@ export const FileAPI = {
   cephfsConfig: () =>
     req("/file/cephfs/config"),
 
-  testCephFS: () =>
+  cephfsFilesystems: () =>
+    req("/file/cephfs/filesystems"),
+
+  testCephFS: (config) =>
     req("/file/cephfs/test", {
       method: "POST",
+      body: JSON.stringify(config),
     }),
 
-  mountCephFS: () =>
+  mountCephFS: (config) =>
     req("/file/cephfs/mount", {
       method: "POST",
+      body: JSON.stringify(config),
     }),
 
   unmountCephFS: () =>

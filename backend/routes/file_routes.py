@@ -17,6 +17,7 @@ Responsibility:
     /api/file/sync-vault endpoint lives in vault_routes.py.
 """
 
+import re
 from flask import Blueprint, request, jsonify, send_file
 import config.config as config
 from core.logger import logger
@@ -29,6 +30,41 @@ from services.file.cephfs_mount import get_mount_status, test_connection, mount_
 import simulation.simulation as simulation
 
 file_bp = Blueprint("file", __name__, url_prefix="/api/file")
+
+_CEPHFS_NAME_RE = re.compile(r"^[A-Za-z0-9_.-]+$")
+_CEPHFS_USER_RE = re.compile(r"^[A-Za-z0-9_.-]+$")
+_MONITOR_RE = re.compile(r"^[A-Za-z0-9_.:\[\],/-]+$")
+_MOUNT_POINT_RE = re.compile(r"^/[^/].*$")
+
+def _get_cephfs_config():
+    data = request.get_json(silent=True) or {}
+
+    filesystem = str(data.get("filesystem", "")).strip()
+    user = str(data.get("user", "")).strip()
+    monitors = str(data.get("monitors", "")).strip()
+    mount_point = str(data.get("mount_point", "")).strip()
+
+    if not filesystem or not _CEPHFS_NAME_RE.fullmatch(filesystem):
+        return None, "Invalid filesystem"
+
+    if not user or not _CEPHFS_USER_RE.fullmatch(user):
+        return None, "Invalid user"
+
+    if not monitors or not _MONITOR_RE.fullmatch(monitors):
+        return None, "Invalid monitor addresses"
+
+    if not mount_point or not _MOUNT_POINT_RE.fullmatch(mount_point):
+        return None, "Invalid mount point"
+
+    if mount_point == "/":
+        return None, "Mount point cannot be /"
+
+    return {
+        "filesystem": filesystem,
+        "user": user,
+        "monitors": monitors,
+        "mount_point": mount_point,
+    }, None
 
 # ─── CephFS Mount Management ──────────────────────────────────────────────────
 
@@ -61,46 +97,72 @@ def api_cephfs_config():
         logger.exception("cephfs_config error")
         return jsonify({"error": str(e)}), 500
 
-
 @file_bp.route("/cephfs/test", methods=["POST"])
 def api_cephfs_test():
-    """Test access to the configured CephFS without mounting it."""
+    """Test the supplied CephFS configuration."""
+
     if config.IS_SIMULATION:
         return jsonify({
             "success": False,
-            "error": "CephFS mount management is unavailable in simulation mode"
+            "error": "CephFS mount management is unavailable in simulation mode",
         }), 409
 
     try:
-        result = test_connection()
+        cephfs_config, error = _get_cephfs_config()
+
+        if error:
+            return jsonify({
+                "success": False,
+                "error": error,
+            }), 400
+
+        result = test_connection(
+            filesystem=cephfs_config["filesystem"],
+            user=cephfs_config["user"],
+            monitors=cephfs_config["monitors"],
+        )
+
         return jsonify(result), 200 if result.get("success") else 500
 
     except Exception as e:
         logger.exception("cephfs_test error")
         return jsonify({"error": str(e)}), 500
 
-
 @file_bp.route("/cephfs/mount", methods=["POST"])
 def api_cephfs_mount():
-    """Mount the configured CephFS."""
+    """Mount the supplied CephFS configuration."""
+
     if config.IS_SIMULATION:
         return jsonify({
             "success": False,
-            "error": "CephFS mount management is unavailable in simulation mode"
+            "error": "CephFS mount management is unavailable in simulation mode",
         }), 409
 
     try:
-        result = mount_cephfs()
+        cephfs_config, error = _get_cephfs_config()
+
+        if error:
+            return jsonify({
+                "success": False,
+                "error": error,
+            }), 400
+
+        result = mount_cephfs(
+            filesystem=cephfs_config["filesystem"],
+            user=cephfs_config["user"],
+            monitors=cephfs_config["monitors"],
+            mount_point=cephfs_config["mount_point"],
+        )
+
         return jsonify(result), 200 if result.get("success") else 500
 
     except Exception as e:
         logger.exception("cephfs_mount error")
         return jsonify({"error": str(e)}), 500
 
-
 @file_bp.route("/cephfs/unmount", methods=["POST"])
 def api_cephfs_unmount():
-    """Unmount the configured CephFS."""
+    """Unmount the supplied CephFS mount point."""
     if config.IS_SIMULATION:
         return jsonify({
             "success": False,
@@ -108,13 +170,21 @@ def api_cephfs_unmount():
         }), 409
 
     try:
+        cephfs_config, error = _get_cephfs_config()
+
+        if error:
+            return jsonify({
+                "success": False,
+                "error": error,
+            }), 400
+
         result = unmount_cephfs()
         return jsonify(result), 200 if result.get("success") else 500
 
     except Exception as e:
         logger.exception("cephfs_unmount error")
         return jsonify({"error": str(e)}), 500
-
+        
 @file_bp.route("/browse", methods=["GET"])
 def api_browse():
     """Browse CephFS directory"""

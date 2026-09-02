@@ -7,7 +7,7 @@ This blueprint serves two distinct workflows:
 - read-only HashiCorp Vault status endpoints used by the Encryption Vault
   page to inspect the transit-backed SSE-S3 dependency
 """
-
+import os
 from flask import Blueprint, jsonify
 import config.config as config
 from core.logger import logger
@@ -29,6 +29,11 @@ def vault_status():
     try:
         if config.IS_SIMULATION:
             return jsonify(simulation.get_mock_vault())
+        
+        if not os.path.ismount(config.VAULT_PATH):
+            return jsonify({
+                "error": f"Vault is not mounted at {config.VAULT_PATH}"
+            }), 503
         return jsonify(get_vault_status())
     except Exception as e:
         logger.exception("vault_status error")
@@ -43,6 +48,11 @@ def api_export_rbd(name):
         return jsonify({"message": f"RBD export of '{name}' to Vault started"})
 
     try:
+        if not os.path.ismount(config.VAULT_PATH):
+            return jsonify({
+                "error": f"Vault is not mounted at {config.VAULT_PATH}"
+            }), 503
+
         result = start_rbd_export_background(name, config.RBD_POOL)
         return jsonify(result)
     except Exception as e:
@@ -58,11 +68,16 @@ def api_sync_cephfs():
         return jsonify({"message": "CephFS → Vault sync started"})
 
     try:
+        if not os.path.ismount(config.VAULT_PATH):
+            return jsonify({
+                "error": f"Vault is not mounted at {config.VAULT_PATH}"
+            }), 503
+
         result = start_cephfs_sync_background(config.CEPHFS_MOUNT)
-        return jsonify(result)
+        return jsonify(result), 202
     except Exception as e:
         logger.exception("sync_cephfs error")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": str(e)}), 503
 
 
 # ─── HashiCorp Vault (SSE-S3 / Transit) — read-only dashboard status ─────────
