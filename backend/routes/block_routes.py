@@ -20,7 +20,7 @@ Responsibility:
 """
 import os
 from flask import send_file, after_this_request
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, Response, stream_with_context, request, jsonify
 import config.config as config
 from core.logger import logger
 from core.activity import log_activity
@@ -28,7 +28,7 @@ from services.block.block_storage import (
     list_rbd_images, create_rbd_image, delete_rbd_image,
     map_rbd_image, unmap_rbd_image, list_mapped_images,
     create_snapshot, list_snapshots, export_snapshot, delete_snapshot,
-    list_rbd_pools, create_rbd_pool
+    list_rbd_pools, create_rbd_pool, stream_snapshot_export
 )
 import simulation.simulation as simulation
 
@@ -287,39 +287,66 @@ def api_list_snapshots(name):
 )
 def api_download_snapshot(image_name, snapshot_name):
     """
-    Export an RBD snapshot and download it as an image file.
+    Stream an RBD snapshot directly to the browser.
     """
 
     if config.IS_SIMULATION:
         return jsonify({
-            "error": "Snapshot download is not available in simulation mode"
+            "error": (
+                "Snapshot download is not available "
+                "in simulation mode"
+            )
         }), 400
 
     try:
-        pool = request.args.get("pool") or config.RBD_POOL
-        result = export_snapshot(image_name, snapshot_name, pool)
-
-        if "error" in result:
-            return jsonify(result), 500
-
-        export_path = result["path"]
-        filename = result["filename"]
-
-        @after_this_request
-        def cleanup(response):
-            try:
-                os.remove(export_path)
-            except OSError:
-                pass
-
-            return response
-
-        return send_file(
-            export_path,
-            as_attachment=True,
-            download_name=filename,
-            mimetype="application/octet-stream"
+        pool = (
+            request.args.get("pool")
+            or config.RBD_POOL
         )
+
+        process = stream_snapshot_export(
+            image_name,
+            snapshot_name,
+            pool,
+        )
+
+        def generate():
+            try:
+                while True:
+                    chunk = process.stdout.read(
+                        1024 * 1024
+                    )
+
+                    if not chunk:
+                        break
+
+                    yield chunk
+
+            finally:
+                if process.stdout:
+                    process.stdout.close()
+
+                if process.poll() is None:
+                    process.terminate()
+
+                process.wait()
+
+        filename = (
+            f"{image_name}-{snapshot_name}.img"
+        )
+
+        response = Response(
+            stream_with_context(generate()),
+            mimetype="application/octet-stream",
+        )
+
+        response.headers[
+            "Content-Disposition"
+        ] = (
+            f'attachment; filename="{filename}"'
+        )
+
+        return response
 
     except Exception as e:
         logger.exception(
@@ -327,4 +354,6 @@ def api_download_snapshot(image_name, snapshot_name):
             f"{image_name}@{snapshot_name}"
         )
 
-        return jsonify({"error": str(e)}), 500
+        return jsonify({
+            "error": str(e)
+        }), 500

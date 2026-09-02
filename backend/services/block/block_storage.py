@@ -11,7 +11,8 @@ import re
 import os
 import tempfile
 import json
-from typing import Dict, List, Any, Tuple
+import subprocess
+from typing import Dict, List, Any, Tuple, Generator
 from core.logger import logger
 from config.config import RBD_POOL, CMD_TIMEOUT
 from services.cluster.ceph_ops import run_ceph_cmd
@@ -23,11 +24,14 @@ def _resolve_pool(pool: str | None) -> str:
 
 def list_rbd_pools() -> Dict[str, Any]:
     """
-    Return only pools that are initialized and usable for RBD.
+    Return only pools initialized for RBD.
+
+    Uses Ceph pool application metadata. A pool initialized with
+    `rbd pool init` is tagged with the `rbd` application.
     """
     try:
         stdout, stderr, code = run_ceph_cmd(
-            "ceph osd pool ls --format json"
+            "ceph osd pool application get --format json"
         )
 
         if code != 0:
@@ -36,33 +40,26 @@ def list_rbd_pools() -> Dict[str, Any]:
                 "error": stderr,
             }
 
-        all_pools = json.loads(stdout) if stdout else []
+        pool_apps = json.loads(stdout) if stdout else {}
 
-        rbd_pools = []
-
-        for pool in all_pools:
-            _, _, rbd_code = run_ceph_cmd(
-                f"rbd ls {pool}",
-                timeout=10,
-            )
-
-            if rbd_code == 0:
-                rbd_pools.append(pool)
+        rbd_pools = [
+            pool_name
+            for pool_name, applications in pool_apps.items()
+            if "rbd" in applications
+        ]
 
         return {
             "pools": rbd_pools
         }
 
     except Exception as e:
-        logger.exception(
-            "list_rbd_pools error"
-        )
+        logger.exception("list_rbd_pools error")
 
         return {
             "pools": [],
             "error": str(e),
         }
-        
+
 def create_rbd_pool(name: str) -> Dict[str, Any]:
     """
     Create and initialize a Ceph pool for RBD usage.
@@ -529,3 +526,40 @@ def delete_snapshot(
         )
 
         return {"error": str(e)}
+
+def stream_snapshot_export(
+    image_name: str,
+    snapshot_name: str,
+    pool: str | None = None,
+):
+    """
+    Stream an RBD snapshot export directly from Ceph.
+
+    The exported image is not written to a temporary file.
+    """
+    pool = _resolve_pool(pool)
+
+    command = [
+        "rbd",
+        "export",
+        f"{pool}/{image_name}@{snapshot_name}",
+        "-",
+    ]
+
+    try:
+        process = subprocess.Popen(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            bufsize=1024 * 1024,
+        )
+
+        return process
+
+    except Exception as e:
+        logger.exception(
+            f"stream_snapshot_export error for "
+            f"{pool}/{image_name}@{snapshot_name}"
+        )
+
+        raise
