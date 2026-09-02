@@ -223,29 +223,35 @@ def list_snapshots(image_name: str) -> Dict[str, Any]:
 
 def export_snapshot(image_name: str, snapshot_name: str) -> Dict[str, Any]:
     """
-    Export an RBD snapshot to a temporary file.
+    Export an RBD snapshot to a temporary image file.
 
-    The caller is responsible for sending and removing the file.
+    Returns:
+        Dictionary containing the temporary file path and download filename.
     """
-    try:
-        safe_prefix = f"{image_name}-{snapshot_name}-"
+    export_path = None
 
+    try:
+        # Generate a unique temporary filename
         fd, export_path = tempfile.mkstemp(
-            prefix=safe_prefix,
+            prefix="aikyastor-rbd-",
             suffix=".img"
         )
 
+        # Close and remove the empty file.
+        # rbd export requires the destination not to already exist.
         os.close(fd)
+        os.unlink(export_path)
 
         stdout, stderr, code = run_ceph_cmd(
-            f"rbd export {RBD_POOL}/{image_name}@{snapshot_name} {export_path}"
+            f"rbd export "
+            f"{RBD_POOL}/{image_name}@{snapshot_name} "
+            f"{export_path}",
+            timeout=CMD_TIMEOUT
         )
 
         if code != 0:
-            try:
+            if export_path and os.path.exists(export_path):
                 os.remove(export_path)
-            except OSError:
-                pass
 
             log_activity(
                 "EXPORT SNAPSHOT",
@@ -256,21 +262,37 @@ def export_snapshot(image_name: str, snapshot_name: str) -> Dict[str, Any]:
 
             return {"error": stderr}
 
+        filename = f"{image_name}-{snapshot_name}.img"
+
         log_activity(
             "EXPORT SNAPSHOT",
             f"{image_name}@{snapshot_name}",
             "success",
-            f"Exported to temporary file"
+            f"Exported as {filename}"
         )
 
         return {
             "path": export_path,
-            "filename": f"{image_name}@{snapshot_name}.img"
+            "filename": filename
         }
 
     except Exception as e:
         logger.exception(
-            f"export_snapshot error for {image_name}@{snapshot_name}"
+            f"export_snapshot error for "
+            f"{image_name}@{snapshot_name}"
+        )
+
+        if export_path and os.path.exists(export_path):
+            try:
+                os.remove(export_path)
+            except OSError:
+                pass
+
+        log_activity(
+            "EXPORT SNAPSHOT",
+            f"{image_name}@{snapshot_name}",
+            "error",
+            str(e)
         )
 
         return {"error": str(e)}
