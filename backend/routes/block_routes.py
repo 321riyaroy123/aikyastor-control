@@ -27,12 +27,79 @@ from core.activity import log_activity
 from services.block.block_storage import (
     list_rbd_images, create_rbd_image, delete_rbd_image,
     map_rbd_image, unmap_rbd_image, list_mapped_images,
-    create_snapshot, list_snapshots, export_snapshot
+    create_snapshot, list_snapshots, export_snapshot,
+    list_rbd_pools, create_rbd_pool
 )
 import simulation.simulation as simulation
 
 block_bp = Blueprint("block", __name__, url_prefix="/api/block")
 
+@block_bp.route("/pools", methods=["GET"])
+def api_list_rbd_pools():
+    """List RBD pools."""
+
+    try:
+        if config.IS_SIMULATION:
+            return jsonify({
+                "pools": ["rbd"]
+            })
+
+        result = list_rbd_pools()
+
+        return jsonify(result), (
+            200 if "error" not in result else 500
+        )
+
+    except Exception as e:
+        logger.exception("list_rbd_pools error")
+
+        return jsonify({
+            "error": str(e)
+        }), 500
+
+@block_bp.route("/pools", methods=["POST"])
+def api_create_rbd_pool():
+    """Create and initialize an RBD pool."""
+
+    try:
+        data = request.json or {}
+
+        name = data.get("name", "")
+
+        if config.IS_SIMULATION:
+            name = name.strip()
+
+            if not name:
+                return jsonify({
+                    "error": "Pool name is required"
+                }), 400
+
+            log_activity(
+                "CREATE RBD POOL",
+                name,
+                "success",
+                "Simulation mode"
+            )
+
+            return jsonify({
+                "message": (
+                    f"RBD pool '{name}' "
+                    "created and initialized"
+                )
+            }), 201
+
+        result = create_rbd_pool(name)
+
+        return jsonify(result), (
+            201 if "error" not in result else 500
+        )
+
+    except Exception as e:
+        logger.exception("create_rbd_pool error")
+
+        return jsonify({
+            "error": str(e)
+        }), 500
 
 @block_bp.route("/images", methods=["GET"])
 def api_list_images():
@@ -45,7 +112,6 @@ def api_list_images():
     except Exception as e:
         logger.exception("list_rbd_images error")
         return jsonify({"error": str(e)}), 500
-
 
 @block_bp.route("/images", methods=["POST"])
 def api_create_image():

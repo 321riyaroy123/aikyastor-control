@@ -6,6 +6,8 @@ Moved from: block_storage.py (project root)
 Responsibility: unchanged — all `rbd` CLI operations (list/create/delete
 images, map/unmap, snapshots). block_routes.py calls into this module.
 """
+
+import re
 import os
 import tempfile
 import json
@@ -14,6 +16,126 @@ from core.logger import logger
 from config.config import RBD_POOL, CMD_TIMEOUT
 from services.cluster.ceph_ops import run_ceph_cmd
 from core.activity import log_activity
+
+def list_rbd_pools() -> Dict[str, Any]:
+    """
+    List Ceph pools that are initialized for RBD usage.
+
+    Returns:
+        Dictionary containing RBD pool names.
+    """
+    try:
+        stdout, stderr, code = run_ceph_cmd(
+            "ceph osd pool ls --format json"
+        )
+
+        if code != 0:
+            logger.error(
+                f"list_rbd_pools failed: {stderr}"
+            )
+            return {"pools": [], "error": stderr}
+
+        pools = json.loads(stdout) if stdout else []
+
+        return {"pools": pools}
+
+    except Exception as e:
+        logger.exception("list_rbd_pools error")
+        return {"pools": [], "error": str(e)}
+
+def create_rbd_pool(name: str) -> Dict[str, Any]:
+    """
+    Create and initialize a Ceph pool for RBD usage.
+
+    Args:
+        name: Name of the new RBD pool.
+
+    Returns:
+        Result dictionary.
+    """
+
+    try:
+        name = (name or "").strip()
+
+        # Keep pool names simple and safe because they are
+        # passed to Ceph CLI commands.
+        if not name:
+            return {"error": "Pool name is required"}
+
+        if not re.fullmatch(
+            r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}",
+            name
+        ):
+            return {
+                "error": (
+                    "Invalid pool name. Use letters, numbers, "
+                    "dots, underscores, or hyphens."
+                )
+            }
+
+        # Step 1: Create the Ceph pool
+        stdout, stderr, code = run_ceph_cmd(
+            f"ceph osd pool create {name}"
+        )
+
+        if code != 0:
+            log_activity(
+                "CREATE RBD POOL",
+                name,
+                "error",
+                stderr
+            )
+            return {"error": stderr}
+
+        # Step 2: Initialize the pool for RBD
+        stdout, stderr, code = run_ceph_cmd(
+            f"rbd pool init {name}"
+        )
+
+        if code != 0:
+            log_activity(
+                "CREATE RBD POOL",
+                name,
+                "error",
+                (
+                    "Pool created, but RBD initialization failed: "
+                    f"{stderr}"
+                )
+            )
+
+            return {
+                "error": (
+                    "Pool was created, but RBD initialization "
+                    f"failed: {stderr}"
+                )
+            }
+
+        log_activity(
+            "CREATE RBD POOL",
+            name,
+            "success",
+            "Pool created and initialized for RBD"
+        )
+
+        return {
+            "message": (
+                f"RBD pool '{name}' created and initialized"
+            )
+        }
+
+    except Exception as e:
+        logger.exception(
+            f"create_rbd_pool error for {name}"
+        )
+
+        log_activity(
+            "CREATE RBD POOL",
+            name,
+            "error",
+            str(e)
+        )
+
+        return {"error": str(e)}
 
 def list_rbd_images() -> Dict[str, Any]:
     """

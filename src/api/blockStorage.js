@@ -1,6 +1,13 @@
 import { req } from "./client";
 
 export const BlockAPI = {
+  pools: () => req("/block/pools"),
+
+  createPool: (name) => req("/block/pools", {
+    method: "POST",
+    body: JSON.stringify({ name }),
+  }),
+
   images: () => req("/block/images"),
   mapped: () => req("/block/mapped"),
 

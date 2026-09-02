@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { BlockAPI } from "../api/blockStorage";
 import Button from "../components/common/Button";
 import ImageTable from "../components/block/ImageTable";
+import CreatePoolDialog from "../components/block/CreatePoolDialog";
 import CreateImageDialog from "../components/block/CreateImageDialog";
 import SnapshotDialog from "../components/block/SnapshotDialog";
 import SnapshotsDialog from "../components/block/SnapshotsDialog";
@@ -13,6 +14,19 @@ export default function BlockStoragePage({ toast, images, reloadImages }) {
   const [showCreate, setShowCreate] = useState(false);
   const [showSnap, setShowSnap] = useState(null);
   const [showSnapshots, setShowSnapshots] = useState(null);
+  const [pools, setPools] = useState([]);
+  const [showCreatePool, setShowCreatePool] = useState(false);
+  const [newPoolName, setNewPoolName] = useState("");
+  const [creatingPool, setCreatingPool] = useState(false);
+
+  const loadPools = useCallback(async () => {
+    try {
+      const result = await BlockAPI.pools();
+      setPools(result.pools || []);
+    } catch (err) {
+      console.error("Failed to load RBD pools:", err);
+    }
+  }, []);
 
   const loadMapped = useCallback(async () => {
     try {
@@ -21,7 +35,37 @@ export default function BlockStoragePage({ toast, images, reloadImages }) {
     } catch (err) { console.error(err); }
   }, []);
 
-  useEffect(() => { loadMapped(); }, [loadMapped]);
+  useEffect(() => { loadMapped(); loadPools(); }, [loadMapped, loadPools]);
+
+  const createPool = async () => {
+    const name = newPoolName.trim();
+
+    if (!name) {
+      toast("Please enter an RBD pool name", "error");
+      return;
+    }
+
+    setCreatingPool(true);
+
+    try {
+      const result = await BlockAPI.createPool(name);
+
+      toast(
+        result.message || `RBD pool '${name}' created`,
+        "success"
+      );
+
+      setNewPoolName("");
+      setShowCreatePool(false);
+
+      await loadPools();
+
+    } catch (err) {
+      toast(err.message || "Failed to create RBD pool", "error");
+    } finally {
+      setCreatingPool(false);
+    }
+  };
 
   const exportVault = async (name) => {
     toast(`Exporting "${name}" → Vault (background)...`, "vault", 6000);
@@ -98,9 +142,58 @@ export default function BlockStoragePage({ toast, images, reloadImages }) {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.5rem" }}>
         <div style={{ fontFamily: "'Space Mono',monospace", fontSize: "1rem", color: C.text, display: "flex", alignItems: "center", gap: ".75rem" }}>
           ▣ Block Storage <span style={{ fontSize: ".65rem", padding: ".2rem .6rem", borderRadius: 3, background: "rgba(249,115,22,.15)", color: C.accent, border: "1px solid rgba(249,115,22,.3)" }}>RBD</span>
-        </div>
-        <Button variant="primary" size="sm" onClick={() => setShowCreate(true)}>+ New Image</Button>
+          <span style={{ fontSize: ".65rem", color: C.muted }}></span></div>
+            <Button variant="secondary" size="sm" onClick={() => setShowCreatePool(true)}>+ New RBD Pool</Button>
+            <Button variant="primary" size="sm" onClick={() => setShowCreate(true)}>+ New Image</Button>
       </div>
+
+      {pools.length > 0 && (
+        <div
+          style={{
+            marginBottom: "1.5rem",
+            padding: "1rem",
+            border: `1px solid ${C.border}`,
+            borderRadius: 6,
+            background: C.surface,
+          }}
+        >
+          <div
+            style={{
+              fontFamily: "'Space Mono', monospace",
+              fontSize: ".72rem",
+              color: C.muted,
+              marginBottom: ".75rem",
+              textTransform: "uppercase",
+            }}
+          >
+            Available Pools
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: ".5rem",
+            }}
+          >
+            {pools.map((pool) => (
+              <span
+                key={pool}
+                style={{
+                  padding: ".35rem .7rem",
+                  borderRadius: 4,
+                  fontFamily: "'Space Mono', monospace",
+                  fontSize: ".72rem",
+                  border: `1px solid ${C.border}`,
+                  color: C.text,
+                }}
+              >
+                {pool}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       <ImageTable
         images={images}
@@ -113,6 +206,7 @@ export default function BlockStoragePage({ toast, images, reloadImages }) {
         onDelete={deleteImage}
       />
 
+      <CreatePoolDialog open={showCreatePool} onClose={() => { if (!creatingPool) { setShowCreatePool(false); setNewPoolName(""); } }} poolName={newPoolName} setPoolName={setNewPoolName} onCreate={createPool} creating={creatingPool} toast={toast} />
       <CreateImageDialog open={showCreate} onClose={() => setShowCreate(false)} onCreate={createImage} toast={toast} />
       <SnapshotDialog imageName={showSnap} onClose={() => setShowSnap(null)} onCreate={createSnapshot} toast={toast} />
       <SnapshotsDialog imageName={showSnapshots} onClose={() => setShowSnapshots(null)} toast={toast} />
