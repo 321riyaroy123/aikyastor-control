@@ -6,7 +6,8 @@ Moved from: block_storage.py (project root)
 Responsibility: unchanged — all `rbd` CLI operations (list/create/delete
 images, map/unmap, snapshots). block_routes.py calls into this module.
 """
-
+import os
+import tempfile
 import json
 from typing import Dict, List, Any, Tuple
 from core.logger import logger
@@ -86,8 +87,10 @@ def delete_rbd_image(name: str) -> Dict[str, Any]:
     try:
         # Unmap if mapped (best-effort, short timeout so a hung/busy device
         # doesn't consume the full CMD_TIMEOUT before the actual delete runs)
-        run_ceph_cmd(f"rbd unmap {RBD_POOL}/{name} 2>/dev/null || true", timeout=5)
-
+        run_ceph_cmd(
+            f"sudo -n /usr/bin/rbd unmap {RBD_POOL}/{name} 2>/dev/null || true",
+            timeout=5
+        )
         stdout, stderr, code = run_ceph_cmd(f"rbd rm {RBD_POOL}/{name}")
         if code != 0:
             log_activity("DELETE IMAGE", name, "error", stderr)
@@ -111,7 +114,7 @@ def map_rbd_image(name: str) -> Dict[str, Any]:
         Result dictionary with device path
     """
     try:
-        stdout, stderr, code = run_ceph_cmd(f"rbd map {RBD_POOL}/{name}")
+        stdout, stderr, code = run_ceph_cmd(f"sudo -n /usr/bin/rbd map {RBD_POOL}/{name}")
         if code != 0:
             log_activity("MAP IMAGE", name, "error", stderr)
             return {"error": stderr}
@@ -124,29 +127,30 @@ def map_rbd_image(name: str) -> Dict[str, Any]:
         log_activity("MAP IMAGE", name, "error", str(e))
         return {"error": str(e)}
 
-def unmap_rbd_image(name: str) -> Dict[str, Any]:
+def unmap_rbd_image(device: str) -> Dict[str, Any]:
     """
-    Unmap an RBD image
+    Unmap an RBD device
 
     Args:
-        name: Image name
-
-    Returns:
-        Result dictionary
+        device: Mapped device path, e.g. /dev/rbd0
     """
     try:
-        stdout, stderr, code = run_ceph_cmd(f"rbd unmap {RBD_POOL}/{name}")
+        stdout, stderr, code = run_ceph_cmd(
+            f"sudo -n /usr/bin/rbd unmap {device}"
+        )
+
         if code != 0:
-            log_activity("UNMAP IMAGE", name, "error", stderr)
+            log_activity("UNMAP IMAGE", device, "error", stderr)
             return {"error": stderr}
 
-        log_activity("UNMAP IMAGE", name, "success")
-        return {"message": f"'{name}' unmapped"}
-    except Exception as e:
-        logger.exception(f"unmap_rbd_image error for {name}")
-        log_activity("UNMAP IMAGE", name, "error", str(e))
-        return {"error": str(e)}
+        log_activity("UNMAP IMAGE", device, "success")
+        return {"message": f"'{device}' unmapped"}
 
+    except Exception as e:
+        logger.exception(f"unmap_rbd_image error for {device}")
+        log_activity("UNMAP IMAGE", device, "error", str(e))
+        return {"error": str(e)}
+        
 def list_mapped_images() -> Dict[str, Any]:
     """
     List all mapped RBD images
@@ -155,9 +159,18 @@ def list_mapped_images() -> Dict[str, Any]:
         Dictionary with mapped images
     """
     try:
-        stdout, stderr, code = run_ceph_cmd("rbd showmapped --format json")
-        mapped = json.loads(stdout) if stdout else {}
-        return {"mapped": list(mapped.values())}
+        stdout, stderr, code = run_ceph_cmd(
+            "sudo -n /usr/bin/rbd showmapped --format json"
+        )
+
+        if code != 0:
+            logger.error(f"list_mapped_images failed: {stderr}")
+            return {"mapped": [], "error": stderr}
+
+        mapped = json.loads(stdout) if stdout else []
+
+        return {"mapped": mapped}
+
     except Exception as e:
         logger.exception("list_mapped_images error")
         return {"mapped": [], "error": str(e)}
@@ -207,3 +220,57 @@ def list_snapshots(image_name: str) -> Dict[str, Any]:
     except Exception as e:
         logger.exception(f"list_snapshots error for {image_name}")
         return {"snapshots": [], "error": str(e)}
+
+def export_snapshot(image_name: str, snapshot_name: str) -> Dict[str, Any]:
+    """
+    Export an RBD snapshot to a temporary file.
+
+    The caller is responsible for sending and removing the file.
+    """
+    try:
+        safe_prefix = f"{image_name}-{snapshot_name}-"
+
+        fd, export_path = tempfile.mkstemp(
+            prefix=safe_prefix,
+            suffix=".img"
+        )
+
+        os.close(fd)
+
+        stdout, stderr, code = run_ceph_cmd(
+            f"rbd export {RBD_POOL}/{image_name}@{snapshot_name} {export_path}"
+        )
+
+        if code != 0:
+            try:
+                os.remove(export_path)
+            except OSError:
+                pass
+
+            log_activity(
+                "EXPORT SNAPSHOT",
+                f"{image_name}@{snapshot_name}",
+                "error",
+                stderr
+            )
+
+            return {"error": stderr}
+
+        log_activity(
+            "EXPORT SNAPSHOT",
+            f"{image_name}@{snapshot_name}",
+            "success",
+            f"Exported to temporary file"
+        )
+
+        return {
+            "path": export_path,
+            "filename": f"{image_name}@{snapshot_name}.img"
+        }
+
+    except Exception as e:
+        logger.exception(
+            f"export_snapshot error for {image_name}@{snapshot_name}"
+        )
+
+        return {"error": str(e)}

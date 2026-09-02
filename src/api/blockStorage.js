@@ -22,4 +22,7 @@ export const BlockAPI = {
   }),
 
   snapshots: (name) => req(`/block/images/${name}/snapshots`),
+
+  downloadSnapshotUrl: (imageName, snapshotName) =>
+    `/api/block/images/${encodeURIComponent(imageName)}/snapshots/${encodeURIComponent(snapshotName)}/download`,
 };

@@ -18,7 +18,8 @@ Responsibility:
     URL but lives in vault_routes.py since it's a vault operation —
     URL unchanged either way.)
 """
-
+import os
+from flask import send_file, after_this_request
 from flask import Blueprint, request, jsonify
 import config.config as config
 from core.logger import logger
@@ -26,7 +27,7 @@ from core.activity import log_activity
 from services.block.block_storage import (
     list_rbd_images, create_rbd_image, delete_rbd_image,
     map_rbd_image, unmap_rbd_image, list_mapped_images,
-    create_snapshot, list_snapshots
+    create_snapshot, list_snapshots, export_snapshot
 )
 import simulation.simulation as simulation
 
@@ -152,4 +153,51 @@ def api_list_snapshots(name):
         return jsonify(result), 200 if "error" not in result else 500
     except Exception as e:
         logger.exception(f"list_snapshots error for {name}")
+        return jsonify({"error": str(e)}), 500
+
+@block_bp.route(
+    "/images/<image_name>/snapshots/<snapshot_name>/download",
+    methods=["GET"]
+)
+def api_download_snapshot(image_name, snapshot_name):
+    """
+    Export an RBD snapshot and download it as an image file.
+    """
+
+    if config.IS_SIMULATION:
+        return jsonify({
+            "error": "Snapshot download is not available in simulation mode"
+        }), 400
+
+    try:
+        result = export_snapshot(image_name, snapshot_name)
+
+        if "error" in result:
+            return jsonify(result), 500
+
+        export_path = result["path"]
+        filename = result["filename"]
+
+        @after_this_request
+        def cleanup(response):
+            try:
+                os.remove(export_path)
+            except OSError:
+                pass
+
+            return response
+
+        return send_file(
+            export_path,
+            as_attachment=True,
+            download_name=filename,
+            mimetype="application/octet-stream"
+        )
+
+    except Exception as e:
+        logger.exception(
+            f"download_snapshot error for "
+            f"{image_name}@{snapshot_name}"
+        )
+
         return jsonify({"error": str(e)}), 500

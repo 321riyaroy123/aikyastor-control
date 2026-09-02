@@ -4,6 +4,7 @@ import Button from "../components/common/Button";
 import ImageTable from "../components/block/ImageTable";
 import CreateImageDialog from "../components/block/CreateImageDialog";
 import SnapshotDialog from "../components/block/SnapshotDialog";
+import SnapshotsDialog from "../components/block/SnapshotsDialog";
 import { C } from "../styles/theme";
 
 // Extracted/wired from the BlockStorage component in AiKyaStorCONTROL.jsx.
@@ -11,6 +12,7 @@ export default function BlockStoragePage({ toast, images, reloadImages }) {
   const [mapped, setMapped] = useState([]);
   const [showCreate, setShowCreate] = useState(false);
   const [showSnap, setShowSnap] = useState(null);
+  const [showSnapshots, setShowSnapshots] = useState(null);
 
   const loadMapped = useCallback(async () => {
     try {
@@ -65,10 +67,16 @@ export default function BlockStoragePage({ toast, images, reloadImages }) {
     }
   };
 
-  const unmapImage = async (name) => {
+  const unmapImage = async (name, device = null) => {
     try {
-      const result = await BlockAPI.unmapImage(name);
-      toast(result.message || `'${name}' unmapped`, "success");
+      const target = device || name;
+      const result = await BlockAPI.unmapImage(target);
+
+      toast(
+        result.message || `'${name}' unmapped`,
+        "success"
+      );
+
       await loadMapped();
     } catch (err) {
       toast(err.message, "error");
@@ -100,12 +108,14 @@ export default function BlockStoragePage({ toast, images, reloadImages }) {
         onMap={mapImage}
         onUnmap={unmapImage}
         onSnapshot={setShowSnap}
+        onSnapshots={setShowSnapshots}
         onExportVault={exportVault}
         onDelete={deleteImage}
       />
 
       <CreateImageDialog open={showCreate} onClose={() => setShowCreate(false)} onCreate={createImage} toast={toast} />
       <SnapshotDialog imageName={showSnap} onClose={() => setShowSnap(null)} onCreate={createSnapshot} toast={toast} />
+      <SnapshotsDialog imageName={showSnapshots} onClose={() => setShowSnapshots(null)} toast={toast} />
     </div>
   );
 }

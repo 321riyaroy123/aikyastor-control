@@ -1,10 +1,20 @@
 {
-  "active": null,
+  "active": "re",
   "filesystems": {
     "aikyastor_fs": {
       "user": "admin",
       "monitors": "192.168.56.111:6789",
       "mount_point": "/mnt/cephfs"
+    },
+    "mds_dashboard_test": {
+      "user": "admin",
+      "monitors": "192.168.56.111:6789",
+      "mount_point": "/mnt/cephfs"
+    },
+    "re": {
+      "user": "admin",
+      "monitors": "192.168.56.111:6789",
+      "mount_point": "/mnt/re"
     }
   }
 }

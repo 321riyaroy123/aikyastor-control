@@ -10,7 +10,7 @@ import { formatBytes } from "../../utils/formatters";
 // from BlockStorage (Mapped Devices + RBD Images); the two actual dialogs
 // (create image, create snapshot) live in CreateImageDialog.jsx and
 // SnapshotDialog.jsx below, matching what the UI actually does.
-export default function ImageTable({ images, mapped, onMap, onUnmap, onSnapshot, onExportVault, onDelete }) {
+export default function ImageTable({ images, mapped, onMap, onUnmap, onSnapshot, onSnapshots, onExportVault, onDelete }) {
   return (
     <>
       <div style={{ marginBottom: "1.5rem" }}>
@@ -25,7 +25,7 @@ export default function ImageTable({ images, mapped, onMap, onUnmap, onSnapshot,
                   <Td style={{ fontFamily: "'Space Mono',monospace", fontSize: ".82rem" }}>{m.device}</Td>
                   <Td>{m.pool}</Td>
                   <Td>{m.name}</Td>
-                  <Td><Button variant="ghost" size="sm" onClick={() => onUnmap(m.name)}>Unmap</Button></Td>
+                  <Td><Button variant="ghost" size="sm" onClick={() => onUnmap(m.name, m.device)}>Unmap</Button></Td>
                 </tr>
               ))}
           </tbody>
@@ -54,6 +54,7 @@ export default function ImageTable({ images, mapped, onMap, onUnmap, onSnapshot,
                       ? <Button variant="ghost" size="sm" onClick={() => onUnmap(img.name)}>Unmap</Button>
                       : <Button variant="green" size="sm" onClick={() => onMap(img.name)}>Map</Button>}
                     <Button variant="ghost" size="sm" onClick={() => onSnapshot(img.name)}>Snap</Button>
+                    <Button variant="ghost" size="sm" onClick={() => onSnapshots(img.name)}>Snapshots</Button>
                     <Button variant="vault" size="sm" onClick={() => onExportVault(img.name)}>→ Vault</Button>
                     <Button variant="danger" size="sm" onClick={() => onDelete(img.name)}>✕</Button>
                   </div>
