@@ -13,6 +13,15 @@ export default function SnapshotsDialog({
   const [snapshots, setSnapshots] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  const downloadSnapshot = (snapshotName) => {
+    const url = BlockAPI.downloadSnapshotUrl(
+        imageName,
+        snapshotName
+    );
+
+    window.location.href = url;
+    };
+
   const loadSnapshots = useCallback(async () => {
     if (!imageName) return;
 
@@ -162,6 +171,14 @@ export default function SnapshotsDialog({
                   </div>
 
                 </div>
+
+                <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => downloadSnapshot(snap.name)}
+                    >
+                    ↓ Download
+                </Button>
 
               </div>
 
