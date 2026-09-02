@@ -27,7 +27,7 @@ from core.activity import log_activity
 from services.block.block_storage import (
     list_rbd_images, create_rbd_image, delete_rbd_image,
     map_rbd_image, unmap_rbd_image, list_mapped_images,
-    create_snapshot, list_snapshots, export_snapshot,
+    create_snapshot, list_snapshots, export_snapshot, delete_snapshot,
     list_rbd_pools, create_rbd_pool
 )
 import simulation.simulation as simulation
@@ -243,6 +243,30 @@ def api_create_snapshot(name):
         logger.exception(f"create_snapshot error for {name}")
         return jsonify({"error": str(e)}), 500
 
+@block_bp.route(
+    "/images/<image_name>/snapshots/<snapshot_name>",
+    methods=["DELETE"],
+)
+def api_delete_snapshot(image_name, snapshot_name):
+    try:
+        pool = request.args.get("pool") or config.RBD_POOL
+
+        result = delete_snapshot(
+            image_name,
+            snapshot_name,
+            pool,
+        )
+
+        return jsonify(result), (
+            200 if "error" not in result else 500
+        )
+
+    except Exception as e:
+        logger.exception("delete_snapshot error")
+
+        return jsonify({
+            "error": str(e)
+        }), 500
 
 @block_bp.route("/images/<name>/snapshots", methods=["GET"])
 def api_list_snapshots(name):

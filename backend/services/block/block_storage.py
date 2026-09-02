@@ -23,10 +23,7 @@ def _resolve_pool(pool: str | None) -> str:
 
 def list_rbd_pools() -> Dict[str, Any]:
     """
-    List Ceph pools that are initialized for RBD usage.
-
-    Returns:
-        Dictionary containing RBD pool names.
+    Return only pools that are initialized and usable for RBD.
     """
     try:
         stdout, stderr, code = run_ceph_cmd(
@@ -34,19 +31,38 @@ def list_rbd_pools() -> Dict[str, Any]:
         )
 
         if code != 0:
-            logger.error(
-                f"list_rbd_pools failed: {stderr}"
+            return {
+                "pools": [],
+                "error": stderr,
+            }
+
+        all_pools = json.loads(stdout) if stdout else []
+
+        rbd_pools = []
+
+        for pool in all_pools:
+            _, _, rbd_code = run_ceph_cmd(
+                f"rbd ls {pool}",
+                timeout=10,
             )
-            return {"pools": [], "error": stderr}
 
-        pools = json.loads(stdout) if stdout else []
+            if rbd_code == 0:
+                rbd_pools.append(pool)
 
-        return {"pools": pools}
+        return {
+            "pools": rbd_pools
+        }
 
     except Exception as e:
-        logger.exception("list_rbd_pools error")
-        return {"pools": [], "error": str(e)}
+        logger.exception(
+            "list_rbd_pools error"
+        )
 
+        return {
+            "pools": [],
+            "error": str(e),
+        }
+        
 def create_rbd_pool(name: str) -> Dict[str, Any]:
     """
     Create and initialize a Ceph pool for RBD usage.
@@ -458,6 +474,58 @@ def export_snapshot(image_name: str, snapshot_name: str, pool: str | None = None
             f"{pool}/{image_name}@{snapshot_name}",
             "error",
             str(e)
+        )
+
+        return {"error": str(e)}
+
+def delete_snapshot(
+    image_name: str,
+    snapshot_name: str,
+    pool: str | None = None,
+) -> Dict[str, Any]:
+    """
+    Delete an RBD snapshot.
+    """
+    pool = _resolve_pool(pool)
+
+    try:
+        stdout, stderr, code = run_ceph_cmd(
+            f"rbd snap rm {pool}/{image_name}@{snapshot_name}"
+        )
+
+        if code != 0:
+            log_activity(
+                "DELETE SNAPSHOT",
+                f"{pool}/{image_name}@{snapshot_name}",
+                "error",
+                stderr,
+            )
+            return {"error": stderr}
+
+        log_activity(
+            "DELETE SNAPSHOT",
+            f"{pool}/{image_name}@{snapshot_name}",
+            "success",
+        )
+
+        return {
+            "message": (
+                f"Snapshot '{snapshot_name}' deleted "
+                f"from '{image_name}'"
+            )
+        }
+
+    except Exception as e:
+        logger.exception(
+            f"delete_snapshot error for "
+            f"{pool}/{image_name}@{snapshot_name}"
+        )
+
+        log_activity(
+            "DELETE SNAPSHOT",
+            f"{pool}/{image_name}@{snapshot_name}",
+            "error",
+            str(e),
         )
 
         return {"error": str(e)}

@@ -61,4 +61,16 @@ export const BlockAPI = {
     )}/snapshots/${encodeURIComponent(
       snapshotName
     )}/download?pool=${encodeURIComponent(pool)}`,
+
+  deleteSnapshot: (imageName, snapshotName, pool) =>
+  req(
+    `/block/images/${encodeURIComponent(
+      imageName
+    )}/snapshots/${encodeURIComponent(
+      snapshotName
+    )}?pool=${encodeURIComponent(pool)}`,
+    {
+      method: "DELETE",
+    }
+  ),
 };

@@ -24,6 +24,40 @@ export default function SnapshotsDialog({
     window.location.href = url;
     };
 
+  const deleteSnapshot = async (snapshotName) => {
+    if (
+        !confirm(
+        `Delete snapshot "${snapshotName}"?`
+        )
+    ) {
+        return;
+    }
+
+    try {
+        const result =
+        await BlockAPI.deleteSnapshot(
+            imageName,
+            snapshotName,
+            pool
+        );
+
+        toast(
+        result.message ||
+            `Snapshot '${snapshotName}' deleted`,
+        "success"
+        );
+
+        await loadSnapshots();
+
+    } catch (err) {
+        toast(
+        err.message ||
+            "Failed to delete snapshot",
+        "error"
+        );
+    }
+    };
+
   const loadSnapshots = useCallback(async () => {
     if (!imageName) return;
 
@@ -174,21 +208,34 @@ export default function SnapshotsDialog({
 
                 </div>
 
-                <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={() => downloadSnapshot(snap.name)}
+                <div
+                    style={{
+                        display: "flex",
+                        gap: ".5rem",
+                        alignItems: "center",
+                        flexShrink: 0,
+                    }}
                     >
-                    ↓ Download
-                </Button>
+                    <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => downloadSnapshot(snap.name)}
+                    >
+                        ↓ Download
+                    </Button>
 
+                    <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => deleteSnapshot(snap.name)}
+                    >
+                        🗑 Delete
+                    </Button>
+                </div>
               </div>
-
             </div>
-
           ))}
         </div>
-
       )}
 
       <div
