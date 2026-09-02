@@ -6,10 +6,11 @@ import CreatePoolDialog from "../components/block/CreatePoolDialog";
 import CreateImageDialog from "../components/block/CreateImageDialog";
 import SnapshotDialog from "../components/block/SnapshotDialog";
 import SnapshotsDialog from "../components/block/SnapshotsDialog";
-import { C } from "../styles/theme";
+import { C, styles } from "../styles/theme";
 
 // Extracted/wired from the BlockStorage component in AiKyaStorCONTROL.jsx.
-export default function BlockStoragePage({ toast, images, reloadImages }) {
+export default function BlockStoragePage({ toast }) {
+  const [images, setImages] = useState([]);
   const [mapped, setMapped] = useState([]);
   const [showCreate, setShowCreate] = useState(false);
   const [showSnap, setShowSnap] = useState(null);
@@ -18,15 +19,53 @@ export default function BlockStoragePage({ toast, images, reloadImages }) {
   const [showCreatePool, setShowCreatePool] = useState(false);
   const [newPoolName, setNewPoolName] = useState("");
   const [creatingPool, setCreatingPool] = useState(false);
+  const [selectedPool, setSelectedPool] = useState("");
 
   const loadPools = useCallback(async () => {
     try {
       const result = await BlockAPI.pools();
-      setPools(result.pools || []);
+      const availablePools = result.pools || [];
+
+      setPools(availablePools);
+
+      setSelectedPool((current) => {
+        if (current && availablePools.includes(current)) {
+          return current;
+        }
+
+        // Prefer the configured/default RBD pool.
+        if (availablePools.includes("rbd")) {
+          return "rbd";
+        }
+
+        return availablePools[0] || "";
+      });
+
     } catch (err) {
       console.error("Failed to load RBD pools:", err);
     }
   }, []);
+
+  const loadImages = useCallback(async (pool) => {
+    if (!pool) {
+      setImages([]);
+      return;
+    }
+
+    try {
+      const result = await BlockAPI.images(pool);
+
+      setImages(result.images || []);
+
+    } catch (err) {
+      console.error("Failed to load RBD images:", err);
+
+      toast(
+        err.message || "Failed to load RBD images",
+        "error"
+      );
+    }
+  }, [toast]);
 
   const loadMapped = useCallback(async () => {
     try {

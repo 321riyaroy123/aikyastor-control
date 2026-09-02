@@ -103,34 +103,68 @@ def api_create_rbd_pool():
 
 @block_bp.route("/images", methods=["GET"])
 def api_list_images():
-    """List RBD images"""
     try:
+        pool = request.args.get("pool") or config.RBD_POOL
+
         if config.IS_SIMULATION:
-            return jsonify({"images": simulation.get_mock_rbd_images()})
-        result = list_rbd_images()
-        return jsonify(result), 200 if "error" not in result else 500
+            return jsonify({
+                "images": simulation.get_mock_rbd_images()
+            })
+
+        result = list_rbd_images(pool)
+
+        return jsonify(result), (
+            200 if "error" not in result else 500
+        )
+
     except Exception as e:
         logger.exception("list_rbd_images error")
-        return jsonify({"error": str(e)}), 500
+
+        return jsonify({
+            "error": str(e)
+        }), 500
 
 @block_bp.route("/images", methods=["POST"])
 def api_create_image():
-    """Create a new RBD image"""
-    if config.IS_SIMULATION:
-        data = request.json or {}
-        name = data.get("name", "new-image")
-        size = data.get("size", 100)
-        log_activity("CREATE IMAGE", name, "success", f"{size}MB created", vault=False)
-        return jsonify({"message": f"Image '{name}' ({size}MB) created"}), 201
-
     try:
         data = request.json or {}
-        result = create_rbd_image(data.get("name", "new-image"), data.get("size", 100))
-        return jsonify(result), 201 if "error" not in result else 500
+
+        name = data.get("name", "new-image")
+        size = data.get("size", 100)
+        pool = data.get("pool") or config.RBD_POOL
+
+        if config.IS_SIMULATION:
+            log_activity(
+                "CREATE IMAGE",
+                f"{pool}/{name}",
+                "success",
+                f"{size}MB created",
+                vault=False,
+            )
+
+            return jsonify({
+                "message": (
+                    f"Image '{name}' created "
+                    f"in pool '{pool}'"
+                )
+            }), 201
+
+        result = create_rbd_image(
+            name,
+            size,
+            pool,
+        )
+
+        return jsonify(result), (
+            201 if "error" not in result else 500
+        )
+
     except Exception as e:
         logger.exception("create_rbd_image error")
-        return jsonify({"error": str(e)}), 500
 
+        return jsonify({
+            "error": str(e)
+        }), 500
 
 @block_bp.route("/images/<name>", methods=["DELETE"])
 def api_delete_image(name):
@@ -175,7 +209,6 @@ def api_unmap_image(name):
     except Exception as e:
         logger.exception(f"unmap_rbd_image error for {name}")
         return jsonify({"error": str(e)}), 500
-
 
 @block_bp.route("/mapped", methods=["GET"])
 def api_list_mapped():

@@ -17,6 +17,10 @@ from config.config import RBD_POOL, CMD_TIMEOUT
 from services.cluster.ceph_ops import run_ceph_cmd
 from core.activity import log_activity
 
+def _resolve_pool(pool: str | None) -> str:
+    """Return the requested RBD pool or the configured default."""
+    return (pool or RBD_POOL).strip()
+
 def list_rbd_pools() -> Dict[str, Any]:
     """
     List Ceph pools that are initialized for RBD usage.
@@ -137,27 +141,31 @@ def create_rbd_pool(name: str) -> Dict[str, Any]:
 
         return {"error": str(e)}
 
-def list_rbd_images() -> Dict[str, Any]:
-    """
-    List all RBD images in the pool
+def list_rbd_images(pool: str | None = None) -> Dict[str, Any]:
+    pool = _resolve_pool(pool)
 
-    Returns:
-        Dictionary with image list
-    """
     try:
-        stdout, stderr, code = run_ceph_cmd(f"rbd ls {RBD_POOL} --format json")
+        stdout, stderr, code = run_ceph_cmd(
+            f"rbd ls {pool} --format json"
+        )
+
         if code != 0:
-            return {"images": []}
+            return {
+                "images": [],
+                "error": stderr,
+            }
 
         images_raw = json.loads(stdout) if stdout else []
         images = []
 
         for img_name in images_raw:
             stdout, stderr, code = run_ceph_cmd(
-                f"rbd info {RBD_POOL}/{img_name} --format json"
+                f"rbd info {pool}/{img_name} --format json"
             )
+
             if code == 0:
                 info = json.loads(stdout)
+
                 images.append({
                     "name": img_name,
                     "size": info.get("size", 0),
@@ -166,111 +174,141 @@ def list_rbd_images() -> Dict[str, Any]:
                 })
 
         return {"images": images}
+
     except Exception as e:
         logger.exception("list_rbd_images error")
-        return {"images": [], "error": str(e)}
 
-def create_rbd_image(name: str, size_mb: int) -> Dict[str, Any]:
-    """
-    Create a new RBD image
+        return {
+            "images": [],
+            "error": str(e),
+        }
 
-    Args:
-        name: Image name
-        size_mb: Size in MB
+def create_rbd_image(
+    name: str,
+    size_mb: int,
+    pool: str | None = None,
+) -> Dict[str, Any]:
 
-    Returns:
-        Result dictionary
-    """
+    pool = _resolve_pool(pool)
+
     try:
         stdout, stderr, code = run_ceph_cmd(
-            f"rbd create {RBD_POOL}/{name} --size {size_mb}M"
+            f"rbd create {pool}/{name} --size {size_mb}M"
         )
+
         if code != 0:
-            log_activity("CREATE IMAGE", name, "error", stderr)
+            log_activity(
+                "CREATE IMAGE",
+                f"{pool}/{name}",
+                "error",
+                stderr,
+            )
+
             return {"error": stderr}
 
-        log_activity("CREATE IMAGE", name, "success", f"{size_mb}MB created")
-        return {"message": f"Image '{name}' ({size_mb}MB) created"}
-    except Exception as e:
-        logger.exception(f"create_rbd_image error for {name}")
-        log_activity("CREATE IMAGE", name, "error", str(e))
-        return {"error": str(e)}
+        log_activity(
+            "CREATE IMAGE",
+            f"{pool}/{name}",
+            "success",
+            f"{size_mb}MB created",
+        )
 
-def delete_rbd_image(name: str) -> Dict[str, Any]:
+        return {
+            "message": (
+                f"Image '{name}' ({size_mb}MB) "
+                f"created in pool '{pool}'"
+            )
+        }
+
+    except Exception as e:
+        logger.exception(
+            f"create_rbd_image error for {pool}/{name}"
+        )
+
+        return {"error": str(e)}
+        
+def delete_rbd_image(name: str, pool: str | None = None) -> Dict[str, Any]:
     """
     Delete an RBD image
 
     Args:
         name: Image name
+        pool: Pool name
 
     Returns:
         Result dictionary
     """
+    pool = _resolve_pool(pool)
     try:
         # Unmap if mapped (best-effort, short timeout so a hung/busy device
         # doesn't consume the full CMD_TIMEOUT before the actual delete runs)
         run_ceph_cmd(
-            f"sudo -n /usr/bin/rbd unmap {RBD_POOL}/{name} 2>/dev/null || true",
+            f"sudo -n /usr/bin/rbd unmap {pool}/{name} 2>/dev/null || true",
             timeout=5
         )
-        stdout, stderr, code = run_ceph_cmd(f"rbd rm {RBD_POOL}/{name}")
+        stdout, stderr, code = run_ceph_cmd(f"rbd rm {pool}/{name}")
         if code != 0:
-            log_activity("DELETE IMAGE", name, "error", stderr)
+            log_activity("DELETE IMAGE", f"{pool}/{name}", "error", stderr)
             return {"error": stderr}
 
-        log_activity("DELETE IMAGE", name, "success")
+        log_activity("DELETE IMAGE", f"{pool}/{name}", "success")
         return {"message": f"Image '{name}' deleted"}
     except Exception as e:
-        logger.exception(f"delete_rbd_image error for {name}")
-        log_activity("DELETE IMAGE", name, "error", str(e))
+        logger.exception(f"delete_rbd_image error for {pool}/{name}")
+        log_activity("DELETE IMAGE", f"{pool}/{name}", "error", str(e))
         return {"error": str(e)}
 
-def map_rbd_image(name: str) -> Dict[str, Any]:
+def map_rbd_image(name: str, pool: str | None = None) -> Dict[str, Any]:
     """
     Map an RBD image to a device
 
     Args:
         name: Image name
+        pool: Pool name
 
     Returns:
         Result dictionary with device path
     """
+    pool = _resolve_pool(pool)
     try:
-        stdout, stderr, code = run_ceph_cmd(f"sudo -n /usr/bin/rbd map {RBD_POOL}/{name}")
+        stdout, stderr, code = run_ceph_cmd(f"sudo -n /usr/bin/rbd map {pool}/{name}")
         if code != 0:
-            log_activity("MAP IMAGE", name, "error", stderr)
+            log_activity("MAP IMAGE", f"{pool}/{name}", "error", stderr)
             return {"error": stderr}
 
         device = stdout.strip()
-        log_activity("MAP IMAGE", name, "success", f"Device: {device}")
+        log_activity("MAP IMAGE", f"{pool}/{name}", "success", f"Device: {device}")
         return {"message": f"'{name}' mapped to {device}", "device": device}
     except Exception as e:
-        logger.exception(f"map_rbd_image error for {name}")
-        log_activity("MAP IMAGE", name, "error", str(e))
+        logger.exception(f"map_rbd_image error for {pool}/{name}")
+        log_activity("MAP IMAGE", f"{pool}/{name}", "error", str(e))
         return {"error": str(e)}
 
-def unmap_rbd_image(device: str) -> Dict[str, Any]:
+def unmap_rbd_image(device: str, pool: str | None = None, name: str | None = None) -> Dict[str, Any]:
     """
     Unmap an RBD device
 
     Args:
         device: Mapped device path, e.g. /dev/rbd0
+        pool: Pool name
+        name: Image name
     """
+    pool = _resolve_pool(pool)
     try:
         stdout, stderr, code = run_ceph_cmd(
             f"sudo -n /usr/bin/rbd unmap {device}"
         )
 
         if code != 0:
-            log_activity("UNMAP IMAGE", device, "error", stderr)
+            log_activity("UNMAP IMAGE", f"{pool}/{name}", "error", stderr)
             return {"error": stderr}
 
-        log_activity("UNMAP IMAGE", device, "success")
+        log_activity("UNMAP IMAGE", f"{pool}/{name}", "success")
         return {"message": f"'{device}' unmapped"}
 
     except Exception as e:
-        logger.exception(f"unmap_rbd_image error for {device}")
-        log_activity("UNMAP IMAGE", device, "error", str(e))
+        logger.exception(f"unmap_rbd_image error for {pool}/{name}")
+        log_activity("UNMAP IMAGE", f"{pool}/{name}", "error", str(e))
         return {"error": str(e)}
         
 def list_mapped_images() -> Dict[str, Any]:
@@ -297,59 +335,64 @@ def list_mapped_images() -> Dict[str, Any]:
         logger.exception("list_mapped_images error")
         return {"mapped": [], "error": str(e)}
 
-def create_snapshot(image_name: str, snapshot_name: str) -> Dict[str, Any]:
+def create_snapshot(image_name: str, snapshot_name: str, pool: str | None = None) -> Dict[str, Any]:
     """
     Create a snapshot of an RBD image
 
     Args:
         image_name: Image name
         snapshot_name: Snapshot name
+        pool: Pool name
 
     Returns:
         Result dictionary
     """
+    pool = _resolve_pool(pool)
     try:
         stdout, stderr, code = run_ceph_cmd(
-            f"rbd snap create {RBD_POOL}/{image_name}@{snapshot_name}"
+            f"rbd snap create {pool}/{image_name}@{snapshot_name}"
         )
         if code != 0:
-            log_activity("SNAPSHOT", f"{image_name}@{snapshot_name}", "error", stderr)
+            log_activity("SNAPSHOT", f"{pool}/{image_name}@{snapshot_name}", "error", stderr)
             return {"error": stderr}
 
-        log_activity("SNAPSHOT", f"{image_name}@{snapshot_name}", "success")
+        log_activity("SNAPSHOT", f"{pool}/{image_name}@{snapshot_name}", "success")
         return {"message": f"Snapshot '{snapshot_name}' created for '{image_name}'"}
     except Exception as e:
-        logger.exception(f"create_snapshot error for {image_name}@{snapshot_name}")
-        log_activity("SNAPSHOT", f"{image_name}@{snapshot_name}", "error", str(e))
+        logger.exception(f"create_snapshot error for {pool}/{image_name}@{snapshot_name}")
+        log_activity("SNAPSHOT", f"{pool}/{image_name}@{snapshot_name}", "error", str(e))
         return {"error": str(e)}
 
-def list_snapshots(image_name: str) -> Dict[str, Any]:
+def list_snapshots(image_name: str, pool: str | None = None) -> Dict[str, Any]:
     """
     List snapshots for an RBD image
 
     Args:
         image_name: Image name
+        pool: Pool name
 
     Returns:
         Dictionary with snapshots
     """
+    pool = _resolve_pool(pool)
     try:
         stdout, stderr, code = run_ceph_cmd(
-            f"rbd snap ls {RBD_POOL}/{image_name} --format json"
+            f"rbd snap ls {pool}/{image_name} --format json"
         )
         snaps = json.loads(stdout) if stdout else []
         return {"snapshots": snaps}
     except Exception as e:
-        logger.exception(f"list_snapshots error for {image_name}")
+        logger.exception(f"list_snapshots error for {pool}/{image_name}")
         return {"snapshots": [], "error": str(e)}
 
-def export_snapshot(image_name: str, snapshot_name: str) -> Dict[str, Any]:
+def export_snapshot(image_name: str, snapshot_name: str, pool: str | None = None) -> Dict[str, Any]:
     """
     Export an RBD snapshot to a temporary image file.
 
     Returns:
         Dictionary containing the temporary file path and download filename.
     """
+    pool = _resolve_pool(pool)
     export_path = None
 
     try:
@@ -366,7 +409,7 @@ def export_snapshot(image_name: str, snapshot_name: str) -> Dict[str, Any]:
 
         stdout, stderr, code = run_ceph_cmd(
             f"rbd export "
-            f"{RBD_POOL}/{image_name}@{snapshot_name} "
+            f"{pool}/{image_name}@{snapshot_name} "
             f"{export_path}",
             timeout=CMD_TIMEOUT
         )
@@ -377,7 +420,7 @@ def export_snapshot(image_name: str, snapshot_name: str) -> Dict[str, Any]:
 
             log_activity(
                 "EXPORT SNAPSHOT",
-                f"{image_name}@{snapshot_name}",
+                f"{pool}/{image_name}@{snapshot_name}",
                 "error",
                 stderr
             )
@@ -388,7 +431,7 @@ def export_snapshot(image_name: str, snapshot_name: str) -> Dict[str, Any]:
 
         log_activity(
             "EXPORT SNAPSHOT",
-            f"{image_name}@{snapshot_name}",
+            f"{pool}/{image_name}@{snapshot_name}",
             "success",
             f"Exported as {filename}"
         )
@@ -401,7 +444,7 @@ def export_snapshot(image_name: str, snapshot_name: str) -> Dict[str, Any]:
     except Exception as e:
         logger.exception(
             f"export_snapshot error for "
-            f"{image_name}@{snapshot_name}"
+            f"{pool}/{image_name}@{snapshot_name}"
         )
 
         if export_path and os.path.exists(export_path):
@@ -412,7 +455,7 @@ def export_snapshot(image_name: str, snapshot_name: str) -> Dict[str, Any]:
 
         log_activity(
             "EXPORT SNAPSHOT",
-            f"{image_name}@{snapshot_name}",
+            f"{pool}/{image_name}@{snapshot_name}",
             "error",
             str(e)
         )
