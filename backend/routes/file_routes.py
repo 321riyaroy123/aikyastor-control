@@ -26,7 +26,7 @@ from services.file.file_storage import (
     browse_directory, upload_file, download_file, delete_file_or_dir,
     create_directory, get_directory_stats
 )
-from services.file.cephfs_mount import get_mount_status, test_connection, mount_cephfs, unmount_cephfs
+from services.file.cephfs_mount import get_mount_status, test_connection, mount_cephfs, unmount_cephfs, list_filesystems
 import simulation.simulation as simulation
 
 file_bp = Blueprint("file", __name__, url_prefix="/api/file")
@@ -67,6 +67,21 @@ def _get_cephfs_config():
     }, None
 
 # ─── CephFS Mount Management ──────────────────────────────────────────────────
+
+@file_bp.route("/cephfs/filesystems", methods=["GET"])
+def api_cephfs_filesystems():
+    """Return the CephFS filesystems visible to the configured user."""
+    try:
+        result = list_filesystems()
+
+        if not result.get("success"):
+            return jsonify(result), 500
+
+        return jsonify(result), 200
+
+    except Exception as e:
+        logger.exception("cephfs_filesystems error")
+        return jsonify({"error": str(e)}), 500
 
 @file_bp.route("/cephfs/status", methods=["GET"])
 def api_cephfs_status():

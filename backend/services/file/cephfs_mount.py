@@ -159,6 +159,99 @@ def get_mount_status() -> Dict[str, Any]:
         "mount_point": mount_point,
     }
 
+def list_filesystems() -> Dict[str, Any]:
+    """
+    Return the CephFS filesystems visible to the configured Ceph user.
+    """
+    try:
+        config = get_active_config()
+
+        filesystem_user = config["user"]
+        monitors = config["monitors"]
+
+        if not filesystem_user:
+            return {
+                "success": False,
+                "error": "Ceph user is not configured",
+            }
+
+        if not monitors:
+            return {
+                "success": False,
+                "error": "Ceph monitor addresses are not configured",
+            }
+
+        keyring = f"/etc/ceph/ceph.client.{filesystem_user}.keyring"
+
+        if not os.path.isfile(keyring):
+            return {
+                "success": False,
+                "error": (
+                    f"Keyring not found for user "
+                    f"'{filesystem_user}': {keyring}"
+                ),
+            }
+
+        result = subprocess.run(
+            [
+                "/usr/bin/ceph",
+                "--conf", CEPH_CONF,
+                "--keyring", keyring,
+                "--id", filesystem_user,
+                "--mon-host", monitors,
+                "fs",
+                "ls",
+                "-f", "json",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+
+        if result.returncode != 0:
+            error = result.stderr.strip() or "Unable to list CephFS filesystems"
+
+            logger.error(
+                "CephFS filesystem listing failed: %s",
+                error,
+            )
+
+            return {
+                "success": False,
+                "error": error,
+            }
+
+        import json
+
+        data = json.loads(result.stdout or "[]")
+
+        filesystems = [
+            item["name"]
+            for item in data
+            if isinstance(item, dict) and item.get("name")
+        ]
+
+        return {
+            "success": True,
+            "filesystems": filesystems,
+        }
+
+    except subprocess.TimeoutExpired:
+        logger.error("CephFS filesystem listing timed out")
+
+        return {
+            "success": False,
+            "error": "CephFS filesystem listing timed out",
+        }
+
+    except Exception as e:
+        logger.exception("CephFS filesystem listing failed")
+
+        return {
+            "success": False,
+            "error": str(e),
+        }
+
 def test_connection(
     filesystem: str,
     user: str,
