@@ -21,7 +21,7 @@ export const FileAPI = {
     }),
 
   deleteCephFS: async (filesystem) => {
-    return request(
+    return req(
       `/file/cephfs/${encodeURIComponent(filesystem)}`,
       {
         method: "DELETE",
