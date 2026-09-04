@@ -13,6 +13,7 @@ export default function FileStoragePage({ toast }) {
   const [entries, setEntries] = useState([]);
   const [vaultPopup, setVaultPopup] = useState(null);
   const [storageMode, setStorageMode] = useState("cephfs");
+  const [cephfsMounted, setCephfsMounted] = useState(null);
 
   const browse = useCallback(async (p) => {
     setPath(p);
@@ -25,16 +26,41 @@ export default function FileStoragePage({ toast }) {
     }
   }, [toast]);
 
-  const [cephfsMounted, setCephfsMounted] = useState(false);
   useEffect(() => {
-    FileAPI.cephfsStatus()
-      .then((status) => {
-        setCephfsMounted(Boolean(status.mounted));
-      })
-      .catch(() => {
+    let cancelled = false;
+
+    const initializeCephFS = async () => {
+      try {
+        const status = await FileAPI.cephfsStatus();
+
+        if (cancelled) {
+          return;
+        }
+
+        const mounted = Boolean(status.mounted);
+
+        setCephfsMounted(mounted);
+
+        if (mounted) {
+          await browse("");
+        }
+      } catch (err) {
+        if (cancelled) {
+          return;
+        }
+
         setCephfsMounted(false);
-      });
-  }, []);
+        setPath("");
+        setEntries([]);
+      }
+    };
+
+    initializeCephFS();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [browse]);
 
   const handleUpload = (file) => {
     setVaultPopup({ file, cb: async (toVault) => {
@@ -132,7 +158,18 @@ export default function FileStoragePage({ toast }) {
               }}
             />
 
-            {cephfsMounted ? (
+            {cephfsMounted === null ? (
+              <div
+                style={{
+                  padding: "2rem",
+                  textAlign: "center",
+                  color: C.muted,
+                  fontFamily: "'Space Mono', monospace",
+                }}
+              >
+                Checking CephFS mount status...
+              </div>
+            ) : cephfsMounted ? (
               <FileExplorer
                 path={path}
                 entries={entries}

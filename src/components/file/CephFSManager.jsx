@@ -95,6 +95,61 @@ export default function CephFSManager({ toast, onMounted, onUnmounted }) {
     }
   };
 
+  const selectFilesystem = async (filesystem) => {
+    updateField("filesystem", filesystem);
+
+    if (!filesystem) {
+      setForm(DEFAULT_FORM);
+      return;
+    }
+
+    setBusy(true);
+
+    try {
+      const saved = await FileAPI.cephfsConfig(filesystem);
+
+      if (saved?.configured) {
+        setForm({
+          filesystem: saved.filesystem || filesystem,
+          user: saved.user || "",
+          monitors: saved.monitors || "",
+          mount_point: saved.mount_point || "",
+        });
+
+        toast(
+          `Loaded saved configuration for ${filesystem}`,
+          "success"
+        );
+      } else {
+        setForm((current) => ({
+          ...current,
+          filesystem,
+          user: "",
+          monitors: "",
+          mount_point: "",
+        }));
+      }
+    } catch (err) {
+      // 404 simply means this filesystem has never been used before.
+      if (!err.message?.includes("404")) {
+        toast(
+          err.message || "Unable to load filesystem configuration",
+          "error"
+        );
+      }
+
+      setForm((current) => ({
+        ...current,
+        filesystem,
+        user: "",
+        monitors: "",
+        mount_point: "",
+      }));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const mount = async () => {
     if (!form.filesystem) {
       toast("Select a CephFS filesystem", "error");
@@ -251,7 +306,7 @@ export default function CephFSManager({ toast, onMounted, onUnmounted }) {
             style={styles.formInput}
             value={form.filesystem}
             onChange={(e) =>
-              updateField("filesystem", e.target.value)
+              selectFilesystem(e.target.value)
             }
             disabled={busy || status.mounted}
           >

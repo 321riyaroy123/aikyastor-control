@@ -37,7 +37,6 @@ RUNTIME_CONFIG = os.path.join(
     "../../config/cephfs_runtime.json",
 )
 
-
 def _default_config() -> Dict[str, Any]:
     """Return the CephFS configuration from environment defaults."""
     return {
@@ -48,61 +47,69 @@ def _default_config() -> Dict[str, Any]:
     }
 
 
-def get_active_config() -> Dict[str, Any]:
+def _load_runtime_store() -> Dict[str, Any]:
     """
-    Return the currently active CephFS configuration.
+    Load persisted CephFS configurations.
 
-    Runtime configuration takes precedence over .env defaults.
+    The old single-configuration format is automatically migrated
+    into the new per-filesystem format.
     """
+    import json
+
+    if not os.path.isfile(RUNTIME_CONFIG):
+        return {
+            "active": None,
+            "filesystems": {},
+        }
+
     try:
-        if os.path.isfile(RUNTIME_CONFIG):
-            import json
+        with open(RUNTIME_CONFIG, "r", encoding="utf-8") as f:
+            data = json.load(f)
 
-            with open(RUNTIME_CONFIG, "r", encoding="utf-8") as f:
-                config = json.load(f)
-
+        # New format.
+        if isinstance(data, dict) and "filesystems" in data:
             return {
-                "filesystem": config.get(
-                    "filesystem",
-                    CEPHFS_NAME,
-                ),
-                "user": config.get(
-                    "user",
-                    CEPHFS_USER,
-                ),
-                "monitors": config.get(
-                    "monitors",
-                    os.getenv("CEPHFS_MONITORS", ""),
-                ),
-                "mount_point": config.get(
-                    "mount_point",
-                    CEPHFS_MOUNT,
-                ),
+                "active": data.get("active"),
+                "filesystems": data.get("filesystems", {}),
             }
+
+        # Migrate the previous single-config format.
+        if isinstance(data, dict) and data.get("filesystem"):
+            filesystem = data["filesystem"]
+
+            migrated = {
+                "active": filesystem,
+                "filesystems": {
+                    filesystem: {
+                        "user": data.get("user", CEPHFS_USER),
+                        "monitors": data.get(
+                            "monitors",
+                            os.getenv("CEPHFS_MONITORS", ""),
+                        ),
+                        "mount_point": data.get(
+                            "mount_point",
+                            CEPHFS_MOUNT,
+                        ),
+                    }
+                },
+            }
+
+            return migrated
 
     except Exception:
         logger.exception(
-            "Failed to read runtime CephFS configuration"
+            "Failed to read runtime CephFS configuration store"
         )
 
-    return _default_config()
-
-
-def save_active_config(
-    filesystem: str,
-    user: str,
-    monitors: str,
-    mount_point: str,
-) -> None:
-    """Persist the active non-secret CephFS configuration."""
-    import json
-
-    config = {
-        "filesystem": filesystem,
-        "user": user,
-        "monitors": monitors,
-        "mount_point": mount_point,
+    return {
+        "active": None,
+        "filesystems": {},
     }
+
+
+def _save_runtime_store(store: Dict[str, Any]) -> None:
+    """Persist the CephFS configuration store atomically."""
+    import json
 
     os.makedirs(
         os.path.dirname(RUNTIME_CONFIG),
@@ -112,12 +119,86 @@ def save_active_config(
     temp_path = f"{RUNTIME_CONFIG}.tmp"
 
     with open(temp_path, "w", encoding="utf-8") as f:
-        json.dump(config, f, indent=2)
+        json.dump(store, f, indent=2)
         f.write("\n")
 
     os.replace(temp_path, RUNTIME_CONFIG)
 
 
+def get_active_config() -> Dict[str, Any]:
+    """
+    Return the configuration of the currently active filesystem.
+    """
+    store = _load_runtime_store()
+
+    active = store.get("active")
+    saved = store.get("filesystems", {}).get(active)
+
+    if active and saved:
+        return {
+            "filesystem": active,
+            "user": saved.get("user", CEPHFS_USER),
+            "monitors": saved.get(
+                "monitors",
+                os.getenv("CEPHFS_MONITORS", ""),
+            ),
+            "mount_point": saved.get(
+                "mount_point",
+                CEPHFS_MOUNT,
+            ),
+        }
+
+    return _default_config()
+
+
+def get_saved_config(filesystem: str) -> Dict[str, Any] | None:
+    """
+    Return the saved configuration for a specific filesystem.
+    """
+    store = _load_runtime_store()
+
+    saved = store.get("filesystems", {}).get(filesystem)
+
+    if not saved:
+        return None
+
+    return {
+        "filesystem": filesystem,
+        "user": saved.get("user", CEPHFS_USER),
+        "monitors": saved.get(
+            "monitors",
+            os.getenv("CEPHFS_MONITORS", ""),
+        ),
+        "mount_point": saved.get(
+            "mount_point",
+            CEPHFS_MOUNT,
+        ),
+    }
+
+
+def save_active_config(
+    filesystem: str,
+    user: str,
+    monitors: str,
+    mount_point: str,
+) -> None:
+    """
+    Save configuration for a filesystem and make it active.
+    """
+    store = _load_runtime_store()
+
+    store.setdefault("filesystems", {})
+
+    store["filesystems"][filesystem] = {
+        "user": user,
+        "monitors": monitors,
+        "mount_point": mount_point,
+    }
+
+    store["active"] = filesystem
+
+    _save_runtime_store(store)
+    
 def get_active_mount_point() -> str:
     """Return the mount point used by the active CephFS configuration."""
     return get_active_config()["mount_point"]

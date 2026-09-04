@@ -4,8 +4,12 @@ export const FileAPI = {
   cephfsStatus: () =>
     req("/file/cephfs/status"),
 
-  cephfsConfig: () =>
-    req("/file/cephfs/config"),
+  cephfsConfig: (filesystem) =>
+    req(
+      filesystem
+        ? `/file/cephfs/config?filesystem=${encodeURIComponent(filesystem)}`
+        : "/file/cephfs/config"
+    ),
 
   cephfsFilesystems: () =>
     req("/file/cephfs/filesystems"),
