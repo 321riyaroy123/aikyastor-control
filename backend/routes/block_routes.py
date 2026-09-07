@@ -169,12 +169,13 @@ def api_create_image():
 @block_bp.route("/images/<name>", methods=["DELETE"])
 def api_delete_image(name):
     """Delete an RBD image"""
+    pool = request.args.get("pool") or config.RBD_POOL
     if config.IS_SIMULATION:
-        log_activity("DELETE IMAGE", name, "success", "Simulation mode")
+        log_activity("DELETE IMAGE", f"{pool}/{name}", "success", "Simulation mode")
         return jsonify({"message": f"Image '{name}' deleted"})
 
     try:
-        result = delete_rbd_image(name)
+        result = delete_rbd_image(name, pool)
         return jsonify(result), 200 if "error" not in result else 500
     except Exception as e:
         logger.exception(f"delete_rbd_image error for {name}")
@@ -184,12 +185,13 @@ def api_delete_image(name):
 @block_bp.route("/images/<name>/map", methods=["POST"])
 def api_map_image(name):
     """Map an RBD image"""
+    pool = request.args.get("pool") or config.RBD_POOL
     if config.IS_SIMULATION:
-        log_activity("MAP IMAGE", name, "success", "Device: /dev/rbd0")
+        log_activity("MAP IMAGE", f"{pool}/{name}", "success", "Device: /dev/rbd0")
         return jsonify({"message": f"'{name}' mapped to /dev/rbd0", "device": "/dev/rbd0"})
 
     try:
-        result = map_rbd_image(name)
+        result = map_rbd_image(name, pool)
         return jsonify(result), 200 if "error" not in result else 500
     except Exception as e:
         logger.exception(f"map_rbd_image error for {name}")
@@ -199,12 +201,13 @@ def api_map_image(name):
 @block_bp.route("/images/<name>/unmap", methods=["POST"])
 def api_unmap_image(name):
     """Unmap an RBD image"""
+    pool = request.args.get("pool") or config.RBD_POOL
     if config.IS_SIMULATION:
-        log_activity("UNMAP IMAGE", name, "success", "Simulation mode")
+        log_activity("UNMAP IMAGE", f"{pool}/{name}", "success", "Simulation mode")
         return jsonify({"message": f"'{name}' unmapped"})
 
     try:
-        result = unmap_rbd_image(name)
+        result = unmap_rbd_image(name, pool)
         return jsonify(result), 200 if "error" not in result else 500
     except Exception as e:
         logger.exception(f"unmap_rbd_image error for {name}")
@@ -226,16 +229,15 @@ def api_list_mapped():
 @block_bp.route("/images/<name>/snapshot", methods=["POST"])
 def api_create_snapshot(name):
     """Create an RBD snapshot"""
+    data = request.json or {}
+    snap_name = data.get("snap_name", f"snap-{name}")
+    pool = data.get("pool") or config.RBD_POOL
     if config.IS_SIMULATION:
-        data = request.json or {}
-        snap_name = data.get("snap_name", f"snap-{name}")
-        log_activity("SNAPSHOT", f"{name}@{snap_name}", "success", "Simulation mode")
+        log_activity("SNAPSHOT", f"{pool}/{name}@{snap_name}", "success", "Simulation mode")
         return jsonify({"message": f"Snapshot '{snap_name}' created for '{name}'"})
 
     try:
-        data = request.json or {}
-        snap_name = data.get("snap_name", f"snap-{name}")
-        result = create_snapshot(name, snap_name)
+        result = create_snapshot(name, snap_name, pool)
         return jsonify(result), 201 if "error" not in result else 500
     except Exception as e:
         logger.exception(f"create_snapshot error for {name}")
@@ -246,9 +248,10 @@ def api_create_snapshot(name):
 def api_list_snapshots(name):
     """List snapshots for an RBD image"""
     try:
+        pool = request.args.get("pool") or config.RBD_POOL
         if config.IS_SIMULATION:
             return jsonify({"snapshots": []})
-        result = list_snapshots(name)
+        result = list_snapshots(name, pool)
         return jsonify(result), 200 if "error" not in result else 500
     except Exception as e:
         logger.exception(f"list_snapshots error for {name}")
@@ -269,7 +272,8 @@ def api_download_snapshot(image_name, snapshot_name):
         }), 400
 
     try:
-        result = export_snapshot(image_name, snapshot_name)
+        pool = request.args.get("pool") or config.RBD_POOL
+        result = export_snapshot(image_name, snapshot_name, pool)
 
         if "error" in result:
             return jsonify(result), 500

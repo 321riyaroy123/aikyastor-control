@@ -10,7 +10,7 @@ import { formatBytes } from "../../utils/formatters";
 // from BlockStorage (Mapped Devices + RBD Images); the two actual dialogs
 // (create image, create snapshot) live in CreateImageDialog.jsx and
 // SnapshotDialog.jsx below, matching what the UI actually does.
-export default function ImageTable({ images, mapped, onMap, onUnmap, onSnapshot, onSnapshots, onExportVault, onDelete }) {
+export default function ImageTable({ images, mapped, selectedPool, onMap, onUnmap, onSnapshot, onSnapshots, onExportVault, onDelete }) {
   return (
     <>
       <div style={{ marginBottom: "1.5rem" }}>
@@ -50,7 +50,7 @@ export default function ImageTable({ images, mapped, onMap, onUnmap, onSnapshot,
                 </Td>
                 <Td>
                   <div style={{ display: "flex", gap: ".4rem", flexWrap: "wrap" }}>
-                    {mapped.find(m => m.name === img.name)
+                    {mapped.find(m => m.name === img.name && m.pool === selectedPool)
                       ? <Button variant="ghost" size="sm" onClick={() => onUnmap(img.name)}>Unmap</Button>
                       : <Button variant="green" size="sm" onClick={() => onMap(img.name)}>Map</Button>}
                     <Button variant="ghost" size="sm" onClick={() => onSnapshot(img.name)}>Snap</Button>

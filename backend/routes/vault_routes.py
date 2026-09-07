@@ -8,7 +8,7 @@ This blueprint serves two distinct workflows:
   page to inspect the transit-backed SSE-S3 dependency
 """
 import os
-from flask import Blueprint, jsonify
+from flask import Blueprint, request, jsonify
 import config.config as config
 from core.logger import logger
 from core.activity import log_activity
@@ -43,8 +43,9 @@ def vault_status():
 @vault_bp.route("/block/images/<name>/export-vault", methods=["POST"])
 def api_export_rbd(name):
     """Export RBD image to vault"""
+    pool = request.args.get("pool") or config.RBD_POOL
     if config.IS_SIMULATION:
-        log_activity("VAULT EXPORT (RBD)", name, "info", "Simulation mode", vault=True)
+        log_activity("VAULT EXPORT (RBD)", f"{pool}/{name}", "info", "Simulation mode", vault=True)
         return jsonify({"message": f"RBD export of '{name}' to Vault started"})
 
     try:
@@ -53,7 +54,7 @@ def api_export_rbd(name):
                 "error": f"Vault is not mounted at {config.VAULT_PATH}"
             }), 503
 
-        result = start_rbd_export_background(name, config.RBD_POOL)
+        result = start_rbd_export_background(name, pool)
         return jsonify(result)
     except Exception as e:
         logger.exception(f"export_rbd error for {name}")

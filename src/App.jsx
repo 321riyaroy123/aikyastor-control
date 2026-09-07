@@ -114,7 +114,7 @@ export default function App() {
         <main style={{ flex: 1, overflowY: "auto", padding: "2rem" }}>
           {section === "dashboard" && <Dashboard stats={stats} health={health} vault={vault} activity={activity} onRefreshActivity={loadActivity} />}
           {section === "object" && <ObjectStoragePage toast={toast} buckets={buckets} reloadBuckets={loadBuckets} />}
-          {section === "block" && <BlockStoragePage toast={toast} images={images} reloadImages={loadImages} />}
+          {section === "block" && <BlockStoragePage toast={toast} />}
           {section === "file" && <FileStoragePage toast={toast} />}
           {section === "vault" && <VaultPage vault={vault} buckets={buckets} images={images} activity={activity} toast={toast} onRefreshVault={loadVault} onRefreshActivity={loadActivity} />}
           {section === "encryption-vault" && <EncryptionVaultPage toast={toast} />}

@@ -7,6 +7,7 @@ import { BlockAPI } from "../../api/blockStorage";
 
 export default function SnapshotsDialog({
   imageName,
+  pool,
   onClose,
   toast
 }) {
@@ -16,7 +17,8 @@ export default function SnapshotsDialog({
   const downloadSnapshot = (snapshotName) => {
     const url = BlockAPI.downloadSnapshotUrl(
         imageName,
-        snapshotName
+        snapshotName,
+        pool
     );
 
     window.location.href = url;
@@ -28,7 +30,7 @@ export default function SnapshotsDialog({
     setLoading(true);
 
     try {
-      const result = await BlockAPI.snapshots(imageName);
+      const result = await BlockAPI.snapshots(imageName, pool);
       setSnapshots(result.snapshots || []);
     } catch (err) {
       console.error(err);
@@ -39,7 +41,7 @@ export default function SnapshotsDialog({
     } finally {
       setLoading(false);
     }
-  }, [imageName, toast]);
+  }, [imageName, pool, toast]);
 
   useEffect(() => {
     if (imageName) {

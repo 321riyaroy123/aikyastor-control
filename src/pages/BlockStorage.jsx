@@ -76,6 +76,10 @@ export default function BlockStoragePage({ toast }) {
 
   useEffect(() => { loadMapped(); loadPools(); }, [loadMapped, loadPools]);
 
+  useEffect(() => {
+    loadImages(selectedPool);
+  }, [selectedPool, loadImages]);
+
   const createPool = async () => {
     const name = newPoolName.trim();
 
@@ -109,7 +113,7 @@ export default function BlockStoragePage({ toast }) {
   const exportVault = async (name) => {
     toast(`Exporting "${name}" → Vault (background)...`, "vault", 6000);
     try {
-      const result = await BlockAPI.exportVault(name);
+      const result = await BlockAPI.exportVault(name, selectedPool);
       toast(result.message || `RBD export of '${name}' to Vault started in background`, "vault", 6000);
     } catch (err) {
       toast(err.message, "error");
@@ -118,10 +122,10 @@ export default function BlockStoragePage({ toast }) {
 
   const createImage = async (name, size, doVault) => {
     try {
-      const result = await BlockAPI.createImage(name, size);
+      const result = await BlockAPI.createImage(name, size, selectedPool);
       toast(result.message || `Image '${name}' (${size}MB) created`, "success");
       setShowCreate(false);
-      await reloadImages();
+      await loadImages(selectedPool);
       if (doVault) await exportVault(name);
     } catch (err) {
       toast(err.message, "error");
@@ -131,9 +135,9 @@ export default function BlockStoragePage({ toast }) {
   const deleteImage = async (name) => {
     if (!confirm(`Delete image "${name}"?`)) return;
     try {
-      const result = await BlockAPI.deleteImage(name);
+      const result = await BlockAPI.deleteImage(name, selectedPool);
       toast(result.message || `Image '${name}' deleted`, "success");
-      await reloadImages();
+      await loadImages(selectedPool);
       await loadMapped();
     } catch (err) {
       toast(err.message, "error");
@@ -142,7 +146,7 @@ export default function BlockStoragePage({ toast }) {
 
   const mapImage = async (name) => {
     try {
-      const result = await BlockAPI.mapImage(name);
+      const result = await BlockAPI.mapImage(name, selectedPool);
       toast(result.message || `'${name}' mapped`, "success");
       await loadMapped();
     } catch (err) {
@@ -153,7 +157,7 @@ export default function BlockStoragePage({ toast }) {
   const unmapImage = async (name, device = null) => {
     try {
       const target = device || name;
-      const result = await BlockAPI.unmapImage(target);
+      const result = await BlockAPI.unmapImage(target, selectedPool);
 
       toast(
         result.message || `'${name}' unmapped`,
@@ -168,7 +172,7 @@ export default function BlockStoragePage({ toast }) {
 
   const createSnapshot = async (name, snapName) => {
     try {
-      const result = await BlockAPI.createSnapshot(name, snapName);
+      const result = await BlockAPI.createSnapshot(name, snapName, selectedPool);
       toast(result.message || `Snapshot '${snapName}' created for '${name}'`, "success");
       setShowSnap(null);
     } catch (err) {
@@ -182,61 +186,25 @@ export default function BlockStoragePage({ toast }) {
         <div style={{ fontFamily: "'Space Mono',monospace", fontSize: "1rem", color: C.text, display: "flex", alignItems: "center", gap: ".75rem" }}>
           ▣ Block Storage <span style={{ fontSize: ".65rem", padding: ".2rem .6rem", borderRadius: 3, background: "rgba(249,115,22,.15)", color: C.accent, border: "1px solid rgba(249,115,22,.3)" }}>RBD</span>
           <span style={{ fontSize: ".65rem", color: C.muted }}></span></div>
+          <label style={{ display: "flex", alignItems: "center", gap: ".75rem", fontFamily: "'Space Mono',monospace", fontSize: ".7rem", color: C.muted }}>
+            RBD Pool
+            <select
+              style={{ ...styles.formInput, width: "auto", minWidth: "180px" }}
+              value={selectedPool}
+              onChange={(e) => setSelectedPool(e.target.value)}
+            >
+              <option value="">Select RBD pool</option>
+              {pools.map((pool) => <option key={pool} value={pool}>{pool}</option>)}
+            </select>
+          </label>
             <Button variant="secondary" size="sm" onClick={() => setShowCreatePool(true)}>+ New RBD Pool</Button>
             <Button variant="primary" size="sm" onClick={() => setShowCreate(true)}>+ New Image</Button>
       </div>
 
-      {pools.length > 0 && (
-        <div
-          style={{
-            marginBottom: "1.5rem",
-            padding: "1rem",
-            border: `1px solid ${C.border}`,
-            borderRadius: 6,
-            background: C.surface,
-          }}
-        >
-          <div
-            style={{
-              fontFamily: "'Space Mono', monospace",
-              fontSize: ".72rem",
-              color: C.muted,
-              marginBottom: ".75rem",
-              textTransform: "uppercase",
-            }}
-          >
-            Available Pools
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: ".5rem",
-            }}
-          >
-            {pools.map((pool) => (
-              <span
-                key={pool}
-                style={{
-                  padding: ".35rem .7rem",
-                  borderRadius: 4,
-                  fontFamily: "'Space Mono', monospace",
-                  fontSize: ".72rem",
-                  border: `1px solid ${C.border}`,
-                  color: C.text,
-                }}
-              >
-                {pool}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
       <ImageTable
         images={images}
         mapped={mapped}
+        selectedPool={selectedPool}
         onMap={mapImage}
         onUnmap={unmapImage}
         onSnapshot={setShowSnap}
@@ -248,7 +216,7 @@ export default function BlockStoragePage({ toast }) {
       <CreatePoolDialog open={showCreatePool} onClose={() => { if (!creatingPool) { setShowCreatePool(false); setNewPoolName(""); } }} poolName={newPoolName} setPoolName={setNewPoolName} onCreate={createPool} creating={creatingPool} toast={toast} />
       <CreateImageDialog open={showCreate} onClose={() => setShowCreate(false)} onCreate={createImage} toast={toast} />
       <SnapshotDialog imageName={showSnap} onClose={() => setShowSnap(null)} onCreate={createSnapshot} toast={toast} />
-      <SnapshotsDialog imageName={showSnapshots} onClose={() => setShowSnapshots(null)} toast={toast} />
+      <SnapshotsDialog imageName={showSnapshots} pool={selectedPool} onClose={() => setShowSnapshots(null)} toast={toast} />
     </div>
   );
 }
