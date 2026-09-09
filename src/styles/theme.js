@@ -189,6 +189,79 @@ export const styles = {
   policyMessageError: { background: "rgba(248,113,113,.08)", color: C.red, borderColor: "rgba(248,113,113,.25)" },
   policyMessageWarning: { background: "rgba(251,191,36,.08)", color: C.yellow, borderColor: "rgba(251,191,36,.25)" },
   policyMessageInfo: { background: "rgba(56,189,248,.08)", color: C.blue, borderColor: "rgba(56,189,248,.25)" },
+
+  // ==========================================================================
+  // AI Monitor (ceph-ai integration)
+  // ==========================================================================
+  aiMonitorPage: { display: "flex", flexDirection: "column", gap: "1.5rem" },
+
+  // Connectivity banner
+  aiMonitorBanner: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", padding: "1rem 1.25rem", background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, flexWrap: "wrap" },
+  aiMonitorBannerStatus: { display: "flex", alignItems: "center", gap: ".65rem", fontSize: ".85rem", color: C.text },
+  aiMonitorBannerDot: { width: 9, height: 9, borderRadius: "50%", display: "inline-block", flexShrink: 0 },
+  aiMonitorBannerDotOk: { background: C.green, boxShadow: `0 0 8px ${C.green}` },
+  aiMonitorBannerDotStale: { background: C.yellow, boxShadow: `0 0 8px ${C.yellow}` },
+  aiMonitorBannerDotOffline: { background: C.red, boxShadow: `0 0 8px ${C.red}` },
+  aiMonitorBannerMeta: { fontFamily: "'Space Mono',monospace", fontSize: ".72rem", color: C.muted },
+
+  // Disabled-state panel
+  aiMonitorDisabled: { display: "flex", flexDirection: "column", alignItems: "center", gap: ".75rem", padding: "3rem 2rem", background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, textAlign: "center" },
+  aiMonitorDisabledIcon: { fontSize: "2rem", opacity: .6 },
+  aiMonitorDisabledTitle: { fontFamily: "'Space Mono',monospace", fontSize: "1rem", fontWeight: 700, color: C.text },
+  aiMonitorDisabledText: { color: C.muted, fontSize: ".85rem", maxWidth: 420, lineHeight: 1.5 },
+
+  // Layer cards (host v7 / ceph v8)
+  aiMonitorLayerGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(320px,1fr))", gap: "1.25rem" },
+  aiMonitorLayerCard: { display: "flex", flexDirection: "column", gap: ".9rem", background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: "1.25rem" },
+  aiMonitorLayerCardHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: ".75rem" },
+  aiMonitorLayerCardTitle: { fontFamily: "'Space Mono',monospace", fontSize: ".85rem", fontWeight: 700, color: C.accent, textTransform: "uppercase", letterSpacing: ".03em" },
+  aiMonitorLayerBadge: { display: "inline-flex", alignItems: "center", gap: ".35rem", padding: ".3rem .7rem", borderRadius: 999, fontSize: ".72rem", fontWeight: 600, border: "1px solid transparent" },
+  aiMonitorLayerBadgeOk: { background: "rgba(74,222,128,.12)", color: C.green, borderColor: "rgba(74,222,128,.3)" },
+  aiMonitorLayerBadgeAnomaly: { background: "rgba(248,113,113,.12)", color: C.red, borderColor: "rgba(248,113,113,.3)" },
+  aiMonitorLayerBadgeUnavailable: { background: "rgba(100,116,139,.12)", color: C.muted, borderColor: C.border },
+  aiMonitorLayerStatRow: { display: "flex", justifyContent: "space-between", fontSize: ".8rem", color: C.muted },
+  aiMonitorLayerStatValue: { color: C.text, fontFamily: "'Space Mono',monospace", fontWeight: 600 },
+  aiMonitorLayerDeviations: { display: "flex", flexDirection: "column", gap: ".4rem", marginTop: ".3rem" },
+  aiMonitorLayerDeviationItem: { display: "flex", flexDirection: "column", gap: ".15rem", padding: ".5rem .65rem", background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 6, fontSize: ".76rem" },
+  aiMonitorLayerDeviationFeature: { color: C.text, fontWeight: 600, fontFamily: "'Space Mono',monospace" },
+  aiMonitorLayerDeviationMeta: { color: C.muted },
+
+  // RCA incident card
+  aiMonitorRca: { display: "flex", flexDirection: "column", gap: "1rem", background: C.surface, border: `1px solid rgba(248,113,113,.25)`, borderRadius: 10, padding: "1.5rem" },
+  aiMonitorRcaEmpty: { display: "flex", flexDirection: "column", alignItems: "center", gap: ".5rem", padding: "2.5rem 2rem", background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, color: C.muted, fontSize: ".85rem", textAlign: "center" },
+  aiMonitorRcaHeader: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem", flexWrap: "wrap" },
+  aiMonitorRcaTitle: { fontFamily: "'Space Mono',monospace", fontSize: ".95rem", fontWeight: 700, color: C.text },
+  aiMonitorRcaId: { fontFamily: "'Space Mono',monospace", fontSize: ".72rem", color: C.muted },
+  aiMonitorRcaSeverity: { display: "inline-flex", alignItems: "center", padding: ".35rem .8rem", borderRadius: 999, fontSize: ".72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".04em", border: "1px solid transparent" },
+  aiMonitorRcaSeverityInfo: { background: "rgba(56,189,248,.12)", color: C.blue, borderColor: "rgba(56,189,248,.3)" },
+  aiMonitorRcaSeverityWarning: { background: "rgba(251,191,36,.12)", color: C.yellow, borderColor: "rgba(251,191,36,.3)" },
+  aiMonitorRcaSeverityError: { background: "rgba(248,113,113,.12)", color: C.red, borderColor: "rgba(248,113,113,.3)" },
+  aiMonitorRcaSeverityCritical: { background: "rgba(248,113,113,.2)", color: C.red, borderColor: "rgba(248,113,113,.5)" },
+  aiMonitorRcaSummary: { fontSize: ".9rem", color: C.text, lineHeight: 1.5 },
+  aiMonitorRcaDetail: { fontSize: ".82rem", color: C.muted, lineHeight: 1.55 },
+  aiMonitorRcaSectionLabel: { fontFamily: "'Space Mono',monospace", fontSize: ".7rem", fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: ".05em", marginBottom: ".4rem" },
+  aiMonitorRcaEvidence: { display: "flex", flexDirection: "column", gap: ".3rem" },
+  aiMonitorRcaEvidenceItem: { display: "flex", gap: ".5rem", fontSize: ".8rem", color: C.text },
+  aiMonitorRcaBlastRadius: { padding: ".75rem 1rem", background: "rgba(167,139,250,.08)", border: `1px solid rgba(167,139,250,.25)`, borderRadius: 6, color: C.purple, fontSize: ".82rem" },
+  aiMonitorRcaRemediation: { display: "flex", flexDirection: "column", gap: ".4rem" },
+  aiMonitorRcaRemediationStep: { display: "flex", gap: ".6rem", fontSize: ".82rem", color: C.text, padding: ".5rem .7rem", background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 6 },
+  aiMonitorRcaRemediationIndex: { fontFamily: "'Space Mono',monospace", color: C.green, fontWeight: 700, flexShrink: 0 },
+  aiMonitorRcaVerification: { display: "block", fontFamily: "'Space Mono',monospace", fontSize: ".78rem", color: C.blue, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 6, padding: ".65rem .85rem", overflowX: "auto" },
+  aiMonitorRcaSource: { fontSize: ".72rem", color: C.muted, fontStyle: "italic" },
+
+  // Events feed
+  aiMonitorEvents: { display: "flex", flexDirection: "column", background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" },
+  aiMonitorEventsHeader: { padding: "1rem 1.25rem", borderBottom: `1px solid ${C.border}`, fontFamily: "'Space Mono',monospace", fontSize: ".8rem", fontWeight: 700, color: C.accent, textTransform: "uppercase", letterSpacing: ".03em" },
+  aiMonitorEventRow: { display: "flex", alignItems: "center", gap: ".75rem", padding: ".7rem 1.25rem", borderBottom: `1px solid rgba(255,255,255,.04)`, fontSize: ".8rem" },
+  aiMonitorEventTime: { fontFamily: "'Space Mono',monospace", fontSize: ".72rem", color: C.muted, flexShrink: 0, minWidth: 70 },
+  aiMonitorEventTag: { display: "inline-flex", alignItems: "center", padding: ".2rem .55rem", borderRadius: 4, fontSize: ".68rem", fontWeight: 700, textTransform: "uppercase", flexShrink: 0 },
+  aiMonitorEventTagInfo: { background: "rgba(56,189,248,.12)", color: C.blue },
+  aiMonitorEventTagWarning: { background: "rgba(251,191,36,.12)", color: C.yellow },
+  aiMonitorEventTagError: { background: "rgba(248,113,113,.12)", color: C.red },
+  aiMonitorEventTagCritical: { background: "rgba(248,113,113,.25)", color: C.red },
+  aiMonitorEventComponent: { color: C.muted, fontFamily: "'Space Mono',monospace", fontSize: ".72rem", flexShrink: 0 },
+  aiMonitorEventMessage: { color: C.text, flex: 1, overflowWrap: "anywhere" },
+  aiMonitorEventsEmpty: { padding: "2.5rem 2rem", textAlign: "center", color: C.muted, fontStyle: "italic", fontSize: ".85rem" },
 };
 
 export function injectGlobalStyles() {

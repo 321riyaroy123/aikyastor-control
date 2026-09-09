@@ -14,6 +14,7 @@ import BlockStoragePage from "./pages/BlockStorage";
 import FileStoragePage from "./pages/FileStorage";
 import VaultPage from "./pages/Vault";
 import EncryptionVaultPage from "./pages/EncryptionVault";
+import AIMonitorPage from "./pages/AIMonitor";
 
 // Root UI shell for the dashboard: global status bars, sidebar
 // navigation, page switching, and toast notifications.
@@ -70,6 +71,7 @@ export default function App() {
     { id: "file", icon: "⊞", label: "File Storage", section: "Storage" },
     { id: "vault", icon: "🔒", label: "Vault Backup", section: "Vault" },
     { id: "encryption-vault", icon: "🔐", label: "Encryption Vault", section: "Security" },
+    { id: "ai-monitor", icon: "🧠", label: "AI Monitor", section: "Intelligence" },
   ];
 
   const healthColor = health?.status === "HEALTH_OK" ? C.green : health?.status?.includes("WARN") ? C.yellow : C.red;
@@ -93,7 +95,7 @@ export default function App() {
 
       <div style={{ display: "flex", height: "calc(100vh - 60px)" }}>
         <nav style={{ width: 220, background: C.surface, borderRight: `1px solid ${C.border}`, padding: "1.5rem 0", flexShrink: 0, overflowY: "auto" }}>
-          {["Overview", "Storage", "Vault", "Security"].map(sec => (
+          {["Overview", "Storage", "Vault", "Security", "Intelligence"].map(sec => (
             <div key={sec}>
               <div style={{ padding: "0 1rem .5rem", fontFamily: "'Space Mono',monospace", fontSize: ".65rem", color: C.muted, letterSpacing: 2, textTransform: "uppercase" }}>{sec}</div>
               {navItems.filter(n => n.section === sec).map(n => (
@@ -106,7 +108,7 @@ export default function App() {
                   {n.label}
                 </div>
               ))}
-              {sec !== "Security" && <div style={{ height: 1, background: C.border, margin: ".75rem 1rem" }} />}
+              {sec !== "Intelligence" && <div style={{ height: 1, background: C.border, margin: ".75rem 1rem" }} />}
             </div>
           ))}
         </nav>
@@ -118,6 +120,7 @@ export default function App() {
           {section === "file" && <FileStoragePage toast={toast} />}
           {section === "vault" && <VaultPage vault={vault} buckets={buckets} images={images} activity={activity} toast={toast} onRefreshVault={loadVault} onRefreshActivity={loadActivity} />}
           {section === "encryption-vault" && <EncryptionVaultPage toast={toast} />}
+          {section === "ai-monitor" && <AIMonitorPage toast={toast} />}
         </main>
       </div>
 

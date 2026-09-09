@@ -115,3 +115,19 @@ REPLICATION_CIRCUIT_BREAKER_COOLDOWN = int(
     os.getenv("REPLICATION_CIRCUIT_BREAKER_COOLDOWN", "30")
 )
  
+# ─── Ceph-AI Monitoring Integration ──────────────────────────────────────────
+# SSH configuration for the Ceph Virtual Machine
+VM_SSH_HOST="127.0.0.1"
+VM_SSH_PORT=2222
+VM_SSH_USER="vboxuser"
+VM_SSH_PASSWORD="admin"
+
+# Optional Local Ollama LLM Configuration (if not running, dynamic heuristic engine takes over)
+OLLAMA_URL="http://localhost:11434"
+OLLAMA_MODEL="qwen2.5:3b"
+OLLAMA_TIMEOUT=2
+
+CEPH_AI_ENABLED = os.getenv("CEPH_AI_ENABLED", "false").lower() == "true"
+CEPH_AI_DB_PATH = os.getenv("CEPH_AI_DB_PATH", "/opt/ceph-ai/ceph_monitor.db")
+CEPH_AI_DB_TIMEOUT = float(os.getenv("CEPH_AI_DB_TIMEOUT", "3.0"))
+CEPH_AI_STALE_AFTER_SECONDS = int(os.getenv("CEPH_AI_STALE_AFTER_SECONDS", "30"))
