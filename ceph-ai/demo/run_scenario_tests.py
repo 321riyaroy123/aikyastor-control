@@ -40,7 +40,7 @@ def vm_exec(cmd, timeout=20):
     try:
         ssh = get_ssh()
         try:
-            stdin, stdout, stderr = ssh.exec_command("sudo -S bash -c \"" + cmd + "\"", timeout=timeout)
+            stdin, stdout, stderr = ssh.exec_command("sudo -n bash -c \"" + cmd + "\"", timeout=timeout)
             stdin.write(PASSWORD + "\n")
             stdin.flush()
             out = stdout.read().decode("utf-8", errors="ignore").strip()

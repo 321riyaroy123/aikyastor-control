@@ -73,7 +73,7 @@ def connect():
     return ssh
 
 def sudo(ssh, cmd, timeout=30):
-    stdin, stdout, stderr = ssh.exec_command("sudo -S bash -c \""+cmd+"\"", timeout=timeout)
+    stdin, stdout, stderr = ssh.exec_command("sudo -n bash -c \""+cmd+"\"", timeout=timeout)
     stdin.write(PASSWORD + "\n"); stdin.flush()
     out = stdout.read().decode("utf-8", errors="ignore").strip()
     err = stderr.read().decode("utf-8", errors="ignore").strip()

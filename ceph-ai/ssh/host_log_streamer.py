@@ -179,8 +179,8 @@ def main():
         client_event = ceph_ai_ssh.connect()
         client_journal = ceph_ai_ssh.connect()
 
-        cmd_ceph_event = "sudo -S ceph -w"
-        cmd_journal = "sudo -S journalctl -f -u 'ceph-*'"
+        cmd_ceph_event = "sudo -n ceph -w"
+        cmd_journal = "sudo -n journalctl -f -u 'ceph-*'"
 
         # Spawn daemon threads for log streams
         t1 = threading.Thread(

@@ -33,9 +33,11 @@ def init_db():
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS metrics_timeseries (
             timestamp TEXT PRIMARY KEY,
-            data TEXT
+            data TEXT,
+            is_baseline INTEGER DEFAULT 0
         )
     """)
+    
     
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS events_log (
@@ -100,7 +102,7 @@ def scrape_host_metrics(ssh_client):
     
     try:
         cmd = (
-            "sudo -S bash -c '"
+            "sudo -n bash -c '"
             "ceph --connect-timeout 3 status --format json 2>/dev/null || echo \"{}\"; echo \"__SEP__\"; "
             "ceph --connect-timeout 3 osd tree --format json 2>/dev/null || echo \"{}\"; echo \"__SEP__\"; "
             "ceph --connect-timeout 3 pg stat 2>/dev/null || echo \"\"; echo \"__SEP__\"; "
