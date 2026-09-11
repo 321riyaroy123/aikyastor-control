@@ -17,57 +17,76 @@ from config.config import VAULT_PATH, CMD_TIMEOUT
 from services.cluster.ceph_ops import run_ceph_cmd
 from core.activity import log_activity
 
+def _require_vault_mounted() -> None:
+    """
+    Ensure the configured Vault path is a real mounted filesystem.
+
+    Raises:
+        RuntimeError: If VAULT_PATH is not actually mounted.
+    """
+    if not os.path.ismount(VAULT_PATH):
+        raise RuntimeError(
+            f"Vault is not mounted at {VAULT_PATH}. "
+            "Vault operations are unavailable."
+        )
+
 def _ensure_vault_subdir(sub: str) -> str:
     """
-    Ensure vault subdirectory exists and return path
-    
-    Args:
-        sub: Subdirectory name
-        
-    Returns:
-        Full path to subdirectory
+    Ensure a subdirectory exists on the mounted Vault filesystem.
+
+    The mount check happens before creating anything so that an
+    unmounted /vault directory can never accidentally receive data
+    on the root filesystem.
     """
+    _require_vault_mounted()
+
     path = os.path.join(VAULT_PATH, sub)
     os.makedirs(path, exist_ok=True)
     return path
 
 def get_vault_status() -> Dict[str, Any]:
     """
-    Get vault mount and usage status
-    
-    Returns:
-        Dictionary with vault stats
+    Get Vault mount and filesystem usage status.
+
+    Vault is considered available only when VAULT_PATH is a
+    real filesystem mountpoint.
     """
     try:
-        # os.path.exists() is true for a plain directory too, which would
-        # misleadingly report "mounted" even if nothing is mounted there.
-        # Use /proc/mounts to verify an actual mountpoint.
         mounted = os.path.ismount(VAULT_PATH)
-        if not mounted and os.path.exists("/proc/mounts"):
-            with open("/proc/mounts") as f:
-                mounted = any(
-                    line.split()[1] == os.path.normpath(VAULT_PATH)
-                    for line in f if len(line.split()) > 1
-                )
 
-        total, used, free = 0, 0, 0
+        if not mounted:
+            return {
+                "mounted": False,
+                "path": VAULT_PATH,
+                "total": 0,
+                "used": 0,
+                "free": 0,
+            }
 
-        if mounted and os.path.exists(VAULT_PATH):
-            st = os.statvfs(VAULT_PATH)
-            total = st.f_blocks * st.f_frsize
-            free = st.f_bavail * st.f_frsize
-            used = total - free
-        
+        st = os.statvfs(VAULT_PATH)
+
+        total = st.f_blocks * st.f_frsize
+        free = st.f_bavail * st.f_frsize
+        used = total - free
+
         return {
-            "mounted": mounted,
+            "mounted": True,
             "path": VAULT_PATH,
             "total": total,
             "used": used,
             "free": free,
         }
+
     except Exception as e:
         logger.exception("get_vault_status error")
-        return {"mounted": False, "path": VAULT_PATH, "error": str(e)}
+        return {
+            "mounted": False,
+            "path": VAULT_PATH,
+            "total": 0,
+            "used": 0,
+            "free": 0,
+            "error": str(e),
+        }
 
 def sync_to_vault_rsync(src: str, dest_sub: str) -> Tuple[bool, str]:
     """
@@ -260,6 +279,7 @@ def sync_object_to_vault_background(bucket: str, key: str, file_content: bytes) 
     Returns:
         Result dictionary
     """
+    _require_vault_mounted()
     target = f"{bucket}/{key}"
 
     def do_sync():

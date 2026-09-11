@@ -12,26 +12,41 @@ import os
 import shutil
 from typing import Dict, List, Any
 from core.logger import logger
-from config.config import CEPHFS_MOUNT
+from services.file.cephfs_mount import get_active_mount_point, is_mounted
 from core.activity import log_activity
 
 def _safe_path(rel_path: str) -> str:
     """
-    Convert relative path to absolute, with security checks
-    
-    Args:
-        rel_path: Relative path
-        
-    Returns:
-        Absolute path
+    Convert a relative CephFS path to an absolute path.
+
+    The operation is allowed only when the active CephFS
+    mount is actually mounted.
     """
-    abs_path = os.path.join(CEPHFS_MOUNT, rel_path.lstrip("/"))
+    mount_point = get_active_mount_point()
+
+    # Fail closed: never operate on the local mount-point
+    # directory when CephFS is not actually mounted.
+    if not is_mounted(mount_point):
+        raise RuntimeError(
+            f"CephFS is not mounted at {mount_point}"
+        )
+
+    abs_path = os.path.join(
+        mount_point,
+        rel_path.lstrip("/"),
+    )
     abs_path = os.path.normpath(abs_path)
-    
-    # Security check: ensure path is within CEPHFS_MOUNT
-    if not abs_path.startswith(os.path.normpath(CEPHFS_MOUNT)):
+
+    # Security check: ensure path remains inside the
+    # active CephFS mount.
+    mount_root = os.path.normpath(mount_point)
+
+    if (
+        abs_path != mount_root
+        and not abs_path.startswith(mount_root + os.sep)
+    ):
         raise ValueError("Path traversal attempt detected")
-    
+
     return abs_path
 
 def browse_directory(rel_path: str = "") -> Dict[str, Any]:
@@ -101,7 +116,7 @@ def upload_file(rel_path: str, filename: str, file_content: bytes, to_vault: boo
         message = f"'{filename}' uploaded to CephFS:{rel_path or '/'}"
 
         if to_vault:
-            from vault_ops import sync_path_to_vault_background
+            from services.vault.vault_ops import sync_path_to_vault_background
             sync_path_to_vault_background(abs_path, rel_path)
             message += " (Vault sync started in background)"
 

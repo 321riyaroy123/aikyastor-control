@@ -1,25 +1,76 @@
 import { req } from "./client";
 
 export const BlockAPI = {
-  images: () => req("/block/images"),
+  pools: () => req("/block/pools"),
+
+  createPool: (name) => req("/block/pools", {
+    method: "POST",
+    body: JSON.stringify({ name }),
+  }),
+
+  images: (pool) =>
+    req(`/block/images?pool=${encodeURIComponent(pool)}`),
+
   mapped: () => req("/block/mapped"),
 
-  createImage: (name, size) => req("/block/images", {
+  createImage: (name, size, pool) => req("/block/images", {
     method: "POST",
-    body: JSON.stringify({ name, size }),
+    body: JSON.stringify({ name, size, pool }),
   }),
 
-  deleteImage: (name) => req(`/block/images/${name}`, { method: "DELETE" }),
+  deleteImage: (name, pool) =>
+    req(
+      `/block/images/${encodeURIComponent(name)}?pool=${encodeURIComponent(pool)}`,
+      { method: "DELETE" }
+    ),
 
-  mapImage: (name) => req(`/block/images/${name}/map`, { method: "POST" }),
-  unmapImage: (name) => req(`/block/images/${name}/unmap`, { method: "POST" }),
+  mapImage: (name, pool) =>
+    req(
+      `/block/images/${encodeURIComponent(name)}/map?pool=${encodeURIComponent(pool)}`,
+      { method: "POST" }
+    ),
 
-  exportVault: (name) => req(`/block/images/${name}/export-vault`, { method: "POST" }),
+  unmapImage: (target, pool) =>
+    req(
+      `/block/images/${encodeURIComponent(target)}/unmap?pool=${encodeURIComponent(pool)}`,
+      { method: "POST" }
+    ),
 
-  createSnapshot: (name, snapName) => req(`/block/images/${name}/snapshot`, {
-    method: "POST",
-    body: JSON.stringify({ snap_name: snapName }),
-  }),
+  exportVault: (name, pool) => req(
+    `/block/images/${encodeURIComponent(name)}/export-vault?pool=${encodeURIComponent(pool)}`,
+    { method: "POST" }
+  ),
 
-  snapshots: (name) => req(`/block/images/${name}/snapshots`),
+  createSnapshot: (name, snapName, pool) =>
+    req(`/block/images/${encodeURIComponent(name)}/snapshot`, {
+      method: "POST",
+      body: JSON.stringify({
+        snap_name: snapName,
+        pool,
+      }),
+    }),
+
+  snapshots: (name, pool) =>
+    req(
+      `/block/images/${encodeURIComponent(name)}/snapshots?pool=${encodeURIComponent(pool)}`
+    ),
+
+  downloadSnapshotUrl: (imageName, snapshotName, pool) =>
+    `/api/block/images/${encodeURIComponent(
+      imageName
+    )}/snapshots/${encodeURIComponent(
+      snapshotName
+    )}/download?pool=${encodeURIComponent(pool)}`,
+
+  deleteSnapshot: (imageName, snapshotName, pool) =>
+  req(
+    `/block/images/${encodeURIComponent(
+      imageName
+    )}/snapshots/${encodeURIComponent(
+      snapshotName
+    )}?pool=${encodeURIComponent(pool)}`,
+    {
+      method: "DELETE",
+    }
+  ),
 };

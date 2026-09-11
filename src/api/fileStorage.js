@@ -1,6 +1,51 @@
 import { req, BASE } from "./client";
 
 export const FileAPI = {
+  cephfsStatus: () =>
+    req("/file/cephfs/status"),
+
+  cephfsConfig: (filesystem) =>
+    req(
+      filesystem
+        ? `/file/cephfs/config?filesystem=${encodeURIComponent(filesystem)}`
+        : "/file/cephfs/config"
+    ),
+
+  cephfsFilesystems: () =>
+    req("/file/cephfs/filesystems"),
+
+  createCephFS: (config) =>
+    req("/file/cephfs/create", {
+      method: "POST",
+      body: JSON.stringify(config),
+    }),
+
+  deleteCephFS: async (filesystem) => {
+    return req(
+      `/file/cephfs/${encodeURIComponent(filesystem)}`,
+      {
+        method: "DELETE",
+      }
+    );
+  },
+
+  testCephFS: (config) =>
+    req("/file/cephfs/test", {
+      method: "POST",
+      body: JSON.stringify(config),
+    }),
+
+  mountCephFS: (config) =>
+    req("/file/cephfs/mount", {
+      method: "POST",
+      body: JSON.stringify(config),
+    }),
+
+  unmountCephFS: () =>
+    req("/file/cephfs/unmount", {
+      method: "POST",
+    }),
+
   browse: (path = "") => req(`/file/browse?path=${encodeURIComponent(path)}`),
 
   upload: (path, file, toVault) => {
@@ -13,14 +58,19 @@ export const FileAPI = {
 
   downloadUrl: (path) => `${BASE}/file/download?path=${encodeURIComponent(path)}`,
 
-  delete: (path) => req(`/file/delete?path=${encodeURIComponent(path)}`, { method: "DELETE" }),
+  delete: (path) =>
+    req(`/file/delete?path=${encodeURIComponent(path)}`, {
+      method: "DELETE",
+    }),
 
-  mkdir: (path) => req("/file/mkdir", {
-    method: "POST",
-    body: JSON.stringify({ path }),
-  }),
+  mkdir: (path) =>
+    req("/file/mkdir", {
+      method: "POST",
+      body: JSON.stringify({ path }),
+    }),
 
-  stats: (path = "") => req(`/file/stats?path=${encodeURIComponent(path)}`),
+  stats: (path = "") =>
+    req(`/file/stats?path=${encodeURIComponent(path)}`),
 
   syncVault: () => req("/file/sync-vault", { method: "POST" }),
 };

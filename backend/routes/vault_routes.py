@@ -7,8 +7,8 @@ This blueprint serves two distinct workflows:
 - read-only HashiCorp Vault status endpoints used by the Encryption Vault
   page to inspect the transit-backed SSE-S3 dependency
 """
-
-from flask import Blueprint, jsonify
+import os
+from flask import Blueprint, request, jsonify
 import config.config as config
 from core.logger import logger
 from core.activity import log_activity
@@ -29,6 +29,11 @@ def vault_status():
     try:
         if config.IS_SIMULATION:
             return jsonify(simulation.get_mock_vault())
+        
+        if not os.path.ismount(config.VAULT_PATH):
+            return jsonify({
+                "error": f"Vault is not mounted at {config.VAULT_PATH}"
+            }), 503
         return jsonify(get_vault_status())
     except Exception as e:
         logger.exception("vault_status error")
@@ -38,12 +43,18 @@ def vault_status():
 @vault_bp.route("/block/images/<name>/export-vault", methods=["POST"])
 def api_export_rbd(name):
     """Export RBD image to vault"""
+    pool = request.args.get("pool") or config.RBD_POOL
     if config.IS_SIMULATION:
-        log_activity("VAULT EXPORT (RBD)", name, "info", "Simulation mode", vault=True)
+        log_activity("VAULT EXPORT (RBD)", f"{pool}/{name}", "info", "Simulation mode", vault=True)
         return jsonify({"message": f"RBD export of '{name}' to Vault started"})
 
     try:
-        result = start_rbd_export_background(name, config.RBD_POOL)
+        if not os.path.ismount(config.VAULT_PATH):
+            return jsonify({
+                "error": f"Vault is not mounted at {config.VAULT_PATH}"
+            }), 503
+
+        result = start_rbd_export_background(name, pool)
         return jsonify(result)
     except Exception as e:
         logger.exception(f"export_rbd error for {name}")
@@ -58,11 +69,16 @@ def api_sync_cephfs():
         return jsonify({"message": "CephFS → Vault sync started"})
 
     try:
+        if not os.path.ismount(config.VAULT_PATH):
+            return jsonify({
+                "error": f"Vault is not mounted at {config.VAULT_PATH}"
+            }), 503
+
         result = start_cephfs_sync_background(config.CEPHFS_MOUNT)
-        return jsonify(result)
+        return jsonify(result), 202
     except Exception as e:
         logger.exception("sync_cephfs error")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": str(e)}), 503
 
 
 # ─── HashiCorp Vault (SSE-S3 / Transit) — read-only dashboard status ─────────
