@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import sqlite3
 import pickle
@@ -90,6 +91,20 @@ def start_learning(clear_existing=True):
         except Exception as e:
             print(f"[ML] Warning: Could not clear baseline tags: {e}")
 
+    # Persist LEARNING state so the metrics collector can tag new rows.
+    try:
+        conn = sqlite3.connect(DB_PATH, timeout=10)
+        conn.execute("""
+            INSERT INTO baseline_control (id, learning)
+            VALUES (1, 1)
+            ON CONFLICT(id) DO UPDATE SET learning = 1
+        """)
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"[ML] Warning: Could not enable baseline learning in DB: {e}")
+        raise
+
     print(f"[ML] LEARNING phase started at {_now_iso()}. Collecting healthy baseline telemetry...", flush=True)
     print(f"[ML] Ensure cluster is in known-good state. Collect at least {MIN_BASELINE_SAMPLES} snapshots then stop_learning().", flush=True)
 
@@ -101,6 +116,19 @@ def stop_learning():
     """
     global _phase
     _phase = "monitoring"
+    # Persist MONITORING state so the collector stops tagging baseline rows.
+    try:
+        conn = sqlite3.connect(DB_PATH, timeout=10)
+        conn.execute("""
+            INSERT INTO baseline_control (id, learning)
+            VALUES (1, 0)
+            ON CONFLICT(id) DO UPDATE SET learning = 0
+        """)
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"[ML] Warning: Could not disable baseline learning in DB: {e}")
+        raise
     print(f"[ML] LEARNING phase ended. Transitioning to MONITORING. Model will train on next detect_anomalies() call.", flush=True)
 
 
@@ -146,11 +174,112 @@ def _save_persisted_model():
         print(f"[ML] Warning: Could not persist model: {e}")
 
 
+# ── Metric name aliasing ────────────────────────────────────────────────────
+# metrics_collector.py flattens whatever chart/dimension names the local
+# Netdata build reports (parse_netdata_metrics: f"{chart}__{dimension}" with
+# non-alnum -> "_"). Older Netdata releases exposed apps.plugin charts as
+# apps.cpu / apps.mem / apps.lreads / etc (flattened: "apps_cpu__ceph", ...).
+# Netdata v2.x renamed these to the app_group.* naming scheme (e.g.
+# app_group.cpu_utilization, app_group.mem_usage, app_group.disk_logical_io),
+# which this environment's collector flattens to keys observed in the DB such
+# as "usergroup_ceph_cpu_utilization__system" / "usergroup_ceph_mem_usage__rss".
+#
+# Rather than hardcoding one Netdata version's flattened names into
+# extract_features(), each semantic feature below resolves against an
+# ordered list of CANDIDATES -- each either an exact column name (str) or a
+# regex (re.Pattern) matched against df.columns. The first candidate with a
+# real match in the current scrape wins, so this tolerates the old names,
+# the new names, and (within reason) future Netdata renames, without ever
+# silently substituting 0.0 for a metric that truly isn't being collected.
+METRIC_ALIASES = {
+    # Pillar 1 -- Storage Workload & Performance
+    "lreads":  ["apps_lreads__ceph", re.compile(r"^usergroup_ceph_disk_logical_io__reads$")],
+    "lwrites": ["apps_lwrites__ceph", re.compile(r"^usergroup_ceph_disk_logical_io__writes$")],
+    "pwrites": ["apps_pwrites__ceph", re.compile(r"^usergroup_ceph_disk_physical_io__writes$")],
+    "cpu_iowait_pct": ["system_cpu__iowait", re.compile(r"^system_cpu(_utilization)?__iowait$")],
+
+    # Pillar 2 -- Ceph Memory & Footprint Stability
+    "ceph_ram_mib":           ["apps_mem__ceph", re.compile(r"^usergroup_ceph_mem_usage__rss$")],
+    "ceph_minor_faults_rate": ["apps_minor_faults__ceph", re.compile(r"^usergroup_ceph_mem_page_faults__minor$")],
+    "sys_ram_available_mib":  ["mem_available__MemAvailable", re.compile(r"^(system_)?mem_available__.*avail.*$", re.IGNORECASE)],
+
+    # Pillar 3 -- Compute & Kernel Pressure
+    # Netdata's app_group.cpu_utilization chart reports user+system dimensions
+    # separately (no single combined "total cpu" dimension like the old
+    # apps.cpu chart), so ceph_cpu_pct sums both when only the split form
+    # exists -- handled specially in extract_features(), not via a single
+    # alias, since it's a sum of two candidates rather than a straight rename.
+    "ceph_cpu_pct_user":   ["apps_cpu__ceph", re.compile(r"^usergroup_ceph_cpu_utilization__user$")],
+    "ceph_cpu_pct_system": [re.compile(r"^usergroup_ceph_cpu_utilization__system$")],
+    # PSI (/proc/pressure) is a kernel feature, off by default on RHEL/Rocky
+    # 8/9 (needs psi=1 on the kernel cmdline + reboot). When disabled, Netdata
+    # emits no system.cpu_some_pressure chart at all -- not a naming mismatch,
+    # a genuinely absent metric, so this correctly stays NaN/rejected until
+    # PSI is turned on. Confirmed directly against a live DB dump after
+    # enabling PSI: Netdata's dimension name is "some_10" (underscore before
+    # the window number), flattening to "system_cpu_some_pressure__some_10" --
+    # not "some10" as the generic Netdata docs table implied.
+    "kernel_cpu_pressure": ["system_cpu_some_pressure__some_10"],
+
+    # Pillar 4 -- Structural Constants (sentinel-only)
+    "ceph_threads": ["apps_threads__ceph", re.compile(r"^usergroup_ceph_threads__threads$")],
+}
+
+
+def _resolve_alias(df, semantic_name):
+    """
+    Resolves a semantic feature name to the first matching raw column(s) in
+    df, per METRIC_ALIASES. Returns (series, matched_column_name) where
+    series is NaN-filled (index-aligned) if nothing matched at all.
+    """
+    candidates = METRIC_ALIASES.get(semantic_name, [])
+    for candidate in candidates:
+        if isinstance(candidate, str):
+            if candidate in df.columns:
+                return df[candidate].fillna(0.0), candidate
+        else:  # compiled regex
+            matches = [c for c in df.columns if candidate.match(c)]
+            if matches:
+                # Multiple dimension matches (rare) -- sum them rather than
+                # picking one arbitrarily, since they represent the same
+                # semantic quantity split across sub-dimensions.
+                if len(matches) == 1:
+                    return df[matches[0]].fillna(0.0), matches[0]
+                return df[matches].sum(axis=1, min_count=1), f"sum({matches})"
+    return pd.Series(np.nan, index=df.index), None
+
+
+_alias_miss_logged = set()  # module-level: log each total-miss once per process, not once per scrape
+
+
 def _get_metric_or_nan(df, col):
     """Returns column if present; NaN if missing from scrape so integrity check rejects it."""
     if col in df.columns:
         return df[col].fillna(0.0)
     return pd.Series(np.nan, index=df.index)
+
+
+def _get_aliased_metric(df, semantic_name):
+    """
+    Like _get_metric_or_nan, but resolves through METRIC_ALIASES first so
+    features survive Netdata chart/dimension renames. Logs (once per
+    process) when a semantic feature can't be resolved against ANY known
+    alias, since that's a real telemetry gap -- not just a naming mismatch
+    -- and should stay visible rather than silently becoming NaN forever.
+    """
+    series, matched = _resolve_alias(df, semantic_name)
+    if matched is None and semantic_name not in _alias_miss_logged:
+        _alias_miss_logged.add(semantic_name)
+        tried = METRIC_ALIASES.get(semantic_name, [])
+        tried_repr = [t if isinstance(t, str) else t.pattern for t in tried]
+        print(
+            f"[ML] WARNING: no raw metric found for semantic feature "
+            f"'{semantic_name}'. Tried: {tried_repr}. This feature will be "
+            f"NaN and rows containing it will fail verify_data_integrity() "
+            f"until a matching metric is collected.",
+            flush=True,
+        )
+    return series
 
 
 def extract_features(df):
@@ -163,9 +292,9 @@ def extract_features(df):
     features_df = pd.DataFrame(index=df.index)
 
     # ── Pillar 1: Storage Workload & Performance ─────────────────────────────
-    lreads  = _get_metric_or_nan(df, 'apps_lreads__ceph')
-    lwrites = _get_metric_or_nan(df, 'apps_lwrites__ceph')
-    pwrites = _get_metric_or_nan(df, 'apps_pwrites__ceph')
+    lreads  = _get_aliased_metric(df, 'lreads')
+    lwrites = _get_aliased_metric(df, 'lwrites')
+    pwrites = _get_aliased_metric(df, 'pwrites')
 
     total_io = lreads + lwrites + pwrites
     features_df['storage_total_iobps']  = total_io
@@ -178,21 +307,28 @@ def extract_features(df):
     apply_lat_cols = [c for c in df.columns if 'ceph_osd_apply_latency__' in c]
     features_df['osd_apply_latency_ms'] = df[apply_lat_cols].max(axis=1).fillna(0.0) if apply_lat_cols else 0.0
 
-    features_df['cpu_iowait_pct'] = _get_metric_or_nan(df, 'system_cpu__iowait')
+    features_df['cpu_iowait_pct'] = _get_aliased_metric(df, 'cpu_iowait_pct')
 
     # ── Pillar 2: Ceph Memory & Footprint Stability ──────────────────────────
-    features_df['ceph_ram_mib']          = _get_metric_or_nan(df, 'apps_mem__ceph')
-    features_df['ceph_minor_faults_rate']= _get_metric_or_nan(df, 'apps_minor_faults__ceph')
-    features_df['sys_ram_available_mib'] = _get_metric_or_nan(df, 'mem_available__MemAvailable')
+    features_df['ceph_ram_mib']          = _get_aliased_metric(df, 'ceph_ram_mib')
+    features_df['ceph_minor_faults_rate']= _get_aliased_metric(df, 'ceph_minor_faults_rate')
+    features_df['sys_ram_available_mib'] = _get_aliased_metric(df, 'sys_ram_available_mib')
 
     # ── Pillar 3: Compute & Kernel Pressure ──────────────────────────────────
-    features_df['ceph_cpu_pct']        = _get_metric_or_nan(df, 'apps_cpu__ceph')
-    features_df['kernel_cpu_pressure'] = _get_metric_or_nan(df, 'system_cpu_pressure__some_10')
+    # The old apps.cpu chart had one combined dimension; app_group.cpu_utilization
+    # (current Netdata) splits it into user/system dimensions, so this is a sum
+    # of two aliased candidates rather than a single renamed column. If only one
+    # side is present, add(fill_value=0.0) still yields a real number, not NaN;
+    # if NEITHER side is present both are NaN and the sum correctly stays NaN.
+    cpu_user   = _get_aliased_metric(df, 'ceph_cpu_pct_user')
+    cpu_system = _get_aliased_metric(df, 'ceph_cpu_pct_system')
+    features_df['ceph_cpu_pct'] = cpu_user.add(cpu_system, fill_value=0.0) if not (cpu_user.isna().all() and cpu_system.isna().all()) else cpu_user
+    features_df['kernel_cpu_pressure'] = _get_aliased_metric(df, 'kernel_cpu_pressure')
 
     # ── Pillar 4: Structural Constants (Sentinel-only, auto-filtered from ML) ──
     # These are included in the DataFrame so sentinel checks work, but VarianceThreshold
     # will automatically exclude them from the ML pipeline at training time.
-    features_df['ceph_threads']        = _get_metric_or_nan(df, 'apps_threads__ceph')
+    features_df['ceph_threads']        = _get_aliased_metric(df, 'ceph_threads')
     features_df['pg_degraded_count']   = df.get('ceph_pg_degraded',    pd.Series(0.0, index=df.index)).fillna(0.0)
     # Default 0.0 = HEALTH_OK (not 2.0 = HEALTH_ERR — corrects the inverted encoding default bug)
     features_df['cluster_health_code'] = df.get('ceph_health_status',  pd.Series(0.0, index=df.index)).fillna(0.0)

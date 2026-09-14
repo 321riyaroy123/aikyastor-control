@@ -37,11 +37,18 @@ from sklearn.decomposition import PCA
 from dotenv import load_dotenv
 import sklearn
 
+CEPH_AI_ROOT = os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__))
+)
+
+if CEPH_AI_ROOT not in sys.path:
+    sys.path.insert(0, CEPH_AI_ROOT)
+
 load_dotenv()
 
 ROOT_DIR   = os.path.dirname(os.path.abspath(__file__))
 DB_PATH    = os.getenv("DB_PATH", os.path.join(ROOT_DIR, "ceph_monitor.db"))
-MODEL_PATH = os.path.join(os.path.dirname(os.path.abspath(DB_PATH)), "ceph_semantic_model.pkl")
+MODEL_PATH = "/home/riyaroy/Desktop/aikyastor-control/aikyastor-control/ceph-ai/detection/ceph_semantic_model.pkl"
 MODEL_VERSION = f"ceph-semantic-sklearn-{sklearn.__version__}-v1"
 
 # Minimum clean baseline samples required before ensemble trains and locks

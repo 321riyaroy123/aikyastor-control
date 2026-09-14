@@ -8,6 +8,16 @@ import paramiko
 from datetime import datetime, timezone
 from dotenv import load_dotenv
 
+import os
+import sys
+
+CEPH_AI_ROOT = os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__))
+)
+
+if CEPH_AI_ROOT not in sys.path:
+    sys.path.insert(0, CEPH_AI_ROOT)
+
 import ceph_ai_ssh  # Phase 6: key-based auth against the primary host
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -292,9 +302,16 @@ def main():
         if scraped_data:
             try:
                 conn = sqlite3.connect(DB_PATH)
+                # Check whether the system is currently collecting a healthy baseline.
+                learning_row = conn.execute(
+                    "SELECT learning FROM baseline_control WHERE id = 1"
+                ).fetchone()
+
+                is_baseline = 1 if learning_row and learning_row[0] == 1 else 0
+
                 conn.execute(
-                    "INSERT INTO metrics_timeseries (timestamp, data, is_baseline) VALUES (?, ?, 0)",
-                    (timestamp, json.dumps(scraped_data))
+                    "INSERT INTO metrics_timeseries (timestamp, data, is_baseline) VALUES (?, ?, ?)",
+                    (timestamp, json.dumps(scraped_data), is_baseline)
                 )
                 conn.execute(
                     "DELETE FROM metrics_timeseries WHERE is_baseline=0 AND timestamp < datetime('now', '-7 days')"
