@@ -8,19 +8,22 @@ load_dotenv(os.path.join(ROOT, '.env'))
 ssh = paramiko.SSHClient()
 ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 ssh.connect(
-    os.getenv('VM_SSH_HOST', '127.0.0.1'),
-    int(os.getenv('VM_SSH_PORT', '2222')),
-    os.getenv('VM_SSH_USER', 'vboxuser'),
-    os.getenv('VM_SSH_PASSWORD', 'admin'),
+    os.getenv("VM_SSH_HOST", "192.168.56.110"),
+    int(os.getenv("VM_SSH_PORT", "22")),
+    os.getenv("VM_SSH_USER", "riyaroy"),
+    key_filename=os.getenv(
+        "CEPH_AI_SSH_KEY_PATH",
+        "/home/riyaroy/.ssh/id_ed25519"
+    ),
     timeout=5
 )
 
 def exec_cmd(cmd):
-    stdin, stdout, stderr = ssh.exec_command(f'sudo -S bash -c "{cmd}"')
-    stdin.write(os.getenv('VM_SSH_PASSWORD', 'admin') + '\n')
-    stdin.flush()
+    stdin, stdout, stderr = ssh.exec_command(
+        f'sudo -n bash -c "{cmd}"'
+    )
     return stdout.read().decode() + stderr.read().decode()
-
+    
 # Dynamically discover service names
 info = get_cluster_info(ssh)
 OSD_SVC = info["osd_service"]

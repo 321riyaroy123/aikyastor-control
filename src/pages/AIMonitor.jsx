@@ -11,14 +11,28 @@ import { C, styles } from "../styles/theme";
  * (v8) anomaly status, a recent metrics trend, a live events feed, and the
  * most recent RCA incident diagnosis if one has fired.
  *
- * This is a self-contained page (no separate hook file, unlike
- * ObjectStorage.jsx's useObjects) since Phase 5 doesn't have an existing
- * hooks/useAIMonitor.js pattern to mirror faithfully -- if the codebase
- * later wants data-loading pulled out into a hook (matching the
- * useObjects.js precedent), that refactor is straightforward from here
- * without changing the API surface this component exposes to its parent.
+ * REDESIGN NOTE (v2): the original layout rendered every section fully
+ * expanded at equal visual weight -- two layer cards with raw model
+ * internals (decision score, reconstruction error), then a fully-expanded
+ * incident card (summary + detail + evidence chain + blast radius +
+ * runbook + verify command), then the events feed. Nothing signaled what
+ * to read first, so a real incident was exactly as visually loud as
+ * routine "OK" status.
  *
- * All five endpoints degrade gracefully:
+ * This version reorders by priority and defers detail behind explicit
+ * expansion:
+ *   1. SummaryBar   - one line: is anything wrong, which layer, when
+ *   2. IncidentHero - the single most important thing when one exists;
+ *                     collapsed to title + plain summary + one suggested
+ *                     action, with evidence/blast-radius/runbook/verify
+ *                     behind "Show details"
+ *   3. LayerList    - collapsed to one line per layer ("Anomaly -- <why>"
+ *                     or "OK"); model internals expand on click, since
+ *                     they're for verifying the model, not a first read
+ *   4. EventsFeed   - quieter, capped at 5 with "Show more" -- it's a log
+ *                     to scan, not an action item
+ *
+ * All five endpoints still degrade gracefully:
  *   - enabled:false (CEPH_AI_ENABLED=false)  -> "not configured" panel
  *   - reachable:false                        -> "process offline" banner
  *   - writing:false (stale)                  -> "stalled" banner
@@ -29,6 +43,7 @@ import { C, styles } from "../styles/theme";
  */
 
 const POLL_INTERVAL_MS = 10000;
+const EVENTS_COLLAPSED_COUNT = 5;
 
 function formatSecondsAgo(seconds) {
     if (seconds == null) return "unknown";
@@ -40,7 +55,8 @@ function formatSecondsAgo(seconds) {
 function severityBadgeStyle(severity) {
     switch ((severity || "").toUpperCase()) {
         case "CRITICAL": return styles.aiMonitorRcaSeverityCritical;
-        case "HIGH": return styles.aiMonitorRcaSeverityHigh;
+        case "HIGH":
+        case "ERROR": return styles.aiMonitorRcaSeverityError;
         case "WARNING": return styles.aiMonitorRcaSeverityWarning;
         default: return styles.aiMonitorRcaSeverityInfo;
     }
@@ -48,14 +64,203 @@ function severityBadgeStyle(severity) {
 
 function eventSeverityStyle(severity) {
     switch ((severity || "").toUpperCase()) {
-        case "CRITICAL": return styles.aiMonitorEventSeverityCritical;
-        case "ERROR": return styles.aiMonitorEventSeverityError;
-        case "WARNING": return styles.aiMonitorEventSeverityWarning;
-        default: return styles.aiMonitorEventSeverityInfo;
+        case "CRITICAL": return styles.aiMonitorEventTagCritical;
+        case "ERROR": return styles.aiMonitorEventTagError;
+        case "WARNING": return styles.aiMonitorEventTagWarning;
+        default: return styles.aiMonitorEventTagInfo;
     }
 }
 
-function LayerCard({ title, layer }) {
+// ─────────────────────────────────────────────────────────────────────────
+// Summary bar -- replaces the old connectivity banner + the need to read
+// both layer cards individually to figure out "is anything wrong."
+// ─────────────────────────────────────────────────────────────────────────
+function SummaryBar({ connectivity, statusData, hasIncident }) {
+    const reachable = connectivity?.reachable;
+    const writing = connectivity?.writing;
+
+    const host = statusData?.host_layer;
+    const ceph = statusData?.ceph_layer;
+    const anyAnomaly = host?.is_anomaly || ceph?.is_anomaly;
+
+    let dotStyle = styles.aiSummaryHealthDotOk;
+    let healthText = "All systems normal";
+
+    if (!reachable) {
+        dotStyle = styles.aiSummaryHealthDotOffline;
+        healthText = "ceph-ai process offline";
+    } else if (!writing) {
+        dotStyle = styles.aiSummaryHealthDotWarn;
+        healthText = "ceph-ai process stalled";
+    } else if (hasIncident) {
+        dotStyle = styles.aiSummaryHealthDotCritical;
+        healthText = "Active incident";
+    } else if (anyAnomaly) {
+        dotStyle = styles.aiSummaryHealthDotWarn;
+        healthText = "Anomaly detected";
+    }
+
+    function layerChipStyle(layer) {
+        if (!layer?.available) return styles.aiSummaryLayerChipStateUnavailable;
+        return layer.is_anomaly ? styles.aiSummaryLayerChipStateAnomaly : styles.aiSummaryLayerChipStateOk;
+    }
+
+    function layerChipText(layer) {
+        if (!layer?.available) return "unavailable";
+        return layer.is_anomaly ? "anomaly" : "ok";
+    }
+
+    return (
+        <div style={styles.aiSummaryBar}>
+            <div style={styles.aiSummaryLeft}>
+                <div style={styles.aiSummaryHealth}>
+                    <span style={{ ...styles.aiMonitorBannerDot, ...dotStyle }} />
+                    <span>{healthText}</span>
+                </div>
+
+                {reachable && (
+                    <>
+                        <div style={styles.aiSummaryDivider} />
+                        <div style={styles.aiSummaryLayerChip}>
+                            <span style={styles.aiSummaryLayerChipLabel}>Host:</span>
+                            <span style={layerChipStyle(host)}>{layerChipText(host)}</span>
+                        </div>
+                        <div style={styles.aiSummaryLayerChip}>
+                            <span style={styles.aiSummaryLayerChipLabel}>Ceph:</span>
+                            <span style={layerChipStyle(ceph)}>{layerChipText(ceph)}</span>
+                        </div>
+                    </>
+                )}
+            </div>
+
+            <span style={styles.aiSummaryMeta}>
+                Last write: {formatSecondsAgo(connectivity?.last_write_seconds_ago)}
+            </span>
+        </div>
+    );
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Incident hero -- the headline of the page when one exists. Collapsed by
+// default; "Show details" reveals evidence chain, blast radius, full
+// runbook, and the verify command.
+// ─────────────────────────────────────────────────────────────────────────
+function IncidentHero({ incident }) {
+    const [expanded, setExpanded] = useState(false);
+
+    if (!incident) {
+        return (
+            <div style={styles.aiAllClearRow}>
+                <span style={{ ...styles.aiMonitorBannerDot, ...styles.aiSummaryHealthDotOk }} />
+                <span>No active incidents -- no RCA diagnosis has been triggered recently.</span>
+            </div>
+        );
+    }
+
+    const firstStep = incident.remediation_steps?.[0];
+
+    return (
+        <div style={styles.aiIncidentHero}>
+            <div style={styles.aiIncidentHeroTop}>
+                <div>
+                    <div style={styles.aiIncidentEyebrow}>
+                        <span>{incident.incident_id}</span>
+                        {incident.source && <span>Diagnosed by {incident.source}</span>}
+                    </div>
+                    <div style={styles.aiIncidentTitle}>
+                        {(incident.fault_category || "").replaceAll("_", " ")}
+                    </div>
+                </div>
+                <span style={{ ...styles.aiMonitorRcaSeverity, ...severityBadgeStyle(incident.severity) }}>
+                    {incident.severity}
+                </span>
+            </div>
+
+            <div style={styles.aiIncidentSummary}>
+                {incident.root_cause_summary}
+            </div>
+
+            {firstStep && (
+                <div style={styles.aiIncidentActionRow}>
+                    <span style={styles.aiIncidentActionLabel}>Try this first</span>
+                    <span style={styles.aiIncidentActionText}>{firstStep}</span>
+                </div>
+            )}
+
+            <button
+                type="button"
+                style={styles.aiIncidentToggle}
+                onClick={() => setExpanded(v => !v)}
+            >
+                <span>{expanded ? "▾" : "▸"}</span>
+                <span>{expanded ? "Hide details" : "Show evidence & full runbook"}</span>
+            </button>
+
+            {expanded && (
+                <div style={styles.aiIncidentDetails}>
+                    {incident.detailed_explanation && (
+                        <div style={styles.aiMonitorRcaDetail}>
+                            {incident.detailed_explanation}
+                        </div>
+                    )}
+
+                    {incident.evidence_chain && incident.evidence_chain.length > 0 && (
+                        <div style={styles.aiMonitorRcaSection}>
+                            <span style={styles.aiSectionLabel}>Evidence Chain</span>
+                            <div style={styles.aiMonitorRcaEvidence}>
+                                {incident.evidence_chain.map((ev, i) => (
+                                    <div key={i} style={styles.aiMonitorRcaEvidenceItem}>
+                                        <span style={{ color: C.accent }}>•</span>
+                                        <span>{ev}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {incident.blast_radius && (
+                        <div style={styles.aiMonitorRcaSection}>
+                            <span style={styles.aiSectionLabel}>Blast Radius</span>
+                            <div style={styles.aiMonitorRcaBlastRadius}>{incident.blast_radius}</div>
+                        </div>
+                    )}
+
+                    {incident.remediation_steps && incident.remediation_steps.length > 0 && (
+                        <div style={styles.aiMonitorRcaSection}>
+                            <span style={styles.aiSectionLabel}>Full Remediation Runbook</span>
+                            <div style={styles.aiMonitorRcaRemediation}>
+                                {incident.remediation_steps.map((step, i) => (
+                                    <div key={i} style={styles.aiMonitorRcaRemediationStep}>
+                                        <span style={styles.aiMonitorRcaRemediationIndex}>{i + 1}.</span>
+                                        <span>{step}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {incident.verification_command && (
+                        <div style={styles.aiMonitorRcaSection}>
+                            <span style={styles.aiSectionLabel}>Verify</span>
+                            <div style={styles.aiMonitorRcaVerification}>
+                                {incident.verification_command}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Layer list -- one collapsed row per layer by default. Model internals
+// (decision score, reconstruction error, detection method, deviated
+// features) expand on click; they matter for verifying the model, not for
+// a first read of "is this layer OK."
+// ─────────────────────────────────────────────────────────────────────────
+function LayerRow({ title, layer }) {
+    const [expanded, setExpanded] = useState(false);
     const available = layer?.available;
     const isAnomaly = layer?.is_anomaly;
 
@@ -64,185 +269,133 @@ function LayerCard({ title, layer }) {
         : isAnomaly
             ? styles.aiMonitorLayerBadgeAnomaly
             : styles.aiMonitorLayerBadgeOk;
-
     const badgeText = !available ? "UNAVAILABLE" : isAnomaly ? "ANOMALY" : "OK";
+
+    const headline = !available
+        ? "Not reporting"
+        : isAnomaly
+            ? (layer.message || "Anomaly detected")
+            : "Operating normally";
 
     const deviated = layer?.deviated_features || {};
     const deviatedEntries = Object.entries(deviated);
 
     return (
-        <div style={{
-            ...styles.aiMonitorLayerCard,
-            ...(isAnomaly ? styles.aiMonitorLayerCardAnomaly : {})
-        }}>
-            <div style={styles.aiMonitorLayerHeader}>
-                <span style={styles.aiMonitorLayerTitle}>{title}</span>
-                <span style={{ ...styles.aiMonitorLayerBadge, ...badgeStyle }}>
-                    {badgeText}
+        <div style={{ ...styles.aiLayerRow, ...(isAnomaly ? styles.aiLayerRowAnomaly : {}) }}>
+            <button
+                type="button"
+                style={styles.aiLayerRowHead}
+                onClick={() => setExpanded(v => !v)}
+            >
+                <div style={styles.aiLayerRowHeadLeft}>
+                    <span style={styles.aiLayerRowName}>{title}</span>
+                    <span style={{ ...styles.aiMonitorLayerBadge, ...badgeStyle }}>{badgeText}</span>
+                    <span style={styles.aiLayerRowMessage}>{headline}</span>
+                </div>
+                <span style={{ ...styles.aiLayerRowChevron, ...(expanded ? styles.aiLayerRowChevronOpen : {}) }}>
+                    ▾
                 </span>
-            </div>
+            </button>
 
-            {available && (
-                <div style={styles.aiMonitorLayerStats}>
+            {expanded && available && (
+                <div style={styles.aiLayerRowBody}>
                     <div>
-                        <div style={styles.aiMonitorLayerStatLabel}>Status</div>
-                        <div style={styles.aiMonitorLayerStatValue}>
-                            {layer.status || "—"}
+                        <div style={styles.aiMonitorLayerStatRow}>
+                            <span>Status</span>
+                            <span style={styles.aiMonitorLayerStatValue}>{layer.status || "—"}</span>
+                        </div>
+                        <div style={styles.aiMonitorLayerStatRow}>
+                            <span>Decision Score</span>
+                            <span style={styles.aiMonitorLayerStatValue}>
+                                {layer.decision_score != null ? layer.decision_score.toFixed(4) : "—"}
+                            </span>
+                        </div>
+                        <div style={styles.aiMonitorLayerStatRow}>
+                            <span>Reconstruction Error</span>
+                            <span style={styles.aiMonitorLayerStatValue}>
+                                {layer.pca_reconstruction_error != null ? layer.pca_reconstruction_error.toFixed(4) : "—"}
+                            </span>
+                        </div>
+                        <div style={styles.aiMonitorLayerStatRow}>
+                            <span>Detection Method</span>
+                            <span style={styles.aiMonitorLayerStatValue}>{layer.detection_method || "—"}</span>
                         </div>
                     </div>
-                    <div>
-                        <div style={styles.aiMonitorLayerStatLabel}>Decision Score</div>
-                        <div style={styles.aiMonitorLayerStatValue}>
-                            {layer.decision_score != null
-                                ? layer.decision_score.toFixed(4)
-                                : "—"}
+
+                    {deviatedEntries.length > 0 && (
+                        <div style={styles.aiMonitorLayerDeviations}>
+                            {deviatedEntries.slice(0, 5).map(([key, v]) => (
+                                <div key={key} style={styles.aiMonitorLayerDeviationItem}>
+                                    <span style={styles.aiMonitorLayerDeviationFeature}>{key}</span>
+                                    <span style={styles.aiMonitorLayerDeviationMeta}>
+                                        current {typeof v.current === "number" ? v.current.toFixed(2) : v.current},
+                                        {" "}baseline {typeof v.baseline_mean === "number" ? v.baseline_mean.toFixed(2) : v.baseline_mean},
+                                        {" "}z={v.z_score}
+                                    </span>
+                                </div>
+                            ))}
                         </div>
-                    </div>
-                    <div>
-                        <div style={styles.aiMonitorLayerStatLabel}>Reconstruction Error</div>
-                        <div style={styles.aiMonitorLayerStatValue}>
-                            {layer.pca_reconstruction_error != null
-                                ? layer.pca_reconstruction_error.toFixed(4)
-                                : "—"}
-                        </div>
-                    </div>
-                    <div>
-                        <div style={styles.aiMonitorLayerStatLabel}>Detection Method</div>
-                        <div style={styles.aiMonitorLayerStatValue}>
-                            {layer.detection_method || "—"}
-                        </div>
-                    </div>
+                    )}
                 </div>
             )}
 
-            {available && layer.message && (
-                <div style={{ fontSize: ".8rem", color: C.muted }}>
-                    {layer.message}
-                </div>
-            )}
-
-            {deviatedEntries.length > 0 && (
-                <div style={styles.aiMonitorDeviatedList}>
-                    {deviatedEntries.slice(0, 5).map(([key, v]) => (
-                        <div key={key} style={styles.aiMonitorDeviatedItem}>
-                            <span style={styles.aiMonitorDeviatedItemLabel}>{key}</span>
-                            {" — "}
-                            current {typeof v.current === "number" ? v.current.toFixed(2) : v.current},
-                            {" "}baseline {typeof v.baseline_mean === "number" ? v.baseline_mean.toFixed(2) : v.baseline_mean},
-                            {" "}z={v.z_score}
-                        </div>
-                    ))}
+            {expanded && !available && (
+                <div style={styles.aiLayerRowBody}>
+                    <div style={{ color: C.muted, fontSize: ".8rem" }}>
+                        This layer has no recent data to report.
+                    </div>
                 </div>
             )}
         </div>
     );
 }
 
+// ─────────────────────────────────────────────────────────────────────────
+// Events feed -- quieter and capped by default; it's a log to scan, not
+// an action item, so it shouldn't compete with the incident hero above it.
+// ─────────────────────────────────────────────────────────────────────────
 function EventsFeed({ events }) {
-    if (!events || events.length === 0) {
-        return <div style={styles.aiMonitorEventsEmpty}>No recent events.</div>;
-    }
+    const [showAll, setShowAll] = useState(false);
+    const visible = showAll ? events : (events || []).slice(0, EVENTS_COLLAPSED_COUNT);
+    const hasMore = (events || []).length > EVENTS_COLLAPSED_COUNT;
 
     return (
-        <div>
-            {events.map((ev, idx) => (
-                <div
-                    key={`${ev.timestamp}-${idx}`}
-                    style={{
-                        ...styles.aiMonitorEventRow,
-                        ...(idx === events.length - 1 ? styles.aiMonitorEventRowLast : {})
-                    }}
-                >
-                    <span style={styles.aiMonitorEventTime}>
-                        {ev.timestamp ? ev.timestamp.split("T")[1]?.replace("Z", "") : "—"}
-                    </span>
-                    <span style={{ ...styles.aiMonitorEventSeverity, ...eventSeverityStyle(ev.severity) }}>
-                        {ev.severity || "INFO"}
-                    </span>
-                    <span style={styles.aiMonitorEventComponent}>{ev.component}</span>
-                    <span style={styles.aiMonitorEventMessage}>{ev.message}</span>
-                </div>
-            ))}
-        </div>
-    );
-}
+        <div style={styles.aiMonitorEvents}>
+            <div style={styles.aiMonitorEventsHeader}>Recent Events</div>
 
-function RcaIncidentCard({ incident }) {
-    if (!incident) {
-        return (
-            <div style={styles.aiMonitorRcaEmpty}>
-                <div style={styles.aiMonitorRcaEmptyTitle}>No active incidents</div>
-                <div>No RCA diagnosis has been triggered recently.</div>
-            </div>
-        );
-    }
-
-    return (
-        <div style={styles.aiMonitorRcaCard}>
-            <div style={styles.aiMonitorRcaHeader}>
-                <div style={styles.aiMonitorRcaTitleGroup}>
-                    <span style={styles.aiMonitorRcaCategory}>
-                        {incident.fault_category} · {incident.incident_id}
-                    </span>
-                    <span style={styles.aiMonitorRcaSummary}>
-                        {incident.root_cause_summary}
-                    </span>
-                </div>
-                <span style={{ ...styles.aiMonitorRcaSeverityBadge, ...severityBadgeStyle(incident.severity) }}>
-                    {incident.severity}
-                </span>
-            </div>
-
-            {incident.detailed_explanation && (
-                <div style={styles.aiMonitorRcaDetail}>
-                    {incident.detailed_explanation}
-                </div>
-            )}
-
-            {incident.evidence_chain && incident.evidence_chain.length > 0 && (
-                <div style={styles.aiMonitorRcaSection}>
-                    <span style={styles.aiMonitorRcaSectionLabel}>Evidence Chain</span>
-                    {incident.evidence_chain.map((ev, i) => (
-                        <div key={i} style={styles.aiMonitorRcaEvidenceItem}>
-                            <span style={{ color: C.accent }}>•</span>
-                            <span>{ev}</span>
+            {(!events || events.length === 0) ? (
+                <div style={styles.aiMonitorEventsEmpty}>No recent events.</div>
+            ) : (
+                <>
+                    {visible.map((ev, idx) => (
+                        <div
+                            key={`${ev.timestamp}-${idx}`}
+                            style={{
+                                ...styles.aiMonitorEventRow,
+                                ...(idx === visible.length - 1 && !hasMore ? styles.aiMonitorEventRowLast : {})
+                            }}
+                        >
+                            <span style={styles.aiMonitorEventTime}>
+                                {ev.timestamp ? ev.timestamp.split("T")[1]?.replace("Z", "") : "—"}
+                            </span>
+                            <span style={{ ...styles.aiMonitorEventTag, ...eventSeverityStyle(ev.severity) }}>
+                                {ev.severity || "INFO"}
+                            </span>
+                            <span style={styles.aiMonitorEventComponent}>{ev.component}</span>
+                            <span style={styles.aiMonitorEventMessage}>{ev.message}</span>
                         </div>
                     ))}
-                </div>
-            )}
 
-            {incident.blast_radius && (
-                <div style={styles.aiMonitorRcaSection}>
-                    <span style={styles.aiMonitorRcaSectionLabel}>Blast Radius</span>
-                    <div style={styles.aiMonitorRcaBlastRadius}>{incident.blast_radius}</div>
-                </div>
-            )}
-
-            {incident.remediation_steps && incident.remediation_steps.length > 0 && (
-                <div style={styles.aiMonitorRcaSection}>
-                    <span style={styles.aiMonitorRcaSectionLabel}>Remediation Runbook</span>
-                    <div style={styles.aiMonitorRcaRemediationList}>
-                        {incident.remediation_steps.map((step, i) => (
-                            <div key={i} style={styles.aiMonitorRcaRemediationStep}>
-                                <span style={styles.aiMonitorRcaStepNumber}>{i + 1}.</span>
-                                <span>{step}</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            {incident.verification_command && (
-                <div style={styles.aiMonitorRcaVerification}>
-                    <span style={styles.aiMonitorRcaSectionLabel}>Verify:</span>
-                    <span style={styles.aiMonitorRcaVerificationCmd}>
-                        {incident.verification_command}
-                    </span>
-                </div>
-            )}
-
-            {incident.source && (
-                <div style={styles.aiMonitorRcaSource}>Diagnosed by {incident.source}</div>
+                    {hasMore && (
+                        <button
+                            type="button"
+                            style={styles.aiEventsShowMore}
+                            onClick={() => setShowAll(v => !v)}
+                        >
+                            {showAll ? "Show less" : `Show ${events.length - EVENTS_COLLAPSED_COUNT} more`}
+                        </button>
+                    )}
+                </>
             )}
         </div>
     );
@@ -313,6 +466,7 @@ export default function AIMonitorPage({ toast }) {
         return (
             <div style={styles.aiMonitorPage}>
                 <div style={styles.aiMonitorDisabled}>
+                    <div style={styles.aiMonitorDisabledIcon}>◈</div>
                     <div style={styles.aiMonitorDisabledTitle}>
                         Cluster Intelligence is not enabled
                     </div>
@@ -336,45 +490,25 @@ export default function AIMonitorPage({ toast }) {
         );
     }
 
-    const reachable = connectivity?.reachable;
-    const writing = connectivity?.writing;
-    const dotStyle = !reachable
-        ? styles.aiMonitorBannerDotOff
-        : writing
-            ? styles.aiMonitorBannerDotOk
-            : styles.aiMonitorBannerDotWarn;
-    const bannerText = !reachable
-        ? "ceph-ai process offline"
-        : writing
-            ? "ceph-ai monitoring active"
-            : "ceph-ai process stalled";
-
     return (
         <div style={styles.aiMonitorPage}>
-            <div style={styles.aiMonitorBanner}>
-                <div style={styles.aiMonitorBannerStatus}>
-                    <span style={{ ...styles.aiMonitorBannerDot, ...dotStyle }} />
-                    <span>{bannerText}</span>
-                </div>
-                <span style={styles.aiMonitorBannerMeta}>
-                    Last write: {formatSecondsAgo(connectivity?.last_write_seconds_ago)}
-                </span>
-            </div>
+            <SummaryBar
+                connectivity={connectivity}
+                statusData={statusData}
+                hasIncident={!!rcaIncident}
+            />
 
-            <div style={styles.aiMonitorLayerGrid}>
-                <LayerCard title="Host Layer (v7)" layer={statusData?.host_layer} />
-                <LayerCard title="Ceph Semantic Layer (v8)" layer={statusData?.ceph_layer} />
-            </div>
+            <IncidentHero incident={rcaIncident} />
 
             <div>
-                <div style={styles.workspaceCardTitle}>Root Cause Analysis</div>
-                <RcaIncidentCard incident={rcaIncident} />
+                <div style={{ ...styles.aiSectionLabel, marginBottom: ".6rem" }}>Detection Layers</div>
+                <div style={styles.aiLayerList}>
+                    <LayerRow title="Host Layer (v7)" layer={statusData?.host_layer} />
+                    <LayerRow title="Ceph Semantic Layer (v8)" layer={statusData?.ceph_layer} />
+                </div>
             </div>
 
-            <div style={styles.aiMonitorEventsCard}>
-                <div style={styles.workspaceCardTitle}>Recent Events</div>
-                <EventsFeed events={events} />
-            </div>
+            <EventsFeed events={events} />
         </div>
     );
 }

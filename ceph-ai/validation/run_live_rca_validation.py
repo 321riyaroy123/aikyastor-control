@@ -19,29 +19,46 @@ import llm_analyst
 import alert_engine
 from ceph_cluster_info import get_cluster_info
 
-HOST     = os.getenv("VM_SSH_HOST", "127.0.0.1")
-PORT     = int(os.getenv("VM_SSH_PORT", "2222"))
-USER     = os.getenv("VM_SSH_USER", "vboxuser")
-PASSWORD = os.getenv("VM_SSH_PASSWORD", "admin")
+HOST = os.getenv("VM_SSH_HOST", "192.168.56.110")
+PORT = int(os.getenv("VM_SSH_PORT", "22"))
+USER = os.getenv("VM_SSH_USER", "riyaroy")
+KEY_PATH = os.getenv(
+    "CEPH_AI_SSH_KEY_PATH",
+    "/home/riyaroy/.ssh/id_ed25519"
+)
 DB_PATH  = os.getenv("DB_PATH", os.path.join(ROOT, "ceph_monitor.db"))
 
 def get_ssh():
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect(hostname=HOST, port=PORT, username=USER, password=PASSWORD, timeout=6)
+    ssh.connect(
+        hostname=HOST,
+        port=PORT,
+        username=USER,
+        key_filename=KEY_PATH,
+        timeout=6
+    )
     return ssh
 
 def vm_exec(cmd, timeout=20):
     try:
         ssh = get_ssh()
         try:
-            stdin, stdout, stderr = ssh.exec_command("sudo -n bash -c \"" + cmd + "\"", timeout=timeout)
-            stdin.write(PASSWORD + "\n")
-            stdin.flush()
-            out = stdout.read().decode("utf-8", errors="ignore").strip()
+            stdin, stdout, stderr = ssh.exec_command(
+                'sudo -n bash -c "' + cmd + '"',
+                timeout=timeout
+            )
+
+            out = stdout.read().decode(
+                "utf-8",
+                errors="ignore"
+            ).strip()
+
             return out
+
         finally:
             ssh.close()
+
     except Exception:
         return ""
 

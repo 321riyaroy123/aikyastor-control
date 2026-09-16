@@ -213,6 +213,7 @@ export const styles = {
   // Layer cards (host v7 / ceph v8)
   aiMonitorLayerGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(320px,1fr))", gap: "1.25rem" },
   aiMonitorLayerCard: { display: "flex", flexDirection: "column", gap: ".9rem", background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: "1.25rem" },
+  aiMonitorLayerCardAnomaly: { borderColor: "rgba(248,113,113,.35)" },
   aiMonitorLayerCardHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: ".75rem" },
   aiMonitorLayerCardTitle: { fontFamily: "'Space Mono',monospace", fontSize: ".85rem", fontWeight: 700, color: C.accent, textTransform: "uppercase", letterSpacing: ".03em" },
   aiMonitorLayerBadge: { display: "inline-flex", alignItems: "center", gap: ".35rem", padding: ".3rem .7rem", borderRadius: 999, fontSize: ".72rem", fontWeight: 600, border: "1px solid transparent" },
@@ -239,6 +240,7 @@ export const styles = {
   aiMonitorRcaSeverityCritical: { background: "rgba(248,113,113,.2)", color: C.red, borderColor: "rgba(248,113,113,.5)" },
   aiMonitorRcaSummary: { fontSize: ".9rem", color: C.text, lineHeight: 1.5 },
   aiMonitorRcaDetail: { fontSize: ".82rem", color: C.muted, lineHeight: 1.55 },
+  aiMonitorRcaSection: { display: "flex", flexDirection: "column", gap: ".4rem" },
   aiMonitorRcaSectionLabel: { fontFamily: "'Space Mono',monospace", fontSize: ".7rem", fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: ".05em", marginBottom: ".4rem" },
   aiMonitorRcaEvidence: { display: "flex", flexDirection: "column", gap: ".3rem" },
   aiMonitorRcaEvidenceItem: { display: "flex", gap: ".5rem", fontSize: ".8rem", color: C.text },
@@ -253,6 +255,7 @@ export const styles = {
   aiMonitorEvents: { display: "flex", flexDirection: "column", background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" },
   aiMonitorEventsHeader: { padding: "1rem 1.25rem", borderBottom: `1px solid ${C.border}`, fontFamily: "'Space Mono',monospace", fontSize: ".8rem", fontWeight: 700, color: C.accent, textTransform: "uppercase", letterSpacing: ".03em" },
   aiMonitorEventRow: { display: "flex", alignItems: "center", gap: ".75rem", padding: ".7rem 1.25rem", borderBottom: `1px solid rgba(255,255,255,.04)`, fontSize: ".8rem" },
+  aiMonitorEventRowLast: { borderBottom: "none" },
   aiMonitorEventTime: { fontFamily: "'Space Mono',monospace", fontSize: ".72rem", color: C.muted, flexShrink: 0, minWidth: 70 },
   aiMonitorEventTag: { display: "inline-flex", alignItems: "center", padding: ".2rem .55rem", borderRadius: 4, fontSize: ".68rem", fontWeight: 700, textTransform: "uppercase", flexShrink: 0 },
   aiMonitorEventTagInfo: { background: "rgba(56,189,248,.12)", color: C.blue },
@@ -262,6 +265,71 @@ export const styles = {
   aiMonitorEventComponent: { color: C.muted, fontFamily: "'Space Mono',monospace", fontSize: ".72rem", flexShrink: 0 },
   aiMonitorEventMessage: { color: C.text, flex: 1, overflowWrap: "anywhere" },
   aiMonitorEventsEmpty: { padding: "2.5rem 2rem", textAlign: "center", color: C.muted, fontStyle: "italic", fontSize: ".85rem" },
+
+  // ==========================================================================
+  // AI Monitor v2 — priority-ordered / progressive-disclosure redesign
+  // Additive only: nothing above is removed or renamed, so any component
+  // still using the original aiMonitor* tokens keeps working unchanged.
+  // ==========================================================================
+
+  // Top summary bar — one glanceable row replaces "read the banner, then
+  // read two separate layer cards to figure out if anything's wrong."
+  aiSummaryBar: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", padding: ".9rem 1.25rem", background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, flexWrap: "wrap" },
+  aiSummaryLeft: { display: "flex", alignItems: "center", gap: "1.25rem", flexWrap: "wrap" },
+  aiSummaryHealth: { display: "flex", alignItems: "center", gap: ".6rem", fontSize: ".92rem", fontWeight: 600, color: C.text },
+  aiSummaryHealthDotOk: { background: C.green, boxShadow: `0 0 8px ${C.green}` },
+  aiSummaryHealthDotWarn: { background: C.yellow, boxShadow: `0 0 8px ${C.yellow}` },
+  aiSummaryHealthDotCritical: { background: C.red, boxShadow: `0 0 8px ${C.red}` },
+  aiSummaryHealthDotOffline: { background: C.muted },
+  aiSummaryDivider: { width: 1, height: 18, background: C.border },
+  aiSummaryLayerChip: { display: "flex", alignItems: "center", gap: ".4rem", fontSize: ".8rem", color: C.muted },
+  aiSummaryLayerChipLabel: { color: C.muted },
+  aiSummaryLayerChipStateOk: { color: C.green, fontWeight: 600 },
+  aiSummaryLayerChipStateAnomaly: { color: C.red, fontWeight: 600 },
+  aiSummaryLayerChipStateUnavailable: { color: C.muted, fontWeight: 600 },
+  aiSummaryMeta: { fontFamily: "'Space Mono',monospace", fontSize: ".72rem", color: C.muted },
+
+  // Incident hero — the single most important thing on the page when one
+  // exists. Collapsed by default to title + plain summary + one suggested
+  // action; everything else (evidence, blast radius, full runbook, verify
+  // command) sits behind "Show details."
+  aiIncidentHero: { display: "flex", flexDirection: "column", gap: "1rem", background: "rgba(248,113,113,.06)", border: `1px solid rgba(248,113,113,.35)`, borderRadius: 12, padding: "1.5rem 1.75rem" },
+  aiIncidentHeroTop: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem", flexWrap: "wrap" },
+  aiIncidentEyebrow: { display: "flex", alignItems: "center", gap: ".6rem", fontSize: ".72rem", color: C.muted, fontFamily: "'Space Mono',monospace" },
+  aiIncidentTitle: { fontSize: "1.15rem", fontWeight: 700, color: C.text, lineHeight: 1.3 },
+  aiIncidentSummary: { fontSize: ".92rem", color: C.text, lineHeight: 1.55, opacity: .9 },
+  aiIncidentActionRow: { display: "flex", alignItems: "center", gap: ".85rem", flexWrap: "wrap", padding: ".9rem 1rem", background: "rgba(74,222,128,.07)", border: `1px solid rgba(74,222,128,.25)`, borderRadius: 8 },
+  aiIncidentActionLabel: { fontFamily: "'Space Mono',monospace", fontSize: ".68rem", fontWeight: 700, color: C.green, textTransform: "uppercase", letterSpacing: ".05em", flexShrink: 0 },
+  aiIncidentActionText: { fontSize: ".85rem", color: C.text, flex: 1 },
+  aiIncidentToggle: { display: "inline-flex", alignItems: "center", gap: ".4rem", alignSelf: "flex-start", background: "none", border: "none", color: C.blue, cursor: "pointer", fontFamily: "inherit", fontSize: ".82rem", fontWeight: 500, padding: 0 },
+  aiIncidentDetails: { display: "flex", flexDirection: "column", gap: "1.1rem", paddingTop: ".25rem", borderTop: `1px solid rgba(248,113,113,.2)` },
+
+  // Quiet "all clear" row — a full empty-state card is too heavy for
+  // "nothing's wrong," which is the common case and shouldn't compete
+  // visually with an actual incident.
+  aiAllClearRow: { display: "flex", alignItems: "center", gap: ".6rem", padding: ".85rem 1.1rem", background: "rgba(74,222,128,.06)", border: `1px solid rgba(74,222,128,.2)`, borderRadius: 8, fontSize: ".85rem", color: C.muted },
+
+  // Layer rows — collapsed to one line by default ("Host Layer: Anomaly —
+  // <reason>"); model internals (decision score, reconstruction error,
+  // detection method, deviated features) are debugging detail for
+  // verifying the model, not what an on-call reader needs first, so they
+  // move behind a per-row expand instead of always-open cards.
+  aiLayerList: { display: "flex", flexDirection: "column", gap: ".6rem" },
+  aiLayerRow: { display: "flex", flexDirection: "column", background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" },
+  aiLayerRowAnomaly: { borderColor: "rgba(248,113,113,.3)" },
+  aiLayerRowHead: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", padding: "1rem 1.25rem", cursor: "pointer", background: "none", border: "none", width: "100%", textAlign: "left", fontFamily: "inherit" },
+  aiLayerRowHeadLeft: { display: "flex", alignItems: "center", gap: ".85rem", minWidth: 0 },
+  aiLayerRowName: { fontFamily: "'Space Mono',monospace", fontSize: ".78rem", fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: ".03em", flexShrink: 0 },
+  aiLayerRowMessage: { fontSize: ".85rem", color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  aiLayerRowChevron: { color: C.muted, flexShrink: 0, transition: "transform .15s ease" },
+  aiLayerRowChevronOpen: { transform: "rotate(180deg)" },
+  aiLayerRowBody: { display: "flex", flexDirection: "column", gap: ".9rem", padding: "0 1.25rem 1.15rem" },
+
+  // Events feed — deprioritized visually (it's a log to scan, not an
+  // action item) and capped by default with "Show more."
+  aiEventsShowMore: { padding: ".7rem 1.25rem", textAlign: "center", background: "none", border: "none", borderTop: `1px solid ${C.border}`, color: C.blue, cursor: "pointer", fontFamily: "inherit", fontSize: ".8rem", width: "100%" },
+
+  aiSectionLabel: { fontFamily: "'Space Mono',monospace", fontSize: ".7rem", fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: ".06em" },
 };
 
 export function injectGlobalStyles() {

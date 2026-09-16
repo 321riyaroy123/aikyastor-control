@@ -140,7 +140,7 @@ REPLICATION_CIRCUIT_BREAKER_COOLDOWN = int(
 VM_SSH_HOST="127.0.0.1"
 VM_SSH_PORT=2222
 VM_SSH_USER="vboxuser"
-VM_SSH_PASSWORD="admin"
+CEPH_AI_SSH_KEY_PATH="/home/riyaroy/.ssh/id_ed25519"
 
 # Optional Local Ollama LLM Configuration (if not running, dynamic heuristic engine takes over)
 OLLAMA_URL="http://localhost:11434"

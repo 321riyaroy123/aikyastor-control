@@ -4,7 +4,7 @@ import sys
 import time
 import sqlite3
 import threading
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import pandas as pd
 
 from ssh import metrics_collector, host_log_streamer

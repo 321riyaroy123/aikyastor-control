@@ -20,10 +20,13 @@ from ceph_cluster_info import get_cluster_info
 ROOT = os.path.dirname(os.path.abspath(__file__))
 load_dotenv(dotenv_path=os.path.join(ROOT, ".env"))
 
-HOST     = os.getenv("VM_SSH_HOST", "127.0.0.1")
-PORT     = int(os.getenv("VM_SSH_PORT", "2222"))
-USER     = os.getenv("VM_SSH_USER", "vboxuser")
-PASSWORD = os.getenv("VM_SSH_PASSWORD", "admin")
+HOST = os.getenv("VM_SSH_HOST", "192.168.56.110")
+PORT = int(os.getenv("VM_SSH_PORT", "22"))
+USER = os.getenv("VM_SSH_USER", "riyaroy")
+KEY_PATH = os.getenv(
+    "CEPH_AI_SSH_KEY_PATH",
+    "/home/riyaroy/.ssh/id_ed25519"
+)
 
 # ANSI
 R="\033[0m"; B="\033[1m"; D="\033[2m"
@@ -64,7 +67,7 @@ def clean_banner(fault_name):
 def connect():
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect(hostname=HOST, port=PORT, username=USER, password=PASSWORD, timeout=8)
+    ssh.connect(hostname=HOST, port=PORT, username=USER, key_filename=KEY_PATH, timeout=8)
     # Discover cluster info immediately so all scripts can use dynamic service names
     try:
         get_cluster_info(ssh)
@@ -73,10 +76,14 @@ def connect():
     return ssh
 
 def sudo(ssh, cmd, timeout=30):
-    stdin, stdout, stderr = ssh.exec_command("sudo -n bash -c \""+cmd+"\"", timeout=timeout)
-    stdin.write(PASSWORD + "\n"); stdin.flush()
+    stdin, stdout, stderr = ssh.exec_command(
+        "sudo -n bash -c \"" + cmd + "\"",
+        timeout=timeout
+    )
+
     out = stdout.read().decode("utf-8", errors="ignore").strip()
     err = stderr.read().decode("utf-8", errors="ignore").strip()
+
     return out, err
 
 def run_bg(ssh, cmd):

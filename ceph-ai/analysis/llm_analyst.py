@@ -289,6 +289,166 @@ Analyze this dynamic telemetry and return a SINGLE JSON object matching this sch
     algo_res["source"] = "Dynamic Telemetry Diagnostic Engine"
     return algo_res
 
+def analyze_log_window(recent_logs):
+    """
+    Analyze a recent window of Ceph/system logs.
+
+    Returns a stable dictionary expected by ceph_ai_monitor.py:
+
+        {
+            "health_issue_detected": bool,
+            "title": str,
+            "explanation": str,
+            "recommended_action": str,
+            "severity": str
+        }
+
+    Uses Ollama when available and safely falls back to a lightweight
+    algorithmic log scan if Ollama is unavailable or times out.
+    """
+
+    if not recent_logs:
+        return {
+            "health_issue_detected": False,
+            "title": "",
+            "explanation": "",
+            "recommended_action": "",
+            "severity": "INFO"
+        }
+
+    logs_text = "\n".join(str(log) for log in recent_logs[-50:])
+
+    prompt = f"""You are a Ceph Site Reliability Engineer.
+
+Analyze the following recent infrastructure and Ceph log events.
+
+Determine whether they indicate a meaningful health issue that requires
+operator attention.
+
+=== RECENT LOGS ===
+{logs_text}
+
+Return ONLY one JSON object in exactly this format:
+
+{{
+  "health_issue_detected": true,
+  "title": "Short technical issue title",
+  "explanation": "Brief explanation of the detected pattern and why it matters",
+  "recommended_action": "Concrete command or operator action",
+  "severity": "INFO"
+}}
+
+Rules:
+- health_issue_detected must be true or false.
+- severity must be one of INFO, WARNING, ERROR, CRITICAL.
+- Ignore normal debug, heartbeat, replication, watch, and routine daemon logs.
+- Only flag meaningful failures, repeated errors, daemon crashes,
+  OSD failures, monitor problems, disk exhaustion, or serious performance issues.
+"""
+
+    llm_result = query_ollama(prompt)
+
+    if isinstance(llm_result, dict):
+        if "health_issue_detected" in llm_result:
+            return {
+                "health_issue_detected": bool(
+                    llm_result.get("health_issue_detected", False)
+                ),
+                "title": str(llm_result.get("title", "")),
+                "explanation": str(llm_result.get("explanation", "")),
+                "recommended_action": str(
+                    llm_result.get("recommended_action", "")
+                ),
+                "severity": str(
+                    llm_result.get("severity", "INFO")
+                ).upper()
+            }
+
+    # ------------------------------------------------------------
+    # Algorithmic fallback
+    # ------------------------------------------------------------
+
+    combined = " ".join(
+        str(log).lower() for log in recent_logs
+    )
+
+    critical_patterns = [
+        "health_err",
+        "segmentation fault",
+        "fatal",
+        "panic",
+        "out of memory",
+        "oom-killer",
+        "mon quorum",
+        "no quorum",
+    ]
+
+    error_patterns = [
+        "osd down",
+        "osd is down",
+        "daemon crash",
+        "failed",
+        "failure",
+        "connection refused",
+        "i/o error",
+        "disk full",
+        "no space left",
+    ]
+
+    warning_patterns = [
+        "slow ops",
+        "slow operation",
+        "health_warn",
+        "latency",
+        "timeout",
+        "timed out",
+    ]
+
+    for pattern in critical_patterns:
+        if pattern in combined:
+            return {
+                "health_issue_detected": True,
+                "title": "Critical infrastructure pattern detected",
+                "explanation": (
+                    f"Recent logs contain the critical pattern '{pattern}'. "
+                    "The cluster or host may require immediate investigation."
+                ),
+                "recommended_action": "Run: ceph health detail && ceph -s",
+                "severity": "CRITICAL"
+            }
+
+    for pattern in error_patterns:
+        if pattern in combined:
+            return {
+                "health_issue_detected": True,
+                "title": "Infrastructure error pattern detected",
+                "explanation": (
+                    f"Recent logs contain the error pattern '{pattern}'. "
+                    "Further Ceph and daemon investigation is recommended."
+                ),
+                "recommended_action": "Run: ceph health detail && ceph osd tree",
+                "severity": "ERROR"
+            }
+
+    for pattern in warning_patterns:
+        if pattern in combined:
+            return {
+                "health_issue_detected": True,
+                "title": "Ceph performance or health warning detected",
+                "explanation": (
+                    f"Recent logs contain the warning pattern '{pattern}'."
+                ),
+                "recommended_action": "Run: ceph health detail",
+                "severity": "WARNING"
+            }
+
+    return {
+        "health_issue_detected": False,
+        "title": "",
+        "explanation": "",
+        "recommended_action": "",
+        "severity": "INFO"
+    }
 
 if __name__ == "__main__":
     import diagnostic_engine

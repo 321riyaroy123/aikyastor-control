@@ -12,13 +12,13 @@ import os
 import tempfile
 import json
 import subprocess
-from typing import Dict, List, Any, Tuple, Generator
+from typing import Dict, List, Any, Tuple, Generator, Optional
 from core.logger import logger
 from config.config import RBD_POOL, CMD_TIMEOUT
 from services.cluster.ceph_ops import run_ceph_cmd
 from core.activity import log_activity
 
-def _resolve_pool(pool: str | None) -> str:
+def _resolve_pool(pool: Optional[str]) -> str:
     """Return the requested RBD pool or the configured default."""
     return (pool or RBD_POOL).strip()
 
@@ -154,7 +154,7 @@ def create_rbd_pool(name: str) -> Dict[str, Any]:
 
         return {"error": str(e)}
 
-def list_rbd_images(pool: str | None = None) -> Dict[str, Any]:
+def list_rbd_images(pool: Optional[str] = None):
     pool = _resolve_pool(pool)
 
     try:
@@ -199,8 +199,8 @@ def list_rbd_images(pool: str | None = None) -> Dict[str, Any]:
 def create_rbd_image(
     name: str,
     size_mb: int,
-    pool: str | None = None,
-) -> Dict[str, Any]:
+    pool: Optional[str] = None,
+):
 
     pool = _resolve_pool(pool)
 
@@ -240,7 +240,7 @@ def create_rbd_image(
 
         return {"error": str(e)}
         
-def delete_rbd_image(name: str, pool: str | None = None) -> Dict[str, Any]:
+def delete_rbd_image(name: str, pool: Optional[str] = None):
     """
     Delete an RBD image
 
@@ -271,7 +271,7 @@ def delete_rbd_image(name: str, pool: str | None = None) -> Dict[str, Any]:
         log_activity("DELETE IMAGE", f"{pool}/{name}", "error", str(e))
         return {"error": str(e)}
 
-def map_rbd_image(name: str, pool: str | None = None) -> Dict[str, Any]:
+def map_rbd_image(name: str, pool: Optional[str] = None):
     """
     Map an RBD image to a device
 
@@ -297,7 +297,7 @@ def map_rbd_image(name: str, pool: str | None = None) -> Dict[str, Any]:
         log_activity("MAP IMAGE", f"{pool}/{name}", "error", str(e))
         return {"error": str(e)}
 
-def unmap_rbd_image(device: str, pool: str | None = None, name: str | None = None) -> Dict[str, Any]:
+def unmap_rbd_image(device: str, pool: Optional[str] = None, name: Optional[str] = None) -> Dict[str, Any]:
     """
     Unmap an RBD device
 
