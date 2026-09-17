@@ -15,6 +15,7 @@ import FileStoragePage from "./pages/FileStorage";
 import VaultPage from "./pages/Vault";
 import EncryptionVaultPage from "./pages/EncryptionVault";
 import AIMonitorPage from "./pages/AIMonitor";
+import AIAgentPage from "./pages/AIAgent";
 
 // Root UI shell for the dashboard: global status bars, sidebar
 // navigation, page switching, and toast notifications.
@@ -72,6 +73,7 @@ export default function App() {
     { id: "vault", icon: "🔒", label: "Vault Backup", section: "Vault" },
     { id: "encryption-vault", icon: "🔐", label: "Encryption Vault", section: "Security" },
     { id: "ai-monitor", icon: "🧠", label: "AI Monitor", section: "Intelligence" },
+    { id: "ai-agent", icon: "🤖", label: "AI Agent", section: "Intelligence" },
   ];
 
   const healthColor = health?.status === "HEALTH_OK" ? C.green : health?.status?.includes("WARN") ? C.yellow : C.red;
@@ -121,6 +123,7 @@ export default function App() {
           {section === "vault" && <VaultPage vault={vault} buckets={buckets} images={images} activity={activity} toast={toast} onRefreshVault={loadVault} onRefreshActivity={loadActivity} />}
           {section === "encryption-vault" && <EncryptionVaultPage toast={toast} />}
           {section === "ai-monitor" && <AIMonitorPage toast={toast} />}
+          {section === "ai-agent" && <AIAgentPage toast={toast} />}
         </main>
       </div>
 

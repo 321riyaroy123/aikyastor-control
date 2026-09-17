@@ -24,12 +24,19 @@ from routes.lifecycle_policy_routes import lifecycle_policy_bp
 from routes.simulation_routes import simulation_bp
 from routes.nfs_routes import nfs_bp
 from routes.ai_monitor_routes import ai_monitor_bp
+from services.agent.agent_manager import AgentManager
+from routes.agent_routes import agent_bp
+import services.agent.agent_manager as agent_manager_module
 
 # ─── Initialize Flask App ─────────────────────────────────────────────────────
 app = Flask(__name__)
 CORS(app)
 
 logger.info(f"Starting AiKyaStor CONTROL in {config.get_app_mode()} mode")
+
+agent_manager_module.manager = AgentManager(
+    simulation=True
+)
 
 # ─── Register Blueprints (URL prefixes match the original app.py exactly) ────
 app.register_blueprint(cluster_bp)     # /api/activity, /api/stats, /api/health, /api/version, /api/info
@@ -42,6 +49,7 @@ app.register_blueprint(simulation_bp)  # /api/simulation/time
 app.register_blueprint(replication_bp)  # /api/replication/...
 app.register_blueprint(nfs_bp)
 app.register_blueprint(ai_monitor_bp)  # /api/ai-monitor/...
+app.register_blueprint(agent_bp)
 
 # ═════════════════════════════════════════════════════════════════════════════
 # FRONTEND SERVING
