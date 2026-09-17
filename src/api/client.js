@@ -55,6 +55,41 @@ async function simRequest(rawPath, opts) {
   if (path === "/stats" && method === "GET") return SIM.stats;
   if (path === "/health" && method === "GET") return SIM.health;
   if (path === "/activity" && method === "GET") return { log: SIM.activity };
+  if (path === "/pqc/status" && method === "GET") return {
+    status: "healthy",
+    overall_quantum_safe: true,
+    timestamp: Date.now() / 1000,
+    in_transit_security: {
+      quantum_safe: true,
+      status: "Active",
+      protocol: "TLSv1.3",
+      cipher_suite: "TLS_AES_256_GCM_SHA384",
+      preferred_hybrid_group: "X25519MLKEM768",
+      endpoint: "https://192.168.29.252:443",
+      handshake_latency_ms: 31.4,
+      threat_mitigation: "Quantum Key Encapsulation (NIST FIPS 203)",
+      supported_pqc_groups: [
+        { name: "X25519MLKEM768", standard: "NIST FIPS 203 (ML-KEM)", type: "Hybrid (X25519 + Kyber-768)", security_category: "NIST Level 3 (AES-192 equivalent)", status: "Active" },
+        { name: "SecP256r1MLKEM768", standard: "NIST FIPS 203 (ML-KEM)", type: "Hybrid (NIST P-256 + Kyber-768)", security_category: "NIST Level 3", status: "Active" },
+        { name: "x25519_kyber768", standard: "Kyber Round 3 Draft", type: "Hybrid (X25519 + Kyber-768)", security_category: "NIST Level 3", status: "Active" },
+      ],
+      details: { reachable: true, tls_version: "TLSv1.3", cipher_bits: 256, error: null },
+    },
+    at_rest_security: {
+      algorithm: "AES-256 (SSE-S3)",
+      key_length_bits: 256,
+      quantum_effective_security: "128-bit security against Grover's algorithm",
+      standards_compliance: "NIST SP 800-131A / NSA CNSA 2.0 approved",
+      quantum_safe: true,
+    },
+    crypto_engine: {
+      provider: "OpenQuantumSafe (oqsprovider)",
+      provider_version: "0.8.0",
+      liboqs_version: "0.12.0",
+      openssl_version: "OpenSSL 3.0 / 3.2",
+      status: "Operational",
+    },
+  };
 
   // ── VAULT ────────────────────────────────────────────────────────────────
   if (path === "/vault/status" && method === "GET") return SIM.vault;

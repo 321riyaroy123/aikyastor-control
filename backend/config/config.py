@@ -28,6 +28,9 @@ NEW in this revision:
 import os
 from dotenv import load_dotenv
  
+_env_path = os.path.join(os.path.dirname(__file__), '..', '.env')
+if os.path.exists(_env_path):
+    load_dotenv(_env_path)
 load_dotenv()
  
 # ─── Application Mode ────────────────────────────────────────────────────────
@@ -51,8 +54,8 @@ FLASK_PORT = int(os.getenv("FLASK_PORT", "5000"))
 FLASK_THREADED = os.getenv("FLASK_THREADED", "true").lower() == "true"
  
 # ─── Ceph RGW (S3) Configuration ─────────────────────────────────────────────
-CEPH_RGW_ENDPOINT = os.getenv("CEPH_RGW_ENDPOINT", "http://192.168.29.252:80")
-CEPH_RGW_ENDPOINT_SECURE = os.getenv("CEPH_RGW_ENDPOINT_SECURE", "https://192.168.56.110:443")
+CEPH_RGW_ENDPOINT = os.getenv("CEPH_RGW_ENDPOINT", "http://127.0.0.1:8000")
+CEPH_RGW_ENDPOINT_SECURE = os.getenv("CEPH_RGW_ENDPOINT_SECURE", "https://127.0.0.1:8444")
 CEPH_ACCESS_KEY = os.getenv("CEPH_ACCESS_KEY", "")
 CEPH_SECRET_KEY = os.getenv("CEPH_SECRET_KEY", "")
 CEPH_REGION = os.getenv("CEPH_REGION", "us-east-1")

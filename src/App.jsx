@@ -68,8 +68,8 @@ export default function App() {
     { id: "object", icon: "◉", label: "Object Storage", section: "Storage" },
     { id: "block", icon: "▣", label: "Block Storage", section: "Storage" },
     { id: "file", icon: "⊞", label: "File Storage", section: "Storage" },
-    { id: "vault", icon: "🔒", label: "Vault Backup", section: "Vault" },
-    { id: "encryption-vault", icon: "🔐", label: "Encryption Vault", section: "Security" },
+    { id: "vault", icon: "◇", label: "Vault Backup", section: "Vault" },
+    { id: "encryption-vault", icon: "◆", label: "Encryption & PQC", section: "Security" },
   ];
 
   const healthColor = health?.status === "HEALTH_OK" ? C.green : health?.status?.includes("WARN") ? C.yellow : C.red;
@@ -82,7 +82,7 @@ export default function App() {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
           <div style={{ display: "flex", alignItems: "center", gap: ".5rem", fontFamily: "'Space Mono',monospace", fontSize: ".72rem", padding: ".3rem .8rem", borderRadius: 4, background: "rgba(167,139,250,.1)", border: "1px solid rgba(167,139,250,.3)", color: C.purple, whiteSpace: "nowrap" }}>
-            🔒 Vault: {vault ? `${formatBytes(vault.free)} free` : "checking..."}
+            Vault: {vault ? `${formatBytes(vault.free)} free` : "checking..."}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: ".5rem", fontFamily: "'Space Mono',monospace", fontSize: ".75rem", padding: ".3rem .8rem", borderRadius: 4, background: C.surface2, border: `1px solid ${C.border}`, whiteSpace: "nowrap" }}>
             <span style={{ width: 8, height: 8, borderRadius: "50%", background: healthColor, boxShadow: `0 0 8px ${healthColor}`, display: "inline-block" }} />

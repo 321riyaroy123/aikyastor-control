@@ -7,4 +7,5 @@ export const ClusterAPI = {
   info: () => req("/info"),
   activity: () => req("/activity").then(d => d.log || []),
   activityStats: () => req("/activity/stats"),
+  pqc: () => req("/pqc/status"),
 };
