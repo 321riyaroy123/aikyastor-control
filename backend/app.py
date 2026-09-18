@@ -34,9 +34,7 @@ CORS(app)
 
 logger.info(f"Starting AiKyaStor CONTROL in {config.get_app_mode()} mode")
 
-agent_manager_module.manager = AgentManager(
-    simulation=config.IS_SIMULATION,
-)
+agent_manager_module.manager = AgentManager(simulation=config.IS_SIMULATION)
 
 # ─── Register Blueprints (URL prefixes match the original app.py exactly) ────
 app.register_blueprint(cluster_bp)     # /api/activity, /api/stats, /api/health, /api/version, /api/info

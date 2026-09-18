@@ -1,0 +1,91 @@
+{
+  "analysis_bf4728d5a7": {
+    "item_path": "/tmp/aikyastor-agent-workloads/upload_6e50828060",
+    "item_type": "hierarchical_directory",
+    "target_workflow": "CephFS",
+    "confidence": 0.96,
+    "rationale": "Directory structure (47 files, max depth 2). Best mounted as a distributed POSIX filesystem preserving permissions and directory hierarchy.",
+    "target_destination": "/mnt/cephfs/upload_6e50828060",
+    "tuning_parameters": {
+      "preserve_posix_permissions": true,
+      "preserve_xattrs": true,
+      "mount_point": "/mnt/cephfs/",
+      "unpack_to_mount": false
+    },
+    "decision_tier": "tier1_deterministic",
+    "metadata": {
+      "size_mb": 15.28,
+      "is_directory": true,
+      "mime_type": "inode/directory",
+      "magic_signature": "DIRECTORY_TREE",
+      "file_count": 47,
+      "max_depth": 2
+    },
+    "analysis_id": "analysis_bf4728d5a7",
+    "upload_id": "upload_bff58b501a",
+    "payload_path": "/tmp/aikyastor-agent-workloads/upload_6e50828060",
+    "source_name": "upload_6e50828060",
+    "created_at": "2026-09-18T11:06:43.948796+00:00"
+  },
+  "analysis_68bd0052e0": {
+    "item_path": "/tmp/aikyastor-agent-workloads/upload_1f520f3f71",
+    "item_type": "hierarchical_directory",
+    "target_workflow": "CephFS",
+    "confidence": 0.96,
+    "rationale": "Directory structure (30 files, max depth 1). Best mounted as a distributed POSIX filesystem preserving permissions and directory hierarchy.",
+    "target_destination": "/mnt/cephfs/upload_1f520f3f71",
+    "tuning_parameters": {
+      "preserve_posix_permissions": true,
+      "preserve_xattrs": true,
+      "mount_point": "/mnt/cephfs/",
+      "unpack_to_mount": false
+    },
+    "decision_tier": "tier1_deterministic",
+    "metadata": {
+      "size_mb": 7.9,
+      "is_directory": true,
+      "mime_type": "inode/directory",
+      "magic_signature": "DIRECTORY_TREE",
+      "file_count": 30,
+      "max_depth": 1
+    },
+    "analysis_id": "analysis_68bd0052e0",
+    "upload_id": "upload_e063cc62a1",
+    "payload_path": "/tmp/aikyastor-agent-workloads/upload_1f520f3f71",
+    "source_name": "upload_1f520f3f71",
+    "created_at": "2026-09-18T11:10:00.201916+00:00"
+  },
+  "analysis_e999e12f10": {
+    "item_path": "/tmp/aikyastor-agent-workloads/upload_eeed33d42e/cirros-0.6.2-x86_64-disk.img",
+    "item_type": "virtual_disk_image",
+    "target_workflow": "RBD",
+    "confidence": 0.98,
+    "rationale": "Binary magic signature `QCOW2` detected. Block storage format best suited for thin-provisioned RBD volume with copy-on-write capabilities.",
+    "target_destination": "joel/cirros-0.6.2-x86_64-disk.img",
+    "tuning_parameters": {
+      "image_format": 2,
+      "features": [
+        "layering",
+        "exclusive-lock",
+        "object-map",
+        "fast-diff"
+      ],
+      "stripe_unit": "4MB",
+      "target_pool": "joel"
+    },
+    "decision_tier": "tier1_deterministic",
+    "metadata": {
+      "size_mb": 20.44,
+      "is_directory": false,
+      "mime_type": "application/octet-stream",
+      "magic_signature": "QCOW2",
+      "file_count": 1,
+      "max_depth": 0
+    },
+    "analysis_id": "analysis_e999e12f10",
+    "upload_id": "upload_063e2a9e19",
+    "payload_path": "/tmp/aikyastor-agent-workloads/upload_eeed33d42e/cirros-0.6.2-x86_64-disk.img",
+    "source_name": "cirros-0.6.2-x86_64-disk.img",
+    "created_at": "2026-09-18T16:18:59.309246+00:00"
+  }
+}

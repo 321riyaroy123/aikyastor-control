@@ -16,14 +16,18 @@ export const AIAgentAPI = {
     body: JSON.stringify({ upload_id: uploadId }),
   }),
   workflow: (analysisId) => req(`/agent/analyses/${encodeURIComponent(analysisId)}/workflow`),
+  // Phase 2B: explicit confirm-and-execute action. Separate from workflow()
+  // above so that fetching a preview never has side effects — this call
+  // requires { confirm: true } and is only made after the user reviews the
+  // proposed workflow and clicks "Start Workflow".
+  execute: (analysisId) => req(`/agent/analyses/${encodeURIComponent(analysisId)}/execute`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ confirm: true }),
+  }),
   tasks: () => req("/agent/tasks"),
   task: (taskId) => req(`/agent/tasks/${encodeURIComponent(taskId)}`),
   logs: (taskId) => req(`/agent/tasks/${encodeURIComponent(taskId)}/logs`),
-  createTask: (analysisId) => req("/agent/tasks", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ analysis_id: analysisId }),
-  }),
   cancelTask: (taskId) => req(`/agent/tasks/${encodeURIComponent(taskId)}/cancel`, {
     method: "POST",
   }),

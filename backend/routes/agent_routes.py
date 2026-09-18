@@ -100,10 +100,21 @@ def preview_workflow(analysis_id):
     except Exception as exc:
         return jsonify({"error": str(exc)}), 500
 
-@agent_bp.post("/tasks")
-def create_task():
+
+@agent_bp.post("/analyses/<analysis_id>/execute")
+def execute_workflow(analysis_id):
+    """Phase 2B: explicit confirm-and-execute action.
+
+    This is intentionally a separate endpoint from the preview endpoint
+    above (GET .../workflow) so that previewing a workflow never has side
+    effects. The request body must include {"confirm": true} — this is
+    the safety gate against accidentally triggering real Ceph commands.
+    """
+    body = request.get_json(silent=True) or {}
+    confirm = bool(body.get("confirm"))
+
     try:
-        task = _manager().create_task(request.get_json(silent=True) or {})
+        task = _manager().execute_workflow(analysis_id, confirm=confirm)
         return jsonify(task), 202
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400

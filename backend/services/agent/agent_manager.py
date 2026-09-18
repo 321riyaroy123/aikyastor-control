@@ -5,8 +5,17 @@ Phase 1:
 - Pass the server-side workload path to the real ceph-agent classifier.
 - Return the authoritative ClassificationResult to the dashboard.
 
-Execution remains simulation-only and is intentionally not connected to
-CephSelfHealingAgent/SSHExecutor yet.
+Phase 2A:
+- Preview the real workflow recipe (get_workflow_recipe()) for a given
+  analysis, without executing anything.
+
+Phase 2B:
+- Execute a previously previewed workflow through the real SSHExecutor
+  (or MockSSHExecutor in simulation mode), persisting every step via the
+  real ExecutionTracker.
+- Autonomous LLM self-healing/remediation is intentionally NOT wired in
+  yet (Phase 3). A failed step marks the task FAILED and stops; it does
+  not retry, diagnose, or apply a fix automatically.
 """
 
 from __future__ import annotations
@@ -18,7 +27,6 @@ from pathlib import Path
 from threading import Lock, Thread
 from uuid import uuid4
 import sys
-import time
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 CEPH_AGENT_ROOT = PROJECT_ROOT / "ceph-agent"
@@ -31,6 +39,7 @@ from ceph_classifier.classifier import WorkflowClassifier
 from ceph_agent.core.agent import CephSelfHealingAgent
 from ceph_agent.core.recipes import get_workflow_recipe
 from ceph_agent.core.ssh_executor import SSHExecutor, MockSSHExecutor
+from ceph_agent.core.tracker import ExecutionTracker, TaskState
 
 
 # ---------------------------------------------------------------------------
@@ -48,6 +57,10 @@ from ceph_agent.core.ssh_executor import SSHExecutor, MockSSHExecutor
 #
 # parents[3] = aikyastor-control/
 # ---------------------------------------------------------------------------
+
+
+# Terminal task states that a poller can stop on.
+_TERMINAL_STATES = {"completed", "failed", "cancelled"}
 
 
 class AgentManager:
@@ -77,6 +90,12 @@ class AgentManager:
             else:
                 self.executor = SSHExecutor()
 
+            # Phase 2B: real execution tracker. Shares the same
+            # agent_traces.db the ceph-agent CLI/agent.py use, so task
+            # history persisted here is queryable the same way regardless
+            # of whether a run was kicked off via CLI or the dashboard.
+            self.tracker = ExecutionTracker()
+
             self.agent = CephSelfHealingAgent(
                 classifier=self.classifier,
                 executor=self.executor,
@@ -86,6 +105,7 @@ class AgentManager:
             self.classifier = None
             self.classifier_available = False
             self.classifier_error = str(exc)
+            self.tracker = None
 
     # ------------------------------------------------------------------
     # ANALYSIS PERSISTENCE
@@ -175,6 +195,17 @@ class AgentManager:
             "classifier": {
                 "available": self.classifier_available,
                 "error": self.classifier_error,
+            },
+            "executor": {
+                "type": "mock" if self.simulation else "ssh",
+                # Auth mode is surfaced (not the credentials themselves) so
+                # the dashboard can show whether key-based or password auth
+                # is configured, without ever exposing secrets.
+                "auth_mode": (
+                    "n/a"
+                    if self.simulation
+                    else ("ssh-key" if getattr(self.executor, "key_path", None) else "password")
+                ),
             },
         }
 
@@ -305,35 +336,88 @@ class AgentManager:
         return deepcopy(analysis) if analysis else None
 
     # ------------------------------------------------------------------
-    # EXISTING SIMULATION TASK SUPPORT
+    # PHASE 2B: REAL WORKFLOW EXECUTION
     #
-    # We leave this here for now.
-    # Phase 2 will replace the fake workflow steps with the real recipes.
+    # This replaces the old placeholder "fake step names" simulation task
+    # path. There is now a single task-creation path (execute_workflow,
+    # below) used in both simulation and production mode; the only thing
+    # that differs between modes is which executor class runs the real
+    # recipe commands (MockSSHExecutor vs SSHExecutor). This avoids having
+    # two parallel task-execution implementations.
     # ------------------------------------------------------------------
 
-    def create_task(self, payload):
-        if not self.simulation:
-            raise RuntimeError(
-                "Production execution is not connected yet"
-            )
+    def execute_workflow(self, analysis_id, confirm=False):
+        """Executes the real recipe for a previously previewed analysis.
 
-        analysis_id = str(
-            payload.get("analysis_id") or ""
-        ).strip()
+        This is the explicit confirm-and-execute action (Phase 2B). It is
+        deliberately a separate call from preview_workflow()/create_task()
+        so that fetching a preview never has side effects.
 
-        if not analysis_id:
+        - Requires confirm=True. This is the safety gate: previewing a
+          workflow (GET /analyses/<id>/workflow) never runs commands, and
+          neither does calling this without confirmation.
+        - Builds the *real* recipe via get_workflow_recipe(), identically
+          to preview_workflow(), so what was previewed is what executes.
+        - Runs steps through self.executor (MockSSHExecutor in simulation
+          mode, SSHExecutor in production), one at a time, in order.
+        - Persists every step and state transition via self.tracker
+          (ExecutionTracker / agent_traces.db).
+        - Does NOT retry or self-heal. On the first failed step, the task
+          is marked FAILED and execution stops. Remediation is Phase 3.
+        """
+        if not confirm:
             raise ValueError(
-                "analysis_id is required"
+                "Execution requires explicit confirmation (confirm=true)."
             )
+
+        if not self.classifier_available:
+            raise RuntimeError(
+                f"Ceph Agent classifier unavailable: {self.classifier_error}"
+            )
+
+        if self.tracker is None:
+            raise RuntimeError("Execution tracker unavailable.")
 
         analysis = self.get_analysis(analysis_id)
 
         if not analysis:
             raise ValueError("Analysis not found")
 
-        workflow = analysis["target_workflow"]
+        payload_path = analysis.get("payload_path") or analysis.get("item_path")
 
-        steps = self._simulation_steps(workflow)
+        if not payload_path:
+            raise ValueError("Analysis has no payload path")
+
+        # Re-classify and re-derive the recipe the same way preview_workflow()
+        # does, so the executed plan matches exactly what the user previewed
+        # and confirmed (the classifier is deterministic-first, so this is
+        # stable for the same payload/tuning).
+        classification = self.classifier.classify(item_path=payload_path)
+
+        recipe = get_workflow_recipe(
+            workflow=classification.target_workflow,
+            payload_path=payload_path,
+            destination=classification.target_destination,
+            tuning=classification.tuning_parameters,
+        )
+
+        steps = [
+            {
+                "name": step.name,
+                "description": step.description,
+                "command": step.command,
+                "danger_level": step.danger_level,
+                "is_idempotent": step.is_idempotent,
+                "timeout_sec": step.timeout_sec,
+                "optional": step.optional,
+                "status": "pending",
+                "exit_code": None,
+                "stdout": None,
+                "stderr": None,
+                "duration_ms": None,
+            }
+            for step in recipe
+        ]
 
         now = self._now()
         task_id = f"task_{uuid4().hex[:10]}"
@@ -341,25 +425,21 @@ class AgentManager:
         task = {
             "task_id": task_id,
             "status": "queued",
-            "payload_path": analysis["payload_path"],
+            "mode": "simulation" if self.simulation else "production",
+            "payload_path": str(payload_path),
             "source_name": analysis.get("source_name"),
             "upload_id": analysis.get("upload_id"),
 
-            "detected_type": analysis["item_type"],
-            "workflow": workflow,
-            "confidence": analysis["confidence"],
-            "decision_tier": analysis["decision_tier"],
-            "target": analysis["target_destination"],
-            "rationale": analysis["rationale"],
+            "detected_type": classification.item_type,
+            "workflow": classification.target_workflow,
+            "confidence": classification.confidence,
+            "decision_tier": classification.decision_tier,
+            "target": classification.target_destination,
+            "rationale": classification.rationale,
 
             "analysis_id": analysis_id,
 
-            "current_step": (
-                steps[0]["name"]
-                if steps
-                else None
-            ),
-
+            "current_step": steps[0]["name"] if steps else None,
             "step_index": 0,
             "total_steps": len(steps),
             "steps": steps,
@@ -374,13 +454,152 @@ class AgentManager:
         with self._lock:
             self._tasks[task_id] = task
 
+        # Persist the task in the real tracker before kicking off execution,
+        # so it shows up in agent_traces.db even if the process is killed
+        # mid-run.
+        self.tracker.create_task(
+            task_id=task_id,
+            payload_path=str(payload_path),
+            workflow=classification.target_workflow,
+        )
+
         Thread(
-            target=self._run_simulation,
-            args=(task_id,),
+            target=self._run_real_execution,
+            args=(task_id, recipe),
             daemon=True,
         ).start()
 
         return deepcopy(task)
+
+    def _run_real_execution(self, task_id, recipe):
+        """Runs the real recipe steps sequentially via self.executor.
+
+        No self-healing: the first failed step marks the task FAILED and
+        execution stops immediately. This mirrors agent.py's Stage 3 step
+        execution loop minus the diagnose/remediate/retry branch, which is
+        intentionally deferred to Phase 3.
+        """
+        with self._lock:
+            task = self._tasks.get(task_id)
+            if not task:
+                return
+            task["status"] = "running"
+            task["updated_at"] = self._now()
+
+        self.tracker.update_task_state(task_id, TaskState.RUNNING)
+
+        for index, step in enumerate(recipe):
+            with self._lock:
+                task = self._tasks.get(task_id)
+                if not task or task["status"] == "cancelled":
+                    return
+                task["step_index"] = index
+                task["current_step"] = step.name
+                task["steps"][index]["status"] = "running"
+                task["updated_at"] = self._now()
+
+            try:
+                exec_result = self.executor.execute(
+                    cmd=step.command,
+                    timeout=step.timeout_sec,
+                )
+            except Exception as exc:
+                # Transport-level failure (SSH connection error, timeout,
+                # etc.) is treated the same as a failed command: report
+                # clearly and stop, no retry.
+                with self._lock:
+                    task = self._tasks.get(task_id)
+                    if not task:
+                        return
+                    if task["status"] == "cancelled":
+                        return
+                    task["steps"][index]["status"] = "failed"
+                    task["steps"][index]["stderr"] = str(exc)
+                    task["steps"][index]["exit_code"] = -1
+                    task["status"] = "failed"
+                    task["error"] = f"Step '{step.name}' failed: {exc}"
+                    task["current_step"] = None
+                    task["updated_at"] = self._now()
+
+                self.tracker.record_step(
+                    task_id=task_id,
+                    step_name=step.name,
+                    state=TaskState.ERROR,
+                    command=step.command,
+                    stdout="",
+                    stderr=str(exc),
+                    exit_code=-1,
+                    duration_ms=0,
+                )
+                self.tracker.update_task_state(
+                    task_id, TaskState.FAILED,
+                    summary=f"Step '{step.name}' failed: {exc}",
+                )
+                return
+
+            with self._lock:
+                task = self._tasks.get(task_id)
+                if not task:
+                    return
+                if task["status"] == "cancelled":
+                    return
+
+                task["steps"][index]["exit_code"] = exec_result.exit_code
+                task["steps"][index]["stdout"] = exec_result.stdout
+                task["steps"][index]["stderr"] = exec_result.stderr
+                task["steps"][index]["duration_ms"] = exec_result.duration_ms
+
+                if exec_result.is_success:
+                    task["steps"][index]["status"] = "completed"
+                    task["updated_at"] = self._now()
+                else:
+                    # No self-healing (Phase 3). Report the failure clearly
+                    # and stop.
+                    task["steps"][index]["status"] = "failed"
+                    task["status"] = "failed"
+                    task["error"] = (
+                        f"Step '{step.name}' failed (exit {exec_result.exit_code}): "
+                        f"{exec_result.stderr or exec_result.stdout or 'no output'}"
+                    )
+                    task["current_step"] = None
+                    task["updated_at"] = self._now()
+
+            self.tracker.record_step(
+                task_id=task_id,
+                step_name=step.name,
+                state=TaskState.RUNNING if exec_result.is_success else TaskState.ERROR,
+                command=step.command,
+                stdout=exec_result.stdout,
+                stderr=exec_result.stderr,
+                exit_code=exec_result.exit_code,
+                duration_ms=exec_result.duration_ms,
+            )
+
+            if not exec_result.is_success:
+                self.tracker.update_task_state(
+                    task_id, TaskState.FAILED,
+                    summary=task["error"],
+                )
+                return
+
+        # All steps completed successfully.
+        with self._lock:
+            task = self._tasks.get(task_id)
+            if not task or task["status"] == "cancelled":
+                return
+            task["status"] = "completed"
+            task["current_step"] = None
+            task["step_index"] = task["total_steps"]
+            task["result"] = {
+                "message": f"Workflow completed successfully ({task['total_steps']} steps).",
+                "execution": "simulation" if self.simulation else "production",
+            }
+            task["updated_at"] = self._now()
+
+        self.tracker.update_task_state(
+            task_id, TaskState.SUCCESS,
+            summary=f"Workflow completed successfully ({len(recipe)} steps).",
+        )
 
     def list_tasks(self):
         with self._lock:
@@ -444,106 +663,13 @@ class AgentManager:
                 f"Confidence: {task['confidence']:.2f}",
                 *(
                     f"{step['status'].upper()}: {step['name']}"
+                    + (f" (exit {step['exit_code']})" if step.get("exit_code") not in (None,) else "")
+                    + (f" — {step['stderr']}" if step.get("status") == "failed" and step.get("stderr") else "")
                     for step in task["steps"]
                     if step["status"] != "pending"
                 ),
             ],
         }
-
-    # ------------------------------------------------------------------
-    # TEMPORARY SIMULATION STEPS
-    # ------------------------------------------------------------------
-
-    @staticmethod
-    def _simulation_steps(workflow):
-        templates = {
-            "CephFS": [
-                "verify_mds_health",
-                "ensure_cephfs_volume",
-                "setup_mountpoint",
-                "mount_cephfs",
-                "sync_payload",
-                "verify_result",
-            ],
-            "RBD": [
-                "verify_rbd_pool",
-                "validate_image",
-                "provision_rbd",
-                "verify_result",
-            ],
-            "RGW": [
-                "verify_rgw",
-                "validate_bucket",
-                "upload_object",
-                "verify_result",
-            ],
-            "RADOS": [
-                "verify_cluster",
-                "validate_pool",
-                "write_rados_object",
-                "verify_result",
-            ],
-        }
-
-        return [
-            {
-                "name": name,
-                "status": "pending",
-            }
-            for name in templates.get(workflow, [])
-        ]
-
-    # ------------------------------------------------------------------
-    # TEMPORARY SIMULATION EXECUTION
-    # ------------------------------------------------------------------
-
-    def _run_simulation(self, task_id):
-        for index in range(999):
-            with self._lock:
-                task = self._tasks.get(task_id)
-
-                if (
-                    not task
-                    or task["status"] == "cancelled"
-                ):
-                    return
-
-                if index >= len(task["steps"]):
-                    task["status"] = "completed"
-                    task["current_step"] = None
-                    task["step_index"] = task["total_steps"]
-
-                    task["result"] = {
-                        "message": "Workflow completed successfully",
-                        "execution": "simulation",
-                    }
-
-                    task["updated_at"] = self._now()
-
-                    return
-
-                task["status"] = "running"
-                task["step_index"] = index
-                task["current_step"] = (
-                    task["steps"][index]["name"]
-                )
-
-                task["steps"][index]["status"] = "running"
-                task["updated_at"] = self._now()
-
-            time.sleep(0.8)
-
-            with self._lock:
-                task = self._tasks.get(task_id)
-
-                if (
-                    not task
-                    or task["status"] == "cancelled"
-                ):
-                    return
-
-                task["steps"][index]["status"] = "completed"
-                task["updated_at"] = self._now()
 
     @staticmethod
     def _now():

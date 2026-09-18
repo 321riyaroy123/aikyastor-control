@@ -8,7 +8,10 @@ const pill = (background, color) => ({
 });
 
 export default function AIAgent({ toast }) {
-  const { status, tasks, analysis, setAnalysis, upload, analyze, submit, cancel, error } = useAgent();
+  const {
+    status, tasks, analysis, setAnalysis, preview, setPreview,
+    upload, analyze, previewWorkflow, execute, cancel, error,
+  } = useAgent();
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [busy, setBusy] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -27,6 +30,7 @@ export default function AIAgent({ toast }) {
     if (!next.length) return;
     setSelectedFiles(next);
     setAnalysis(null);
+    setPreview(null);
   };
 
   const runAnalysis = async () => {
@@ -37,7 +41,10 @@ export default function AIAgent({ toast }) {
     setBusy(true);
     try {
       const uploadResult = await upload(selectedFiles);
-      await analyze(uploadResult.upload_id);
+      const analysisResult = await analyze(uploadResult.upload_id);
+      // Immediately fetch the real proposed workflow (recipe steps) for
+      // review. This is read-only — no Ceph commands run yet.
+      await previewWorkflow(analysisResult.analysis_id);
       toast?.("Workload uploaded and analyzed successfully.", "success");
     } catch (err) {
       toast?.(err?.message || "Workload analysis failed.", "error");
@@ -50,9 +57,13 @@ export default function AIAgent({ toast }) {
     if (!analysis) return;
     setBusy(true);
     try {
-      await submit(analysis.analysis_id);
-      toast?.("Workflow started in simulation mode.", "success");
+      // Explicit confirm-and-execute. The user has already seen the
+      // proposed workflow steps (rendered from `preview` below) before
+      // this button is reachable.
+      await execute(analysis.analysis_id);
+      toast?.("Workflow execution started.", "success");
       setAnalysis(null);
+      setPreview(null);
     } catch (err) {
       toast?.(err?.message || "Unable to start workflow.", "error");
     } finally {
@@ -65,6 +76,9 @@ export default function AIAgent({ toast }) {
     setDragging(false);
     chooseFiles(event.dataTransfer.files);
   };
+
+  const hasDestructiveStep = (preview?.steps || []).some(s => s.danger_level === "destructive");
+  const modeLabel = status?.mode === "simulation" ? "SIMULATION — MOCK EXECUTOR" : "PRODUCTION — REAL CEPH COMMANDS";
 
   return (
     <div style={{ maxWidth: 1200, margin: "0 auto" }}>
@@ -141,13 +155,26 @@ export default function AIAgent({ toast }) {
             <div style={{ color: C.text, lineHeight: 1.5 }}>{analysis.rationale}</div>
             <div style={{ marginTop: ".8rem", color: C.muted, fontSize: ".8rem" }}>Proposed target: <span style={{ color: C.text }}>{analysis.target}</span></div>
           </div>
+
           <div style={{ marginTop: "1rem" }}>
             <div style={label()}>PROPOSED WORKFLOW</div>
-            <StepList steps={analysis.steps} />
+            {preview ? <StepList steps={preview.steps} /> : <div style={{ color: C.muted, fontSize: ".82rem" }}>Loading workflow preview…</div>}
           </div>
-          <div style={{ marginTop: "1rem", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
-            <span style={pill("rgba(250,204,21,.1)", C.yellow)}>DRY RUN — NO CEPH COMMANDS</span>
-            <button onClick={runWorkflow} disabled={busy} style={button(C.green)}>{busy ? "Starting…" : "Start Simulated Workflow"}</button>
+
+          <div style={{ marginTop: "1rem", padding: ".8rem 1rem", background: hasDestructiveStep ? "rgba(248,113,113,.08)" : C.surface2, border: `1px solid ${hasDestructiveStep ? "rgba(248,113,113,.35)" : C.border}`, borderRadius: 6 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: ".5rem", flexWrap: "wrap" }}>
+              <span style={pill(status?.mode === "simulation" ? "rgba(250,204,21,.1)" : "rgba(248,113,113,.1)", status?.mode === "simulation" ? C.yellow : C.red)}>{modeLabel}</span>
+              {hasDestructiveStep && <span style={pill("rgba(248,113,113,.15)", C.red)}>⚠ INCLUDES DESTRUCTIVE STEPS</span>}
+            </div>
+            <div style={{ color: C.muted, fontSize: ".78rem", marginTop: ".5rem" }}>
+              {status?.mode === "simulation"
+                ? "Steps will run against the mock executor only — no real Ceph commands will be issued."
+                : "Confirming will run these commands against the live Ceph cluster over SSH. This cannot be undone automatically — there is no autonomous rollback or self-healing yet."}
+            </div>
+          </div>
+
+          <div style={{ marginTop: "1rem", display: "flex", justifyContent: "flex-end", gap: "1rem", flexWrap: "wrap" }}>
+            <button onClick={runWorkflow} disabled={busy || !preview} style={button(C.green)}>{busy ? "Starting…" : "Confirm & Start Workflow"}</button>
           </div>
         </div>
       )}
@@ -156,11 +183,16 @@ export default function AIAgent({ toast }) {
         <div style={{ ...card(), marginBottom: "1rem" }}>
           <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
             <div><div style={label()}>CURRENT WORKFLOW</div><h2 style={{ margin: ".2rem 0" }}>{active.workflow}</h2><div style={{ color: C.muted }}>{active.source_name || active.payload_path}</div></div>
-            <div style={{ textAlign: "right" }}><div style={pill(active.status === "completed" ? "rgba(74,222,128,.1)" : active.status === "cancelled" ? "rgba(248,113,113,.1)" : "rgba(56,189,248,.1)", active.status === "completed" ? C.green : active.status === "cancelled" ? C.red : C.blue)}>{active.status}</div><div style={{ color: C.muted, fontSize: ".75rem", marginTop: ".35rem" }}>{Math.min(active.step_index, active.total_steps)} / {active.total_steps} steps</div></div>
+            <div style={{ textAlign: "right" }}><div style={pill(active.status === "completed" ? "rgba(74,222,128,.1)" : active.status === "failed" ? "rgba(248,113,113,.1)" : active.status === "cancelled" ? "rgba(248,113,113,.1)" : "rgba(56,189,248,.1)", active.status === "completed" ? C.green : active.status === "failed" ? C.red : active.status === "cancelled" ? C.red : C.blue)}>{active.status}</div><div style={{ color: C.muted, fontSize: ".75rem", marginTop: ".35rem" }}>{Math.min(active.step_index, active.total_steps)} / {active.total_steps} steps</div></div>
           </div>
-          <div style={{ height: 6, background: C.surface2, borderRadius: 999, margin: "1rem 0", overflow: "hidden" }}><div style={{ height: "100%", width: `${progress}%`, background: C.accent, transition: "width .3s" }} /></div>
+          <div style={{ height: 6, background: C.surface2, borderRadius: 999, margin: "1rem 0", overflow: "hidden" }}><div style={{ height: "100%", width: `${progress}%`, background: active.status === "failed" ? C.red : C.accent, transition: "width .3s" }} /></div>
+          {active.status === "failed" && active.error && (
+            <div style={{ marginBottom: "1rem", padding: ".8rem 1rem", background: "rgba(248,113,113,.08)", border: "1px solid rgba(248,113,113,.35)", borderRadius: 6, color: C.red, fontSize: ".85rem" }}>
+              {active.error}
+            </div>
+          )}
           <StepList steps={active.steps} />
-          {(active.status === "running" || active.status === "queued") && <button onClick={() => cancel(active.task_id)} style={button(C.red)}>Cancel</button>}
+          {(active.status === "running" || active.status === "queued") && <button onClick={() => cancel(active.task_id)} style={{ ...button(C.red), marginTop: "1rem" }}>Cancel</button>}
         </div>
       )}
 
@@ -171,7 +203,7 @@ export default function AIAgent({ toast }) {
             <div><div style={{ fontWeight: 700 }}>{task.workflow}</div><div style={{ color: C.muted, fontSize: ".72rem" }}>{task.source_name || task.payload_path}</div></div>
             <div style={{ color: C.muted, fontSize: ".78rem" }}>{task.detected_type}</div>
             <div style={{ color: C.muted, fontSize: ".78rem" }}>{Math.round(task.confidence * 100)}%</div>
-            <div style={{ justifySelf: "end", ...pill(task.status === "completed" ? "rgba(74,222,128,.1)" : task.status === "cancelled" ? "rgba(248,113,113,.1)" : "rgba(148,163,184,.1)", task.status === "completed" ? C.green : task.status === "cancelled" ? C.red : C.muted) }}>{task.status}</div>
+            <div style={{ justifySelf: "end", ...pill(task.status === "completed" ? "rgba(74,222,128,.1)" : task.status === "cancelled" || task.status === "failed" ? "rgba(248,113,113,.1)" : "rgba(148,163,184,.1)", task.status === "completed" ? C.green : task.status === "cancelled" || task.status === "failed" ? C.red : C.muted) }}>{task.status}</div>
           </div>
         ))}
       </div>
@@ -189,4 +221,4 @@ function card() { return { background: C.surface, border: `1px solid ${C.border}
 function label() { return { fontFamily: "'Space Mono',monospace", fontSize: ".64rem", color: C.muted, letterSpacing: 1.5, marginBottom: ".45rem", textTransform: "uppercase" }; }
 function button(color) { return { padding: ".7rem 1rem", borderRadius: 6, border: `1px solid ${color}66`, background: `${color}18`, color, cursor: "pointer", fontWeight: 700 }; }
 function Metric({ title, value }) { return <div><div style={label()}>{title}</div><div style={{ fontWeight: 700, wordBreak: "break-word" }}>{value}</div></div>; }
-function StepList({ steps = [] }) { return <div style={{ display: "flex", flexDirection: "column", gap: ".45rem" }}>{steps.map((step, index) => <div key={`${step.name}-${index}`} style={{ display: "flex", alignItems: "center", gap: ".7rem", color: step.status === "completed" ? C.green : step.status === "running" ? C.blue : step.status === "cancelled" ? C.red : C.muted }}><span style={{ width: 20, textAlign: "center" }}>{step.status === "completed" ? "✓" : step.status === "running" ? "●" : step.status === "cancelled" ? "×" : "○"}</span><span>{step.name}</span></div>)}</div>; }
+function StepList({ steps = [] }) { return <div style={{ display: "flex", flexDirection: "column", gap: ".45rem" }}>{steps.map((step, index) => <div key={`${step.name}-${index}`} style={{ display: "flex", alignItems: "center", gap: ".7rem", color: step.status === "completed" ? C.green : step.status === "running" ? C.blue : step.status === "failed" ? C.red : step.status === "cancelled" ? C.red : C.muted }}><span style={{ width: 20, textAlign: "center" }}>{step.status === "completed" ? "✓" : step.status === "running" ? "●" : step.status === "failed" ? "✕" : step.status === "cancelled" ? "×" : "○"}</span><span>{step.name}</span>{step.status === "failed" && step.stderr && <span style={{ color: C.muted, fontSize: ".75rem" }}>— {step.stderr}</span>}</div>)}</div>; }
