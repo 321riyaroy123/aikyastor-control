@@ -81,6 +81,24 @@ def analyze_workload():
     except Exception as exc:
         return jsonify({"error": str(exc)}), 500
 
+@agent_bp.get("/analyses/<analysis_id>")
+def get_analysis(analysis_id):
+    analysis = _manager().get_analysis(analysis_id)
+
+    if not analysis:
+        return jsonify({"error": "Analysis not found"}), 404
+
+    return jsonify(analysis)
+
+@agent_bp.get("/analyses/<analysis_id>/workflow")
+def preview_workflow(analysis_id):
+    try:
+        workflow = _manager().preview_workflow(analysis_id)
+        return jsonify(workflow)
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 404
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
 
 @agent_bp.post("/tasks")
 def create_task():

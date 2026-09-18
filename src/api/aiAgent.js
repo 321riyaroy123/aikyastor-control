@@ -15,6 +15,7 @@ export const AIAgentAPI = {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ upload_id: uploadId }),
   }),
+  workflow: (analysisId) => req(`/agent/analyses/${encodeURIComponent(analysisId)}/workflow`),
   tasks: () => req("/agent/tasks"),
   task: (taskId) => req(`/agent/tasks/${encodeURIComponent(taskId)}`),
   logs: (taskId) => req(`/agent/tasks/${encodeURIComponent(taskId)}/logs`),
