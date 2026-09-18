@@ -157,7 +157,7 @@ export default function BlockStoragePage({ toast }) {
   const unmapImage = async (name, device = null) => {
     try {
       const target = device || name;
-      const result = await BlockAPI.unmapImage(target, selectedPool);
+      const result = await BlockAPI.unmapImage(imageName, selectedPool);
 
       toast(
         result.message || `'${name}' unmapped`,

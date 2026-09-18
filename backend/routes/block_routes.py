@@ -200,19 +200,55 @@ def api_map_image(name):
 
 @block_bp.route("/images/<name>/unmap", methods=["POST"])
 def api_unmap_image(name):
-    """Unmap an RBD image"""
+    """Unmount and unmap an RBD image."""
+
     pool = request.args.get("pool") or config.RBD_POOL
+
     if config.IS_SIMULATION:
-        log_activity("UNMAP IMAGE", f"{pool}/{name}", "success", "Simulation mode")
-        return jsonify({"message": f"'{name}' unmapped"})
+        log_activity(
+            "UNMAP IMAGE",
+            f"{pool}/{name}",
+            "success",
+            "Simulation mode"
+        )
+
+        return jsonify({
+            "message": f"'{name}' unmapped",
+            "pool": pool,
+            "image": name,
+            "unmounted": [],
+            "unmapped": []
+        }), 200
 
     try:
         result = unmap_rbd_image(name, pool)
-        return jsonify(result), 200 if "error" not in result else 500
-    except Exception as e:
-        logger.exception(f"unmap_rbd_image error for {name}")
-        return jsonify({"error": str(e)}), 500
 
+        # ---------------------------------------------------------
+        # Busy filesystem
+        # ---------------------------------------------------------
+        if "busy" in result:
+            return jsonify(result), 409
+
+        # ---------------------------------------------------------
+        # Other backend error
+        # ---------------------------------------------------------
+        if "error" in result:
+            return jsonify(result), 500
+
+        # ---------------------------------------------------------
+        # Success
+        # ---------------------------------------------------------
+        return jsonify(result), 200
+
+    except Exception as e:
+        logger.exception(
+            f"unmap_rbd_image error for {pool}/{name}"
+        )
+
+        return jsonify({
+            "error": str(e)
+        }), 500
+        
 @block_bp.route("/mapped", methods=["GET"])
 def api_list_mapped():
     """List mapped RBD images"""

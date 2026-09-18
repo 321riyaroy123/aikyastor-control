@@ -30,9 +30,9 @@ export const BlockAPI = {
       { method: "POST" }
     ),
 
-  unmapImage: (target, pool) =>
+  unmapImage: (name, pool) =>
     req(
-      `/block/images/${encodeURIComponent(target)}/unmap?pool=${encodeURIComponent(pool)}`,
+      `/block/images/${encodeURIComponent(name)}/unmap?pool=${encodeURIComponent(pool)}`,
       { method: "POST" }
     ),
 
