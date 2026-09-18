@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from datetime import datetime, timezone
+import json
 from pathlib import Path
 from threading import Lock, Thread
 from uuid import uuid4
@@ -21,6 +22,7 @@ import time
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 CEPH_AGENT_ROOT = PROJECT_ROOT / "ceph-agent"
+ANALYSES_FILE = PROJECT_ROOT / "backend" / "data" / "agent_analyses.json"
 
 if str(CEPH_AGENT_ROOT) not in sys.path:
     sys.path.insert(0, str(CEPH_AGENT_ROOT))
@@ -55,9 +57,9 @@ class AgentManager:
         self.simulation = simulation
 
         self._tasks = {}
-        self._analyses = {}
         self._uploads = {}
         self._lock = Lock()
+        self._analyses = self._load_analyses()
 
         # Phase 1: real workload classifier.
         #
@@ -84,6 +86,28 @@ class AgentManager:
             self.classifier = None
             self.classifier_available = False
             self.classifier_error = str(exc)
+
+    # ------------------------------------------------------------------
+    # ANALYSIS PERSISTENCE
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _load_analyses():
+        """Restore workflow previews created before a backend restart."""
+        try:
+            with ANALYSES_FILE.open("r", encoding="utf-8") as file:
+                analyses = json.load(file)
+            return analyses if isinstance(analyses, dict) else {}
+        except (FileNotFoundError, json.JSONDecodeError, OSError):
+            return {}
+
+    def _save_analyses(self):
+        """Atomically persist analysis metadata used by workflow endpoints."""
+        ANALYSES_FILE.parent.mkdir(parents=True, exist_ok=True)
+        temporary_file = ANALYSES_FILE.with_suffix(".tmp")
+        with temporary_file.open("w", encoding="utf-8") as file:
+            json.dump(self._analyses, file, indent=2)
+        temporary_file.replace(ANALYSES_FILE)
 
     # ------------------------------------------------------------------
     # STATUS
@@ -266,6 +290,7 @@ class AgentManager:
 
         with self._lock:
             self._analyses[analysis_id] = deepcopy(result)
+            self._save_analyses()
 
         return deepcopy(result)
 
