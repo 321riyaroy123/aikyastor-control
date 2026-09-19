@@ -37,7 +37,10 @@ from typing import Dict, Any, List
 
 from core.logger import logger
 from services.cluster.ceph_ops import run_ceph_cmd
-
+from services.object.object_storage import get_s3_client
+from services.block.block_storage import list_rbd_images
+from services.file.cephfs_mount import get_active_mount_point, is_mounted
+from services.vault.vault_ops import get_vault_status
 
 # ─── Shared: single `ceph -s` fetch, parsed once per call ───────────────────
 # Real output shape verified against Ceph Squid 19.2.5 on 2026-09-16:
@@ -135,6 +138,116 @@ def get_health_summary() -> Dict[str, Any]:
         "issues": issues,
     }
 
+def get_storage_components() -> dict:
+    """
+    Get the operational status of the user-facing storage services.
+
+    These checks deliberately test the actual storage interfaces rather
+    than inferring availability solely from Ceph daemon state.
+    """
+
+    components = {}
+
+    # ---------------------------------------------------------
+    # Object Storage / RGW
+    # ---------------------------------------------------------
+    try:
+        s3 = get_s3_client()
+        response = s3.list_buckets()
+
+        components["object"] = {
+            "status": "HEALTHY",
+            "label": "S3 / RGW",
+            "detail": f"{len(response.get('Buckets', []))} bucket(s)",
+        }
+
+    except Exception as e:
+        components["object"] = {
+            "status": "UNAVAILABLE",
+            "label": "S3 / RGW",
+            "detail": str(e),
+        }
+
+    # ---------------------------------------------------------
+    # Block Storage / RBD
+    # ---------------------------------------------------------
+    try:
+        rbd_result = list_rbd_images()
+
+        if "error" in rbd_result:
+            components["block"] = {
+                "status": "UNAVAILABLE",
+                "label": "RBD",
+                "detail": rbd_result["error"],
+            }
+        else:
+            images = rbd_result.get("images", [])
+
+            components["block"] = {
+                "status": "AVAILABLE",
+                "label": "RBD",
+                "detail": (
+                    f"{len(images)} image(s)"
+                    if images
+                    else "No images"
+                ),
+                "image_count": len(images),
+            }
+
+    except Exception as e:
+        components["block"] = {
+            "status": "UNAVAILABLE",
+            "label": "RBD",
+            "detail": str(e),
+        }
+
+    # ---------------------------------------------------------
+    # File Storage / CephFS
+    # ---------------------------------------------------------
+    try:
+        mount_point = get_active_mount_point()
+        mounted = is_mounted(mount_point)
+
+        components["file"] = {
+            "status": "MOUNTED" if mounted else "NOT_MOUNTED",
+            "label": "CephFS",
+            "detail": mount_point if mounted else f"Not mounted at {mount_point}",
+        }
+
+    except Exception as e:
+        components["file"] = {
+            "status": "UNAVAILABLE",
+            "label": "CephFS",
+            "detail": str(e),
+        }
+
+    # ---------------------------------------------------------
+    # Vault
+    # ---------------------------------------------------------
+    try:
+        vault = get_vault_status()
+
+        components["vault"] = {
+            "status": "MOUNTED" if vault.get("mounted") else "NOT_MOUNTED",
+            "label": "Vault Backup",
+            "detail": (
+                vault.get("path")
+                if vault.get("mounted")
+                else f"Not mounted at {vault.get('path', '/vault')}"
+            ),
+        }
+
+    except Exception as e:
+        components["vault"] = {
+            "status": "UNAVAILABLE",
+            "label": "Vault Backup",
+            "detail": str(e),
+        }
+
+    return {
+        "available": True,
+        **components,
+    }
 
 # ─── The remaining parsers below are derived from the same ceph -s payload ──
 # and have been verified against real output, but are NOT wired into any

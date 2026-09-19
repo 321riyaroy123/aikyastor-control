@@ -33,9 +33,10 @@ function ServiceRow({ name, ok, unknown, label, detail }) {
  * count. Any block reporting available:false (or not yet loaded) renders
  * its rows in the "UNKNOWN" state rather than guessing.
  */
-export default function ServicesPanel({ services, mds }) {
+export default function ServicesPanel({ services, mds, components }) {
   const svcOk = services?.available === true;
   const mdsOk = mds?.available === true;
+  const storage = components || {};
 
   const mon = services?.mon || {};
   const mgr = services?.mgr || {};
@@ -88,6 +89,62 @@ export default function ServicesPanel({ services, mds }) {
             ok={svcOk && rgw.count > 0}
             label={svcOk && rgw.daemons?.[0] ? `zone ${rgw.daemons[0].zone_name}` : svcOk ? "no daemons visible" : "unavailable"}
             detail={svcOk ? `${rgw.count ?? 0}` : "—"}
+          />
+        </tbody>
+      </TableWrap>
+      <div style={{
+        fontFamily: "'Space Mono',monospace",
+        fontSize: ".8rem",
+        fontWeight: 700,
+        color: C.accent,
+        textTransform: "uppercase",
+        letterSpacing: ".03em",
+        marginBottom: ".75rem",
+        marginTop: "1.5rem"
+      }}>
+        Storage Interfaces
+      </div>
+
+      <TableWrap>
+        <thead>
+          <tr style={{ background: C.surface2 }}>
+            {["Service", "Status", "Detail"].map(h => (
+              <Th key={h}>{h}</Th>
+            ))}
+          </tr>
+        </thead>
+
+        <tbody>
+          <ServiceRow
+            name="S3 / RGW"
+            unknown={!storage.available || !storage.object}
+            ok={storage.object?.status === "HEALTHY"}
+            label={storage.object?.label || "unavailable"}
+            detail={storage.object?.detail || "—"}
+          />
+
+          <ServiceRow
+            name="RBD"
+            unknown={!storage.available || !storage.block}
+            ok={storage.block?.status === "AVAILABLE"}
+            label={storage.block?.label || "unavailable"}
+            detail={storage.block?.detail || "—"}
+          />
+
+          <ServiceRow
+            name="CephFS"
+            unknown={!storage.available || !storage.file}
+            ok={storage.file?.status === "MOUNTED"}
+            label={storage.file?.label || "unavailable"}
+            detail={storage.file?.detail || "—"}
+          />
+
+          <ServiceRow
+            name="Vault Backup"
+            unknown={!storage.available || !storage.vault}
+            ok={storage.vault?.status === "MOUNTED"}
+            label={storage.vault?.label || "unavailable"}
+            detail={storage.vault?.detail || "—"}
           />
         </tbody>
       </TableWrap>

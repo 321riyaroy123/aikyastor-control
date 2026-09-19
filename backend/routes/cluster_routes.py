@@ -56,6 +56,7 @@ import config.config as config
 from core.logger import logger
 from core.activity import get_activity_log, get_activity_stats
 from services.cluster.ceph_ops import get_cluster_stats, get_cluster_health, get_ceph_version
+from services.cluster.component_status import get_component_status
 from services.cluster.metrics_service import (
     get_health_summary,
     get_capacity_summary,
@@ -65,6 +66,7 @@ from services.cluster.metrics_service import (
     get_pool_stats,
     get_cluster_io,
     get_cluster_io_history,
+    get_storage_components,
 )
 import simulation.simulation as simulation
 
@@ -213,6 +215,12 @@ def dashboard():
         logger.exception("dashboard: get_cluster_io_history error")
         io_history = {"available": False, "error": str(e)}
 
+    try:
+        components = get_storage_components()
+    except Exception as e:
+        logger.exception("dashboard: get_storage_components error")
+        components = {"available": False, "error": str(e)}
+
     return jsonify({
         "health": health,
         "capacity": capacity,
@@ -222,4 +230,52 @@ def dashboard():
         "pools": pools,
         "io": io,
         "io_history": io_history,
+        "components": components,
     })
+
+@cluster_bp.route("/components", methods=["GET"])
+def component_status():
+    """Return real-time status of storage components."""
+
+    try:
+        if config.IS_SIMULATION:
+            return jsonify({
+                "components": [
+                    {
+                        "name": "RGW / S3",
+                        "type": "Object",
+                        "status": "Active",
+                        "details": "http://192.168.29.252:80",
+                        "healthy": True,
+                    },
+                    {
+                        "name": "RBD Pool",
+                        "type": "Block",
+                        "status": "Active",
+                        "details": "pool: rbd",
+                        "healthy": True,
+                    },
+                    {
+                        "name": "CephFS",
+                        "type": "File",
+                        "status": "Mounted",
+                        "details": "/mnt/cephfs",
+                        "healthy": True,
+                    },
+                    {
+                        "name": "Vault Disk",
+                        "type": "Backup",
+                        "status": "Available",
+                        "details": "/vault",
+                        "healthy": True,
+                    },
+                ]
+            })
+
+        return jsonify(get_component_status())
+
+    except Exception as e:
+        logger.exception("component_status error")
+        return jsonify({
+            "error": str(e)
+        }), 500
