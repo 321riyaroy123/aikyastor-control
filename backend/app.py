@@ -27,6 +27,7 @@ from routes.ai_monitor_routes import ai_monitor_bp
 from services.agent.agent_manager import AgentManager
 from routes.agent_routes import agent_bp
 import services.agent.agent_manager as agent_manager_module
+   from services.cluster.metrics_service import start_io_history_sampler
 
 # ─── Initialize Flask App ─────────────────────────────────────────────────────
 app = Flask(__name__)
@@ -49,6 +50,7 @@ app.register_blueprint(nfs_bp)
 app.register_blueprint(ai_monitor_bp)  # /api/ai-monitor/...
 app.register_blueprint(agent_bp)
 
+start_io_history_sampler()
 # ═════════════════════════════════════════════════════════════════════════════
 # FRONTEND SERVING
 # ═════════════════════════════════════════════════════════════════════════════
