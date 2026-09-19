@@ -216,6 +216,12 @@ def dashboard():
         io_history = {"available": False, "error": str(e)}
 
     try:
+        version = get_ceph_version()
+    except Exception as e:
+        logger.exception("dashboard: get_ceph_version error")
+        version = None
+
+    try:
         components = get_storage_components()
     except Exception as e:
         logger.exception("dashboard: get_storage_components error")
@@ -231,6 +237,7 @@ def dashboard():
         "io": io,
         "io_history": io_history,
         "components": components,
+        "version": version,
     })
 
 @cluster_bp.route("/components", methods=["GET"])

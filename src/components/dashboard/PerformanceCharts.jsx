@@ -72,14 +72,42 @@ export default function PerformanceCharts({ io, ioHistory }) {
     return null;
   }
 
+  // Prometheus timestamps are retained alongside the values.
+  // The Sparkline still renders values by position for now, but filtering
+  // here ensures unavailable samples remain gaps rather than becoming zeroes.
+  const chartPoints = points.map(point => ({
+    timestamp: point.timestamp,
+    available: point.available === true,
+    readBytes: point.available ? point.read_bytes_sec : null,
+    writeBytes: point.available ? point.write_bytes_sec : null,
+    readOps: point.available ? point.read_op_per_sec : null,
+    writeOps: point.available ? point.write_op_per_sec : null,
+  }));
+
   const throughputSeries = [
-    { name: "read", color: C.accent, points: points.map(p => (p.available ? p.read_bytes_sec : null)) },
-    { name: "write", color: C.yellow, points: points.map(p => (p.available ? p.write_bytes_sec : null)) },
+    {
+      name: "read",
+      color: C.accent,
+      points: chartPoints.map(p => p.readBytes),
+    },
+    {
+      name: "write",
+      color: C.yellow,
+      points: chartPoints.map(p => p.writeBytes),
+    },
   ];
 
   const opsSeries = [
-    { name: "read ops", color: C.accent, points: points.map(p => (p.available ? p.read_op_per_sec : null)) },
-    { name: "write ops", color: C.yellow, points: points.map(p => (p.available ? p.write_op_per_sec : null)) },
+    {
+      name: "read ops",
+      color: C.accent,
+      points: chartPoints.map(p => p.readOps),
+    },
+    {
+      name: "write ops",
+      color: C.yellow,
+      points: chartPoints.map(p => p.writeOps),
+    },
   ];
 
   return (
@@ -88,9 +116,9 @@ export default function PerformanceCharts({ io, ioHistory }) {
         <div style={{ fontFamily: "'Space Mono',monospace", fontSize: ".8rem", fontWeight: 700, color: C.accent, textTransform: "uppercase", letterSpacing: ".03em" }}>
           Performance
         </div>
-        {historyOk && points.length > 0 && (
+        {historyOk && chartPoints.length > 0 && (
           <div style={{ fontSize: ".76rem", color: C.muted }}>
-            last {Math.round((points.length * ioHistory.interval_seconds) / 60)} min
+            last {Math.round((chartPoints.length * ioHistory.interval_seconds) / 60)} min
           </div>
         )}
       </div>

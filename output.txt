@@ -1,0 +1,2222 @@
+{
+    "capacity": {
+        "avail_bytes": 31941517312,
+        "available": true,
+        "total_bytes": 32199671808,
+        "used_bytes": 258154496,
+        "utilization_pct": 0.8
+    },
+    "components": {
+        "available": true,
+        "block": {
+            "detail": "No images",
+            "image_count": 0,
+            "label": "RBD",
+            "status": "AVAILABLE"
+        },
+        "file": {
+            "detail": "Not mounted at /mnt/cephfs",
+            "label": "CephFS",
+            "status": "NOT_MOUNTED"
+        },
+        "object": {
+            "detail": "3 bucket(s)",
+            "label": "S3 / RGW",
+            "status": "HEALTHY"
+        },
+        "vault": {
+            "detail": "Not mounted at /vault",
+            "label": "Vault Backup",
+            "status": "NOT_MOUNTED"
+        }
+    },
+    "health": {
+        "available": true,
+        "issue_count": 3,
+        "issues": [
+            {
+                "code": "POOL_NO_REDUNDANCY",
+                "count": 35,
+                "message": "35 pool(s) have no replicas configured",
+                "muted": false,
+                "severity": "HEALTH_WARN"
+            },
+            {
+                "code": "MON_DISK_LOW",
+                "count": 1,
+                "message": "mon localhost is low on available space",
+                "muted": false,
+                "severity": "HEALTH_WARN"
+            },
+            {
+                "code": "POOL_APP_NOT_ENABLED",
+                "count": 1,
+                "message": "1 pool(s) do not have an application enabled",
+                "muted": false,
+                "severity": "HEALTH_WARN"
+            }
+        ],
+        "status": "HEALTH_WARN",
+        "top_issue": {
+            "code": "POOL_NO_REDUNDANCY",
+            "count": 35,
+            "message": "35 pool(s) have no replicas configured",
+            "muted": false,
+            "severity": "HEALTH_WARN"
+        }
+    },
+    "io": {
+        "available": true,
+        "num_objects": 2321,
+        "num_pgs": 751,
+        "num_pools": 36,
+        "read_bytes_sec": 102.8442873212277,
+        "read_op_per_sec": 0.10043387433713642,
+        "write_bytes_sec": 0.0,
+        "write_op_per_sec": 0.0
+    },
+    "io_history": {
+        "available": true,
+        "interval_seconds": 10,
+        "max_points": 360,
+        "points": [
+            {
+                "available": true,
+                "read_bytes_sec": 84.59946666666666,
+                "read_op_per_sec": 0.08261666666666666,
+                "timestamp": "2026-09-19T04:31:00.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 59.34861465153863,
+                "read_op_per_sec": 0.057957631495643196,
+                "timestamp": "2026-09-19T04:31:10.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 76.43306666666666,
+                "read_op_per_sec": 0.07464166666666666,
+                "timestamp": "2026-09-19T04:31:20.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 9395.2,
+                "read_op_per_sec": 9.175,
+                "timestamp": "2026-09-19T04:31:30.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 6.050000000000001
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 7516.16,
+                "read_op_per_sec": 7.34,
+                "timestamp": "2026-09-19T04:31:40.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 4.84
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 9850.880000000001,
+                "read_op_per_sec": 9.620000000000001,
+                "timestamp": "2026-09-19T04:31:50.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 6.36
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 9857.535775501256,
+                "read_op_per_sec": 9.626499780762945,
+                "timestamp": "2026-09-19T04:32:00.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 6.337943955036473
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 9871.36,
+                "read_op_per_sec": 9.64,
+                "timestamp": "2026-09-19T04:32:10.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 6.36
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 2437.1200000000003,
+                "read_op_per_sec": 2.3800000000000003,
+                "timestamp": "2026-09-19T04:32:20.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 1.52
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 2386.1649270115163,
+                "read_op_per_sec": 2.330239186534684,
+                "timestamp": "2026-09-19T04:32:30.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 1.4636213072449256
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 102.34064242739211,
+                "read_op_per_sec": 0.09994203362050011,
+                "timestamp": "2026-09-19T04:32:40.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 82.15496319473695,
+                "read_op_per_sec": 0.0802294562448603,
+                "timestamp": "2026-09-19T04:32:50.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 98.67216558422788,
+                "read_op_per_sec": 0.09635953670334754,
+                "timestamp": "2026-09-19T04:33:00.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 81.92,
+                "read_op_per_sec": 0.08,
+                "timestamp": "2026-09-19T04:33:10.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 85.17009065956917,
+                "read_op_per_sec": 0.08317391665973552,
+                "timestamp": "2026-09-19T04:33:20.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 102.37747695506988,
+                "read_op_per_sec": 0.09997800483893543,
+                "timestamp": "2026-09-19T04:33:30.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 80.84157341070123,
+                "read_op_per_sec": 0.07894684903388792,
+                "timestamp": "2026-09-19T04:33:40.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 106.42056910062149,
+                "read_op_per_sec": 0.10392633701232568,
+                "timestamp": "2026-09-19T04:33:50.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 122.86771322867713,
+                "read_op_per_sec": 0.11998800119988001,
+                "timestamp": "2026-09-19T04:34:00.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 81.94950182065544,
+                "read_op_per_sec": 0.08002881037173383,
+                "timestamp": "2026-09-19T04:34:10.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 102.47788319122533,
+                "read_op_per_sec": 0.10007605780393099,
+                "timestamp": "2026-09-19T04:34:20.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 123.55212355212356,
+                "read_op_per_sec": 0.12065637065637067,
+                "timestamp": "2026-09-19T04:34:30.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 81.92,
+                "read_op_per_sec": 0.08,
+                "timestamp": "2026-09-19T04:34:40.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 102.41024102410242,
+                "read_op_per_sec": 0.10001000100010002,
+                "timestamp": "2026-09-19T04:34:50.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 121.87090887451902,
+                "read_op_per_sec": 0.11901455944777248,
+                "timestamp": "2026-09-19T04:35:00.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 80.62357294701204,
+                "read_op_per_sec": 0.07873395795606644,
+                "timestamp": "2026-09-19T04:35:10.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 58.42177693012658,
+                "read_op_per_sec": 0.05705251653332674,
+                "timestamp": "2026-09-19T04:35:20.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 71.16052814454483,
+                "read_op_per_sec": 0.06949270326615706,
+                "timestamp": "2026-09-19T04:35:30.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 40.96,
+                "read_op_per_sec": 0.04,
+                "timestamp": "2026-09-19T04:35:40.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 20.65099019884645,
+                "read_op_per_sec": 0.020166982616060987,
+                "timestamp": "2026-09-19T04:35:50.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 62.44663983412612,
+                "read_op_per_sec": 0.060983046713013786,
+                "timestamp": "2026-09-19T04:36:00.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 42.666666666666664,
+                "read_op_per_sec": 0.041666666666666664,
+                "timestamp": "2026-09-19T04:36:10.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 93.50957696961396,
+                "read_op_per_sec": 0.09131794625938863,
+                "timestamp": "2026-09-19T04:36:20.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 77.15484208914569,
+                "read_op_per_sec": 0.07534652547768134,
+                "timestamp": "2026-09-19T04:36:30.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 80.11242688660028,
+                "read_op_per_sec": 0.07823479188144558,
+                "timestamp": "2026-09-19T04:36:40.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 43.01018895598308,
+                "read_op_per_sec": 0.04200213765232723,
+                "timestamp": "2026-09-19T04:36:50.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 51.89181059804959,
+                "read_op_per_sec": 0.0506755962871578,
+                "timestamp": "2026-09-19T04:37:00.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 0.0,
+                "read_op_per_sec": 0.0,
+                "timestamp": "2026-09-19T04:38:00.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 0.0,
+                "read_op_per_sec": 0.0,
+                "timestamp": "2026-09-19T04:38:10.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 91.02222222222223,
+                "read_op_per_sec": 0.08888888888888889,
+                "timestamp": "2026-09-19T04:38:20.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 106.66666666666666,
+                "read_op_per_sec": 0.10416666666666666,
+                "timestamp": "2026-09-19T04:38:30.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 111.40492629759447,
+                "read_op_per_sec": 0.1087938733374946,
+                "timestamp": "2026-09-19T04:38:40.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 102.06114839671886,
+                "read_op_per_sec": 0.09966909023117076,
+                "timestamp": "2026-09-19T04:38:50.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 87.81709346002778,
+                "read_op_per_sec": 0.08575888033205838,
+                "timestamp": "2026-09-19T04:39:00.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 40.96901318290024,
+                "read_op_per_sec": 0.04000880193642602,
+                "timestamp": "2026-09-19T04:39:10.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 20.48,
+                "read_op_per_sec": 0.02,
+                "timestamp": "2026-09-19T04:39:20.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 78.12619211108569,
+                "read_op_per_sec": 0.07629510948348212,
+                "timestamp": "2026-09-19T04:39:30.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 91.02222222222221,
+                "read_op_per_sec": 0.08888888888888888,
+                "timestamp": "2026-09-19T04:39:40.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 86.69150016931934,
+                "read_op_per_sec": 0.08465966813410092,
+                "timestamp": "2026-09-19T04:39:50.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 61.446144614461446,
+                "read_op_per_sec": 0.060006000600060005,
+                "timestamp": "2026-09-19T04:40:00.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 61.44,
+                "read_op_per_sec": 0.06,
+                "timestamp": "2026-09-19T04:40:10.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 124.14127535763356,
+                "read_op_per_sec": 0.14143699991917888,
+                "timestamp": "2026-09-19T04:40:20.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 170.66666666666666,
+                "read_op_per_sec": 0.1875,
+                "timestamp": "2026-09-19T04:40:30.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 151.14948891102992,
+                "read_op_per_sec": 0.16605778811026237,
+                "timestamp": "2026-09-19T04:40:40.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 182.66143417766676,
+                "read_op_per_sec": 0.19820034090458633,
+                "timestamp": "2026-09-19T04:40:50.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 180.70942567501325,
+                "read_op_per_sec": 0.19608227612306126,
+                "timestamp": "2026-09-19T04:41:00.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 83.82620796922006,
+                "read_op_per_sec": 0.08186153121994147,
+                "timestamp": "2026-09-19T04:41:10.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 40.92562247711922,
+                "read_op_per_sec": 0.03996642820031174,
+                "timestamp": "2026-09-19T04:41:20.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 81.92,
+                "read_op_per_sec": 0.08,
+                "timestamp": "2026-09-19T04:41:30.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 10891.858071287288,
+                "read_op_per_sec": 10.919145844265936,
+                "timestamp": "2026-09-19T04:41:40.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 6.458644491987244
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 11012.999734699291,
+                "read_op_per_sec": 11.040591008346768,
+                "timestamp": "2026-09-19T04:41:50.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 6.530478969816943
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 10728.91778622067,
+                "read_op_per_sec": 10.790803337119579,
+                "timestamp": "2026-09-19T04:42:00.459000+00:00",
+                "write_bytes_sec": 20.054051936861068,
+                "write_op_per_sec": 6.306059300458266
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 11007.005884943352,
+                "read_op_per_sec": 11.069298210496816,
+                "timestamp": "2026-09-19T04:42:10.459000+00:00",
+                "write_bytes_sec": 20.497217662836782,
+                "write_op_per_sec": 6.445414147884223
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 10957.457447446848,
+                "read_op_per_sec": 11.020661239674382,
+                "timestamp": "2026-09-19T04:42:20.459000+00:00",
+                "write_bytes_sec": 20.481228873732427,
+                "write_op_per_sec": 6.440386423185392
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 245.76,
+                "read_op_per_sec": 0.28,
+                "timestamp": "2026-09-19T04:42:30.459000+00:00",
+                "write_bytes_sec": 20.48,
+                "write_op_per_sec": 0.04
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 286.72,
+                "read_op_per_sec": 0.32,
+                "timestamp": "2026-09-19T04:42:40.459000+00:00",
+                "write_bytes_sec": 20.48,
+                "write_op_per_sec": 0.04
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 106.32333091060117,
+                "read_op_per_sec": 0.10383137784238396,
+                "timestamp": "2026-09-19T04:42:50.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 81.92,
+                "read_op_per_sec": 0.08,
+                "timestamp": "2026-09-19T04:43:00.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 122.30273110916477,
+                "read_op_per_sec": 0.11943626084879372,
+                "timestamp": "2026-09-19T04:43:10.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 98.73686240478257,
+                "read_op_per_sec": 0.09642271719217048,
+                "timestamp": "2026-09-19T04:43:20.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 81.92,
+                "read_op_per_sec": 0.08,
+                "timestamp": "2026-09-19T04:43:30.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 122.88,
+                "read_op_per_sec": 0.12,
+                "timestamp": "2026-09-19T04:43:40.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 102.4,
+                "read_op_per_sec": 0.1,
+                "timestamp": "2026-09-19T04:43:50.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 82.30849610159954,
+                "read_op_per_sec": 0.0803793907242183,
+                "timestamp": "2026-09-19T04:44:00.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 230.56925879679858,
+                "read_op_per_sec": 0.24563486377499846,
+                "timestamp": "2026-09-19T04:44:10.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 204.8,
+                "read_op_per_sec": 0.22,
+                "timestamp": "2026-09-19T04:44:20.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 184.0954036075987,
+                "read_op_per_sec": 0.1997562973172729,
+                "timestamp": "2026-09-19T04:44:30.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 221.475058495055,
+                "read_op_per_sec": 0.23594644015808416,
+                "timestamp": "2026-09-19T04:44:40.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 204.2281611487834,
+                "read_op_per_sec": 0.21938571998404466,
+                "timestamp": "2026-09-19T04:44:50.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 83.09159143929404,
+                "read_op_per_sec": 0.08114413226493558,
+                "timestamp": "2026-09-19T04:45:00.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 183.47601035237906,
+                "read_op_per_sec": 0.1990842126219391,
+                "timestamp": "2026-09-19T04:45:10.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 163.85638563856386,
+                "read_op_per_sec": 0.18001800180018002,
+                "timestamp": "2026-09-19T04:45:20.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 145.8659774933355,
+                "read_op_per_sec": 0.1627968498809548,
+                "timestamp": "2026-09-19T04:45:30.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 178.26608379434407,
+                "read_op_per_sec": 0.1934310805060157,
+                "timestamp": "2026-09-19T04:45:40.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 163.8498309898594,
+                "read_op_per_sec": 0.1800108006480389,
+                "timestamp": "2026-09-19T04:45:50.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 82.29857343781394,
+                "read_op_per_sec": 0.08036970062286518,
+                "timestamp": "2026-09-19T04:46:00.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 101.59939675358177,
+                "read_op_per_sec": 0.0992181608921697,
+                "timestamp": "2026-09-19T04:46:10.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 78.87085282960739,
+                "read_op_per_sec": 0.07702231721641346,
+                "timestamp": "2026-09-19T04:46:20.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 61.42280161554765,
+                "read_op_per_sec": 0.05998320470268325,
+                "timestamp": "2026-09-19T04:46:30.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 98.76543209876543,
+                "read_op_per_sec": 0.09645061728395062,
+                "timestamp": "2026-09-19T04:46:40.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 79.02606548204743,
+                "read_op_per_sec": 0.07717389207231194,
+                "timestamp": "2026-09-19T04:46:50.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 99.59345639868505,
+                "read_op_per_sec": 0.09725923476434087,
+                "timestamp": "2026-09-19T04:47:00.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 125.85521733786717,
+                "read_op_per_sec": 0.12290548568151091,
+                "timestamp": "2026-09-19T04:47:10.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 102.31814548361312,
+                "read_op_per_sec": 0.09992006394884094,
+                "timestamp": "2026-09-19T04:47:20.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 102.2997462486763,
+                "read_op_per_sec": 0.09990209594597295,
+                "timestamp": "2026-09-19T04:47:30.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 105.89451913133401,
+                "read_op_per_sec": 0.10341261633919337,
+                "timestamp": "2026-09-19T04:47:40.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 106.35425105419498,
+                "read_op_per_sec": 0.10386157329511228,
+                "timestamp": "2026-09-19T04:47:50.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 83.16920140510466,
+                "read_op_per_sec": 0.08121992324717252,
+                "timestamp": "2026-09-19T04:48:00.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 106.4272054543943,
+                "read_op_per_sec": 0.10393281782655693,
+                "timestamp": "2026-09-19T04:48:10.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 106.42056910062149,
+                "read_op_per_sec": 0.10392633701232568,
+                "timestamp": "2026-09-19T04:48:20.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 96.84864009643638,
+                "read_op_per_sec": 0.09457875009417616,
+                "timestamp": "2026-09-19T04:48:30.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 60.10026666666667,
+                "read_op_per_sec": 0.05869166666666667,
+                "timestamp": "2026-09-19T04:48:40.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 64.5504,
+                "read_op_per_sec": 0.0630375,
+                "timestamp": "2026-09-19T04:48:50.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 51.93386666666667,
+                "read_op_per_sec": 0.05071666666666667,
+                "timestamp": "2026-09-19T04:49:00.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 34.13333333333333,
+                "read_op_per_sec": 0.03333333333333333,
+                "timestamp": "2026-09-19T04:50:00.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 34.13333333333333,
+                "read_op_per_sec": 0.03333333333333333,
+                "timestamp": "2026-09-19T04:50:10.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 34.13333333333333,
+                "read_op_per_sec": 0.03333333333333333,
+                "timestamp": "2026-09-19T04:50:20.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 28.097132665660585,
+                "read_op_per_sec": 0.027438606118809165,
+                "timestamp": "2026-09-19T04:50:30.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 28.097132665660585,
+                "read_op_per_sec": 0.027438606118809165,
+                "timestamp": "2026-09-19T04:50:40.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 0.0,
+                "read_op_per_sec": 0.0,
+                "timestamp": "2026-09-19T04:50:50.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 114.78319352849962,
+                "read_op_per_sec": 0.13077512283520465,
+                "timestamp": "2026-09-19T04:51:20.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 0.0,
+                "read_op_per_sec": 0.0,
+                "timestamp": "2026-09-19T04:51:30.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 0.0,
+                "read_op_per_sec": 0.0,
+                "timestamp": "2026-09-19T04:51:40.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 0.0,
+                "read_op_per_sec": 0.0,
+                "timestamp": "2026-09-19T04:51:50.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 0.0,
+                "read_op_per_sec": 0.0,
+                "timestamp": "2026-09-19T04:52:00.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 0.0,
+                "read_op_per_sec": 0.0,
+                "timestamp": "2026-09-19T04:52:10.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 8202.439468414346,
+                "read_op_per_sec": 8.010194793373385,
+                "timestamp": "2026-09-19T04:52:20.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 5.315856544693246
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 9388.818270853737,
+                "read_op_per_sec": 9.168767842630603,
+                "timestamp": "2026-09-19T04:52:30.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 6.0847277501094
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 0.0,
+                "read_op_per_sec": 0.0,
+                "timestamp": "2026-09-19T04:52:40.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 0.0,
+                "read_op_per_sec": 0.0,
+                "timestamp": "2026-09-19T04:52:50.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 0.0,
+                "read_op_per_sec": 0.0,
+                "timestamp": "2026-09-19T04:53:00.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 0.0,
+                "read_op_per_sec": 0.0,
+                "timestamp": "2026-09-19T04:53:10.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 0.0,
+                "read_op_per_sec": 0.0,
+                "timestamp": "2026-09-19T04:53:20.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 34.13333333333333,
+                "read_op_per_sec": 0.03333333333333333,
+                "timestamp": "2026-09-19T04:54:30.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 25.600000000000005,
+                "read_op_per_sec": 0.025000000000000005,
+                "timestamp": "2026-09-19T04:54:40.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 159.28888888888886,
+                "read_op_per_sec": 0.17777777777777776,
+                "timestamp": "2026-09-19T04:54:50.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 149.33333333333331,
+                "read_op_per_sec": 0.16666666666666666,
+                "timestamp": "2026-09-19T04:55:00.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 169.09890123176908,
+                "read_op_per_sec": 0.18577760145091818,
+                "timestamp": "2026-09-19T04:55:10.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 184.32,
+                "read_op_per_sec": 0.2,
+                "timestamp": "2026-09-19T04:55:20.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 206.26032308745926,
+                "read_op_per_sec": 0.2215687064416066,
+                "timestamp": "2026-09-19T04:55:30.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 78.98644348882503,
+                "read_op_per_sec": 0.0771351987195557,
+                "timestamp": "2026-09-19T04:55:40.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 77.1637365700587,
+                "read_op_per_sec": 0.07535521149419795,
+                "timestamp": "2026-09-19T04:55:50.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 60.08692449355433,
+                "read_op_per_sec": 0.05867863720073665,
+                "timestamp": "2026-09-19T04:56:00.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 21.501181708674505,
+                "read_op_per_sec": 0.020997247762377446,
+                "timestamp": "2026-09-19T04:56:10.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 0.0,
+                "read_op_per_sec": 0.0,
+                "timestamp": "2026-09-19T04:56:20.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 34.13333333333333,
+                "read_op_per_sec": 0.03333333333333333,
+                "timestamp": "2026-09-19T04:58:10.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 28.524139893976592,
+                "read_op_per_sec": 0.027855605365211516,
+                "timestamp": "2026-09-19T04:58:20.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 147.69379345567668,
+                "read_op_per_sec": 0.1682709235334858,
+                "timestamp": "2026-09-19T04:58:30.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 181.2608780118799,
+                "read_op_per_sec": 0.19913914820641102,
+                "timestamp": "2026-09-19T04:58:40.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 174.86338797814207,
+                "read_op_per_sec": 0.19211065573770492,
+                "timestamp": "2026-09-19T04:58:50.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 157.96679457760467,
+                "read_op_per_sec": 0.17354750380840356,
+                "timestamp": "2026-09-19T04:59:00.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 208.86450323291245,
+                "read_op_per_sec": 0.2243661655822302,
+                "timestamp": "2026-09-19T04:59:10.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 106.37634788390018,
+                "read_op_per_sec": 0.10388315223037127,
+                "timestamp": "2026-09-19T04:59:20.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 102.38157131716291,
+                "read_op_per_sec": 0.0999820032394169,
+                "timestamp": "2026-09-19T04:59:30.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 118.4636742248959,
+                "read_op_per_sec": 0.1156871818602499,
+                "timestamp": "2026-09-19T04:59:40.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 102.31610079734617,
+                "read_op_per_sec": 0.09991806718490837,
+                "timestamp": "2026-09-19T04:59:50.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 100.46504326668367,
+                "read_op_per_sec": 0.09811039381512077,
+                "timestamp": "2026-09-19T05:00:00.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 122.88,
+                "read_op_per_sec": 0.12,
+                "timestamp": "2026-09-19T05:00:10.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 85.22325329782365,
+                "read_op_per_sec": 0.0832258332986559,
+                "timestamp": "2026-09-19T05:00:20.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 184.13954324761733,
+                "read_op_per_sec": 0.1998041918919459,
+                "timestamp": "2026-09-19T05:00:30.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 180.93108722819295,
+                "read_op_per_sec": 0.19632279430142466,
+                "timestamp": "2026-09-19T05:00:40.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 147.71136638586444,
+                "read_op_per_sec": 0.1648564356985094,
+                "timestamp": "2026-09-19T05:00:50.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 129.00470040615158,
+                "read_op_per_sec": 0.14697801153044615,
+                "timestamp": "2026-09-19T05:01:00.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 155.44806513892385,
+                "read_op_per_sec": 0.1771055429642687,
+                "timestamp": "2026-09-19T05:01:10.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 0.0,
+                "read_op_per_sec": 0.0,
+                "timestamp": "2026-09-19T05:01:20.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 0.0,
+                "read_op_per_sec": 0.0,
+                "timestamp": "2026-09-19T05:01:30.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 0.0,
+                "read_op_per_sec": 0.0,
+                "timestamp": "2026-09-19T05:01:40.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 8988.444444444445,
+                "read_op_per_sec": 8.777777777777779,
+                "timestamp": "2026-09-19T05:01:50.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 5.822222222222223
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 10965.333333333332,
+                "read_op_per_sec": 11.041666666666666,
+                "timestamp": "2026-09-19T05:02:00.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 6.416666666666665
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 11477.26727578011,
+                "read_op_per_sec": 11.557164351599468,
+                "timestamp": "2026-09-19T05:02:10.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 6.716238906212522
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 10276.490417027835,
+                "read_op_per_sec": 10.363093518250988,
+                "timestamp": "2026-09-19T05:02:20.459000+00:00",
+                "write_bytes_sec": 19.724549744775114,
+                "write_op_per_sec": 5.971299239140904
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 11137.610481439118,
+                "read_op_per_sec": 11.230113340958718,
+                "timestamp": "2026-09-19T05:02:30.459000+00:00",
+                "write_bytes_sec": 21.295622335447646,
+                "write_op_per_sec": 6.446916917957783
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 2591.3287598109964,
+                "read_op_per_sec": 2.866689072972065,
+                "timestamp": "2026-09-19T05:02:40.459000+00:00",
+                "write_bytes_sec": 20.24475593602341,
+                "write_op_per_sec": 0.9489729345010973
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 216.93661768387807,
+                "read_op_per_sec": 0.23111145349844966,
+                "timestamp": "2026-09-19T05:02:50.459000+00:00",
+                "write_bytes_sec": 19.72151069853437,
+                "write_op_per_sec": 0.03851857558307494
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 240.1172447484123,
+                "read_op_per_sec": 0.2540302882266732,
+                "timestamp": "2026-09-19T05:03:00.459000+00:00",
+                "write_bytes_sec": 20.009770395701025,
+                "write_op_per_sec": 0.039081582804103565
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 104.45355692922863,
+                "read_op_per_sec": 0.10200542668869983,
+                "timestamp": "2026-09-19T05:03:10.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 98.74447937358971,
+                "read_op_per_sec": 0.0964301556382712,
+                "timestamp": "2026-09-19T05:03:20.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 124.32465246160385,
+                "read_op_per_sec": 0.121410793419535,
+                "timestamp": "2026-09-19T05:03:30.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 85.18426087679892,
+                "read_op_per_sec": 0.08318775476249894,
+                "timestamp": "2026-09-19T05:03:40.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 106.35646032405484,
+                "read_op_per_sec": 0.1038637307852098,
+                "timestamp": "2026-09-19T05:03:50.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 100.66058508965084,
+                "read_op_per_sec": 0.09830135262661215,
+                "timestamp": "2026-09-19T05:04:00.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 85.06926415917256,
+                "read_op_per_sec": 0.08307545328044195,
+                "timestamp": "2026-09-19T05:04:10.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 102.06726073002015,
+                "read_op_per_sec": 0.0996750593066603,
+                "timestamp": "2026-09-19T05:04:20.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 101.60141289464806,
+                "read_op_per_sec": 0.09922012977992975,
+                "timestamp": "2026-09-19T05:04:30.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 204.8,
+                "read_op_per_sec": 0.22,
+                "timestamp": "2026-09-19T05:04:40.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 276.19976347075544,
+                "read_op_per_sec": 0.3112226902089341,
+                "timestamp": "2026-09-19T05:04:50.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 245.76000000000002,
+                "read_op_per_sec": 0.28,
+                "timestamp": "2026-09-19T05:05:00.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 242.59175172250414,
+                "read_op_per_sec": 0.2763903421317593,
+                "timestamp": "2026-09-19T05:05:10.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 268.38709677419354,
+                "read_op_per_sec": 0.3024193548387097,
+                "timestamp": "2026-09-19T05:05:20.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 115.75040000000001,
+                "read_op_per_sec": 0.13187708333333337,
+                "timestamp": "2026-09-19T05:05:30.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 58.00166150592855,
+                "read_op_per_sec": 0.05664224756438335,
+                "timestamp": "2026-09-19T05:05:40.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 79.68716561934593,
+                "read_op_per_sec": 0.07781949767514251,
+                "timestamp": "2026-09-19T05:05:50.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 83.10002028809089,
+                "read_op_per_sec": 0.08115236356258876,
+                "timestamp": "2026-09-19T05:06:00.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 60.51294173265572,
+                "read_op_per_sec": 0.0590946696607966,
+                "timestamp": "2026-09-19T05:06:10.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 94.33580299939153,
+                "read_op_per_sec": 0.0921248076165933,
+                "timestamp": "2026-09-19T05:06:20.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 130.61779837578126,
+                "read_op_per_sec": 0.1275564437263489,
+                "timestamp": "2026-09-19T05:06:30.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 95.77970667464831,
+                "read_op_per_sec": 0.09353486979946124,
+                "timestamp": "2026-09-19T05:06:40.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 61.516280187432415,
+                "read_op_per_sec": 0.06007449237053947,
+                "timestamp": "2026-09-19T05:06:50.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 124.79181053743349,
+                "read_op_per_sec": 0.1218670024779624,
+                "timestamp": "2026-09-19T05:07:00.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            },
+            {
+                "available": true,
+                "read_bytes_sec": 102.8442873212277,
+                "read_op_per_sec": 0.10043387433713642,
+                "timestamp": "2026-09-19T05:07:10.459000+00:00",
+                "write_bytes_sec": 0.0,
+                "write_op_per_sec": 0.0
+            }
+        ],
+        "source": "prometheus"
+    },
+    "mds": {
+        "active_count": 3,
+        "available": true,
+        "daemons": [
+            {
+                "name": "cephfs.localhost.bapkom",
+                "rank": 0,
+                "state": "active"
+            },
+            {
+                "name": "flask-main.localhost.ktqzig",
+                "rank": 0,
+                "state": "active"
+            },
+            {
+                "name": "sample.localhost.yqgaaw",
+                "rank": 0,
+                "state": "active"
+            },
+            {
+                "name": "sample.localhost.szwwya",
+                "rank": null,
+                "state": "standby"
+            },
+            {
+                "name": "flask-main.localhost.glkuae",
+                "rank": null,
+                "state": "standby"
+            }
+        ],
+        "filesystem_count": 3,
+        "filesystems": [
+            "cephfs",
+            "flask-main",
+            "sample"
+        ],
+        "standby_count": 2
+    },
+    "osds": {
+        "available": true,
+        "average_utilization_pct": 0.8,
+        "osds": [
+            {
+                "device_class": "hdd",
+                "id": 0,
+                "kb": 10481664,
+                "kb_avail": 10384068,
+                "kb_used": 97596,
+                "name": "osd.0",
+                "pgs": 262,
+                "status": "up",
+                "utilization_pct": 0.93
+            },
+            {
+                "device_class": "hdd",
+                "id": 1,
+                "kb": 10481664,
+                "kb_avail": 10395324,
+                "kb_used": 86340,
+                "name": "osd.1",
+                "pgs": 256,
+                "status": "up",
+                "utilization_pct": 0.82
+            },
+            {
+                "device_class": "hdd",
+                "id": 2,
+                "kb": 10481664,
+                "kb_avail": 10413496,
+                "kb_used": 68168,
+                "name": "osd.2",
+                "pgs": 234,
+                "status": "up",
+                "utilization_pct": 0.65
+            }
+        ]
+    },
+    "pools": {
+        "available": true,
+        "pools": [
+            {
+                "application": "mgr",
+                "bytes_used": 1581056,
+                "id": 1,
+                "max_avail": 15144936448,
+                "min_size": 1,
+                "name": ".mgr",
+                "objects": 2,
+                "percent_used": 0.0052,
+                "pg_num": 1,
+                "redundant": true,
+                "size": 2,
+                "stored_bytes": 786976
+            },
+            {
+                "application": "rbd",
+                "bytes_used": 4096,
+                "id": 2,
+                "max_avail": 30289872896,
+                "min_size": 1,
+                "name": "rbd",
+                "objects": 3,
+                "percent_used": 0.0,
+                "pg_num": 32,
+                "redundant": false,
+                "size": 1,
+                "stored_bytes": 19
+            },
+            {
+                "application": "cephfs",
+                "bytes_used": 5415564,
+                "id": 3,
+                "max_avail": 30289872896,
+                "min_size": 1,
+                "name": "cephfs.cephfs.meta",
+                "objects": 24,
+                "percent_used": 0.0179,
+                "pg_num": 16,
+                "redundant": false,
+                "size": 1,
+                "stored_bytes": 5382581
+            },
+            {
+                "application": "cephfs",
+                "bytes_used": 56893440,
+                "id": 4,
+                "max_avail": 30289872896,
+                "min_size": 1,
+                "name": "cephfs.cephfs.data",
+                "objects": 569,
+                "percent_used": 0.1875,
+                "pg_num": 64,
+                "redundant": false,
+                "size": 1,
+                "stored_bytes": 55428956
+            },
+            {
+                "application": "rgw",
+                "bytes_used": 208896,
+                "id": 5,
+                "max_avail": 30289872896,
+                "min_size": 1,
+                "name": ".rgw.root",
+                "objects": 52,
+                "percent_used": 0.0007,
+                "pg_num": 32,
+                "redundant": false,
+                "size": 1,
+                "stored_bytes": 46104
+            },
+            {
+                "application": "rgw",
+                "bytes_used": 139264,
+                "id": 6,
+                "max_avail": 30289872896,
+                "min_size": 1,
+                "name": "default.rgw.log",
+                "objects": 210,
+                "percent_used": 0.0005,
+                "pg_num": 32,
+                "redundant": false,
+                "size": 1,
+                "stored_bytes": 3702
+            },
+            {
+                "application": "rgw",
+                "bytes_used": 0,
+                "id": 7,
+                "max_avail": 30289872896,
+                "min_size": 1,
+                "name": "default.rgw.control",
+                "objects": 8,
+                "percent_used": 0,
+                "pg_num": 32,
+                "redundant": false,
+                "size": 1,
+                "stored_bytes": 0
+            },
+            {
+                "application": "rgw",
+                "bytes_used": 46290,
+                "id": 8,
+                "max_avail": 30289872896,
+                "min_size": 1,
+                "name": "default.rgw.meta",
+                "objects": 13,
+                "percent_used": 0.0002,
+                "pg_num": 32,
+                "redundant": false,
+                "size": 1,
+                "stored_bytes": 3923
+            },
+            {
+                "application": "rgw",
+                "bytes_used": 6706,
+                "id": 9,
+                "max_avail": 30289872896,
+                "min_size": 1,
+                "name": "default.rgw.buckets.index",
+                "objects": 33,
+                "percent_used": 0.0,
+                "pg_num": 32,
+                "redundant": false,
+                "size": 1,
+                "stored_bytes": 6706
+            },
+            {
+                "application": "rgw",
+                "bytes_used": 0,
+                "id": 10,
+                "max_avail": 30289872896,
+                "min_size": 1,
+                "name": "default.rgw.buckets.data",
+                "objects": 0,
+                "percent_used": 0,
+                "pg_num": 32,
+                "redundant": false,
+                "size": 1,
+                "stored_bytes": 0
+            },
+            {
+                "application": "rgw",
+                "bytes_used": 1352888,
+                "id": 11,
+                "max_avail": 30289872896,
+                "min_size": 1,
+                "name": "aikyastor-primary.rgw.log",
+                "objects": 625,
+                "percent_used": 0.0045,
+                "pg_num": 32,
+                "redundant": false,
+                "size": 1,
+                "stored_bytes": 56067
+            },
+            {
+                "application": "rgw",
+                "bytes_used": 0,
+                "id": 12,
+                "max_avail": 30289872896,
+                "min_size": 1,
+                "name": "aikyastor-primary.rgw.control",
+                "objects": 9,
+                "percent_used": 0,
+                "pg_num": 32,
+                "redundant": false,
+                "size": 1,
+                "stored_bytes": 0
+            },
+            {
+                "application": "rgw",
+                "bytes_used": 153600,
+                "id": 13,
+                "max_avail": 30289872896,
+                "min_size": 1,
+                "name": "aikyastor-primary.rgw.meta",
+                "objects": 42,
+                "percent_used": 0.0005,
+                "pg_num": 32,
+                "redundant": false,
+                "size": 1,
+                "stored_bytes": 13801
+            },
+            {
+                "application": "rgw",
+                "bytes_used": 0,
+                "id": 14,
+                "max_avail": 30289872896,
+                "min_size": 1,
+                "name": "aikyastor-primary.rgw.otp",
+                "objects": 0,
+                "percent_used": 0,
+                "pg_num": 32,
+                "redundant": false,
+                "size": 1,
+                "stored_bytes": 0
+            },
+            {
+                "application": "rgw",
+                "bytes_used": 27814,
+                "id": 15,
+                "max_avail": 30289872896,
+                "min_size": 1,
+                "name": "aikyastor-primary.rgw.buckets.index",
+                "objects": 275,
+                "percent_used": 0.0001,
+                "pg_num": 32,
+                "redundant": false,
+                "size": 1,
+                "stored_bytes": 27814
+            },
+            {
+                "application": "rgw",
+                "bytes_used": 1007616,
+                "id": 16,
+                "max_avail": 30289872896,
+                "min_size": 1,
+                "name": "aikyastor-primary.rgw.buckets.data",
+                "objects": 5,
+                "percent_used": 0.0033,
+                "pg_num": 64,
+                "redundant": false,
+                "size": 1,
+                "stored_bytes": 993989
+            },
+            {
+                "application": "rgw",
+                "bytes_used": 8192,
+                "id": 17,
+                "max_avail": 30289872896,
+                "min_size": 1,
+                "name": "aikyastor-secondary.rgw.log",
+                "objects": 2,
+                "percent_used": 0.0,
+                "pg_num": 32,
+                "redundant": false,
+                "size": 1,
+                "stored_bytes": 182
+            },
+            {
+                "application": "rgw",
+                "bytes_used": 0,
+                "id": 18,
+                "max_avail": 30289872896,
+                "min_size": 1,
+                "name": "aikyastor-secondary.rgw.control",
+                "objects": 8,
+                "percent_used": 0,
+                "pg_num": 1,
+                "redundant": false,
+                "size": 1,
+                "stored_bytes": 0
+            },
+            {
+                "application": "rgw",
+                "bytes_used": 0,
+                "id": 19,
+                "max_avail": 30289872896,
+                "min_size": 1,
+                "name": "aikyastor-secondary.rgw.meta",
+                "objects": 0,
+                "percent_used": 0,
+                "pg_num": 1,
+                "redundant": false,
+                "size": 1,
+                "stored_bytes": 0
+            },
+            {
+                "application": "nfs",
+                "bytes_used": 17609,
+                "id": 20,
+                "max_avail": 30289872896,
+                "min_size": 1,
+                "name": ".nfs",
+                "objects": 5,
+                "percent_used": 0.0001,
+                "pg_num": 1,
+                "redundant": false,
+                "size": 1,
+                "stored_bytes": 2117
+            },
+            {
+                "application": "cephfs",
+                "bytes_used": 53633,
+                "id": 21,
+                "max_avail": 30289872896,
+                "min_size": 1,
+                "name": "cephfs.cephfs_flask-main.meta",
+                "objects": 22,
+                "percent_used": 0.0002,
+                "pg_num": 16,
+                "redundant": false,
+                "size": 1,
+                "stored_bytes": 25961
+            },
+            {
+                "application": "cephfs",
+                "bytes_used": 0,
+                "id": 22,
+                "max_avail": 30289872896,
+                "min_size": 1,
+                "name": "cephfs.cephfs_flask-main.data",
+                "objects": 0,
+                "percent_used": 0,
+                "pg_num": 64,
+                "redundant": false,
+                "size": 1,
+                "stored_bytes": 0
+            },
+            {
+                "application": "cephfs",
+                "bytes_used": 2856881,
+                "id": 23,
+                "max_avail": 30289872896,
+                "min_size": 1,
+                "name": "cephfs.flask-main.meta",
+                "objects": 22,
+                "percent_used": 0.0094,
+                "pg_num": 1,
+                "redundant": false,
+                "size": 1,
+                "stored_bytes": 2827335
+            },
+            {
+                "application": "cephfs",
+                "bytes_used": 2486272,
+                "id": 24,
+                "max_avail": 30289872896,
+                "min_size": 1,
+                "name": "cephfs.flask-main.data",
+                "objects": 231,
+                "percent_used": 0.0082,
+                "pg_num": 32,
+                "redundant": false,
+                "size": 1,
+                "stored_bytes": 1870649
+            },
+            {
+                "application": "cephfs",
+                "bytes_used": 55042,
+                "id": 25,
+                "max_avail": 30289872896,
+                "min_size": 1,
+                "name": "cephfs.sample.meta",
+                "objects": 22,
+                "percent_used": 0.0002,
+                "pg_num": 1,
+                "redundant": false,
+                "size": 1,
+                "stored_bytes": 24788
+            },
+            {
+                "application": "cephfs",
+                "bytes_used": 0,
+                "id": 26,
+                "max_avail": 30289872896,
+                "min_size": 1,
+                "name": "cephfs.sample.data",
+                "objects": 0,
+                "percent_used": 0,
+                "pg_num": 32,
+                "redundant": false,
+                "size": 1,
+                "stored_bytes": 0
+            },
+            {
+                "application": "rbd",
+                "bytes_used": 7941,
+                "id": 27,
+                "max_avail": 30289872896,
+                "min_size": 1,
+                "name": "joel",
+                "objects": 3,
+                "percent_used": 0.0,
+                "pg_num": 1,
+                "redundant": false,
+                "size": 1,
+                "stored_bytes": 3864
+            },
+            {
+                "application": "cephfs",
+                "bytes_used": 41151,
+                "id": 28,
+                "max_avail": 30289872896,
+                "min_size": 1,
+                "name": "research_fs_metadata",
+                "objects": 22,
+                "percent_used": 0.0001,
+                "pg_num": 1,
+                "redundant": false,
+                "size": 1,
+                "stored_bytes": 13001
+            },
+            {
+                "application": "cephfs",
+                "bytes_used": 0,
+                "id": 29,
+                "max_avail": 30289872896,
+                "min_size": 1,
+                "name": "research_fs_data",
+                "objects": 0,
+                "percent_used": 0,
+                "pg_num": 1,
+                "redundant": false,
+                "size": 1,
+                "stored_bytes": 0
+            },
+            {
+                "application": "cephfs",
+                "bytes_used": 35957,
+                "id": 30,
+                "max_avail": 30289872896,
+                "min_size": 1,
+                "name": "cephfs.upload_2b8e90e2eb.meta",
+                "objects": 22,
+                "percent_used": 0.0001,
+                "pg_num": 1,
+                "redundant": false,
+                "size": 1,
+                "stored_bytes": 5619
+            },
+            {
+                "application": "cephfs",
+                "bytes_used": 0,
+                "id": 31,
+                "max_avail": 30289872896,
+                "min_size": 1,
+                "name": "cephfs.upload_2b8e90e2eb.data",
+                "objects": 0,
+                "percent_used": 0,
+                "pg_num": 32,
+                "redundant": false,
+                "size": 1,
+                "stored_bytes": 0
+            },
+            {
+                "application": "cephfs",
+                "bytes_used": 34446,
+                "id": 32,
+                "max_avail": 30289872896,
+                "min_size": 1,
+                "name": "cephfs.upload_07ad845a11.meta",
+                "objects": 22,
+                "percent_used": 0.0001,
+                "pg_num": 1,
+                "redundant": false,
+                "size": 1,
+                "stored_bytes": 4108
+            },
+            {
+                "application": "cephfs",
+                "bytes_used": 0,
+                "id": 33,
+                "max_avail": 30289872896,
+                "min_size": 1,
+                "name": "cephfs.upload_07ad845a11.data",
+                "objects": 0,
+                "percent_used": 0,
+                "pg_num": 1,
+                "redundant": false,
+                "size": 1,
+                "stored_bytes": 0
+            },
+            {
+                "application": "cephfs",
+                "bytes_used": 402640,
+                "id": 34,
+                "max_avail": 30289872896,
+                "min_size": 1,
+                "name": "cephfs.upload_cb8ebc311c.meta",
+                "objects": 23,
+                "percent_used": 0.0013,
+                "pg_num": 1,
+                "redundant": false,
+                "size": 1,
+                "stored_bytes": 371104
+            },
+            {
+                "application": "cephfs",
+                "bytes_used": 16130048,
+                "id": 35,
+                "max_avail": 30289872896,
+                "min_size": 1,
+                "name": "cephfs.upload_cb8ebc311c.data",
+                "objects": 47,
+                "percent_used": 0.0532,
+                "pg_num": 1,
+                "redundant": false,
+                "size": 1,
+                "stored_bytes": 16024345
+            },
+            {
+                "application": null,
+                "bytes_used": 0,
+                "id": 36,
+                "max_avail": 30289872896,
+                "min_size": 1,
+                "name": "cephfs.upload_08cc92e4ad.meta",
+                "objects": 0,
+                "percent_used": 0,
+                "pg_num": 1,
+                "redundant": false,
+                "size": 1,
+                "stored_bytes": 0
+            }
+        ],
+        "redundancy_available": true
+    },
+    "services": {
+        "available": true,
+        "mgr": {
+            "active": 1,
+            "standby": 0
+        },
+        "mon": {
+            "total": 1,
+            "up": 1
+        },
+        "osd": {
+            "in": 3,
+            "total": 3,
+            "up": 3
+        },
+        "rgw": {
+            "count": 1,
+            "daemons": [
+                {
+                    "ceph_version": "19.2.5",
+                    "gid": "504124",
+                    "id": "aikyastor-primary.localhost.paoocp",
+                    "realm_name": "aikyastor",
+                    "zone_name": "aikyastor-primary"
+                }
+            ]
+        }
+    },
+    "version": "ceph version 19.2.6 (f9fd95b4335bad6a26d7a74468f55d269e8dbef4) squid (stable)"
+}

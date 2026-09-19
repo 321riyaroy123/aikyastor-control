@@ -1,4 +1,3 @@
-import StatCard from "../components/common/StatCard";
 import ActivityPanel from "../components/activity/ActivityPanel";
 import ClusterHealthBanner from "../components/dashboard/ClusterHealthBanner";
 import ClusterKPIs from "../components/dashboard/ClusterKPIs";
@@ -8,7 +7,6 @@ import PoolOverview from "../components/dashboard/PoolOverview";
 import AttentionRequired from "../components/dashboard/AttentionRequired";
 import PerformanceCharts from "../components/dashboard/PerformanceCharts";
 import { useDashboardMetrics } from "../hooks/useDashboardMetrics";
-import { formatBytes, calculatePercentage } from "../utils/formatters";
 
 // Extracted from the Dashboard component in AiKyaStorCONTROL.jsx.
 //
@@ -75,13 +73,13 @@ import { formatBytes, calculatePercentage } from "../utils/formatters";
 // diverge. Reordering to strict spec order is a one-line JSX move
 // whenever it's wanted; not done silently as part of this phase.
 export default function Dashboard({ stats, health, vault, activity, onRefreshActivity }) {
-  const used = stats ? calculatePercentage(stats.total_used_raw, stats.total_bytes) : 0;
   const dashboardMetrics = useDashboardMetrics(8000);
 
   return (
     <div>
       <ClusterHealthBanner
         health={dashboardMetrics.data?.health}
+        version={dashboardMetrics.data?.version}
         lastUpdated={dashboardMetrics.lastUpdated}
         stale={dashboardMetrics.stale}
         onRefresh={dashboardMetrics.refresh}
@@ -115,13 +113,6 @@ export default function Dashboard({ stats, health, vault, activity, onRefreshAct
         io={dashboardMetrics.data?.io}
         ioHistory={dashboardMetrics.data?.io_history}
       />
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(180px,1fr))", gap: "1rem", marginBottom: "1.5rem" }}>
-        <StatCard label="Total Capacity" value={stats ? formatBytes(stats.total_bytes) : "—"} sub="raw cluster storage" />
-        <StatCard label="Used" value={stats ? formatBytes(stats.total_used_raw) : "—"} sub={stats ? `${used}% of total` : "—"} pctVal={used} />
-        <StatCard label="Available" value={stats ? formatBytes(stats.total_avail) : "—"} sub="free space" />
-        <StatCard label="Vault Free" value={vault ? formatBytes(vault.free) : "—"} sub={vault?.path || "/vault"} vault />
-      </div>
 
       <ActivityPanel activity={activity} onRefresh={onRefreshActivity} />
     </div>

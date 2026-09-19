@@ -29,18 +29,20 @@ at startup, not per-request). Prometheus integration has no scaffold yet
 """
 
 import json
-import threading
-import time
-from collections import deque
 from datetime import datetime, timezone
 from typing import Dict, Any, List
-
+import time
 from core.logger import logger
 from services.cluster.ceph_ops import run_ceph_cmd
 from services.object.object_storage import get_s3_client
 from services.block.block_storage import list_rbd_images
 from services.file.cephfs_mount import get_active_mount_point, is_mounted
 from services.vault.vault_ops import get_vault_status
+from services.monitoring.prometheus_service import (
+    query,
+    query_range,
+    PrometheusError,
+)
 
 # ─── Shared: single `ceph -s` fetch, parsed once per call ───────────────────
 # Real output shape verified against Ceph Squid 19.2.5 on 2026-09-16:
@@ -428,37 +430,64 @@ def get_capacity_summary() -> Dict[str, Any]:
         "utilization_pct": pct,
     }
 
-
 def get_cluster_io() -> Dict[str, Any]:
     """
-    PHASE 7 (Performance charts, Sections 6-9). Wired into /api/dashboard
-    as the current instantaneous reading (the "right now" numbers on the
-    KPI/summary row). For history/charting, see get_cluster_io_history()
-    below, which is backed by the ring buffer this function's own samples
-    feed into.
+    Return current cluster I/O rates from Prometheus.
 
-    Point-in-time I/O counters from pgmap. These are instantaneous
-    values, not a time series by themselves — ceph -s itself carries no
-    history, confirmed by inspecting the real payload (no timestamped
-    series anywhere in pgmap). See _IO_HISTORY / _sample_cluster_io_once()
-    below for the sampling strategy that turns this into a time series.
+    Throughput and operation rates come from Ceph pool metrics exposed
+    through Prometheus. Cluster inventory fields remain sourced from
+    `ceph -s` so the existing dashboard API shape is preserved.
     """
-    raw = _get_ceph_status_raw()
-    if not raw:
-        return {"available": False, "error": "ceph -s unavailable"}
 
-    pgmap = raw.get("pgmap", {})
-    return {
-        "available": True,
-        "read_bytes_sec": pgmap.get("read_bytes_sec", 0),
-        "write_bytes_sec": pgmap.get("write_bytes_sec", 0),
-        "read_op_per_sec": pgmap.get("read_op_per_sec", 0),
-        "write_op_per_sec": pgmap.get("write_op_per_sec", 0),
-        "num_pgs": pgmap.get("num_pgs", 0),
-        "num_pools": pgmap.get("num_pools", 0),
-        "num_objects": pgmap.get("num_objects", 0),
-    }
+    def _value(result: List[Dict[str, Any]]) -> float:
+        if not result:
+            return 0.0
+        return float(result[0]["value"][1])
 
+    try:
+        read_bytes = query(
+            "sum(rate(ceph_pool_rd_bytes[1m]))"
+        )
+        write_bytes = query(
+            "sum(rate(ceph_pool_wr_bytes[1m]))"
+        )
+        read_ops = query(
+            "sum(rate(ceph_pool_rd[1m]))"
+        )
+        write_ops = query(
+            "sum(rate(ceph_pool_wr[1m]))"
+        )
+
+        # Preserve the existing inventory fields used elsewhere
+        # in the dashboard.
+        raw = _get_ceph_status_raw()
+        pgmap = raw.get("pgmap", {}) if raw else {}
+
+        return {
+            "available": True,
+
+            # Prometheus-backed performance metrics
+            "read_bytes_sec": _value(read_bytes),
+            "write_bytes_sec": _value(write_bytes),
+            "read_op_per_sec": _value(read_ops),
+            "write_op_per_sec": _value(write_ops),
+
+            # Existing Ceph inventory fields
+            "num_pgs": pgmap.get("num_pgs", 0),
+            "num_pools": pgmap.get("num_pools", 0),
+            "num_objects": pgmap.get("num_objects", 0),
+        }
+
+    except PrometheusError as exc:
+        logger.error(
+            "Prometheus I/O query failed: %s",
+            exc,
+        )
+
+        return {
+            "available": False,
+            "error": str(exc),
+        }
 
 # ─── Cluster I/O history (Phase 7 sampling strategy) ─────────────────────────
 # `ceph -s` gives no history of its own (confirmed above) and the frontend
@@ -474,90 +503,109 @@ def get_cluster_io() -> Dict[str, Any]:
 # the loop so one failed sample never kills the sampler) — no new
 # concurrency pattern introduced.
 
-# ─── Cluster I/O history (Phase 7 sampling strategy) ─────────────────────────
-# `ceph -s` gives no history of its own (confirmed above) and the frontend
-# polls independently per browser tab, so accumulating history client-side
-# would lose it on every reload and diverge across tabs. Instead: a
-# server-side ring buffer, filled by a background daemon thread that
-# samples get_cluster_io() on its own fixed cadence — decoupled from
-# /api/dashboard's own request timing, so the chart has real history
-# immediately on page load rather than starting empty and filling in only
-# as long as a browser tab happens to stay open. Same shape as the
-# existing services/object/lifecycle_scheduler.py background-thread
-# pattern (daemon thread, fixed sleep interval, exceptions caught inside
-# the loop so one failed sample never kills the sampler) — no new
-# concurrency pattern introduced.
+# ─── Cluster I/O history (Prometheus) ────────────────────────────────────────
 
-_IO_SAMPLE_INTERVAL = 10  # seconds between samples
-_IO_HISTORY_MAXLEN = 360  # 360 * 10s = 1 hour of history
-
-_io_history: "deque[Dict[str, Any]]" = deque(maxlen=_IO_HISTORY_MAXLEN)
-_io_history_lock = threading.Lock()
-
-
-def _sample_cluster_io_once() -> None:
-    """Take one get_cluster_io() reading and append it to the ring buffer."""
-    sample = get_cluster_io()
-    entry = {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "available": sample.get("available", False),
-    }
-    if sample.get("available"):
-        entry.update({
-            "read_bytes_sec": sample["read_bytes_sec"],
-            "write_bytes_sec": sample["write_bytes_sec"],
-            "read_op_per_sec": sample["read_op_per_sec"],
-            "write_op_per_sec": sample["write_op_per_sec"],
-        })
-    with _io_history_lock:
-        _io_history.append(entry)
-
-
-def _io_sampler_loop() -> None:
-    logger.info(f"Cluster I/O history sampler started (every {_IO_SAMPLE_INTERVAL}s).")
-    while True:
-        try:
-            _sample_cluster_io_once()
-        except Exception:
-            logger.exception("Cluster I/O history sampler failed on this tick.")
-        time.sleep(_IO_SAMPLE_INTERVAL)
-
-
-def start_io_history_sampler() -> threading.Thread:
-    """
-    Start the background sampler thread. Called once from app.py at
-    startup (mirrors services.object.lifecycle_scheduler.start_scheduler()
-    — same daemon-thread-at-import-time pattern, not invoked per-request).
-    """
-    thread = threading.Thread(target=_io_sampler_loop, daemon=True)
-    thread.start()
-    return thread
+_IO_HISTORY_WINDOW_SECONDS = 3600  # 1 hour
+_IO_HISTORY_STEP_SECONDS = 10      # 10-second resolution
+_IO_HISTORY_MAXLEN = (
+    _IO_HISTORY_WINDOW_SECONDS // _IO_HISTORY_STEP_SECONDS
+)
 
 
 def get_cluster_io_history() -> Dict[str, Any]:
     """
-    PHASE 7. Wired into /api/dashboard as "io_history".
+    Return one hour of cluster I/O history from Prometheus.
 
-    Returns whatever the ring buffer currently holds — empty on first
-    startup (before the sampler's first tick), growing up to
-    _IO_HISTORY_MAXLEN entries (~1 hour at the current interval), then
-    rolling. Each point only carries available/timestamp when a sample
-    failed, matching this module's "failure must be visible" convention
-    rather than a fabricated zero-value point.
-
-    Does NOT call run_ceph_cmd() itself — purely reads the in-memory
-    buffer the background sampler fills, so this is always fast
-    regardless of Ceph's current responsiveness.
+    Throughput and operation rates are calculated from Ceph pool metrics.
+    The response shape is kept compatible with the existing frontend.
     """
-    with _io_history_lock:
-        points = list(_io_history)
-    return {
-        "available": True,
-        "interval_seconds": _IO_SAMPLE_INTERVAL,
-        "max_points": _IO_HISTORY_MAXLEN,
-        "points": points,
+
+    end = time.time()
+    start = end - _IO_HISTORY_WINDOW_SECONDS
+
+    queries = {
+        "read_bytes_sec": "sum(rate(ceph_pool_rd_bytes[1m]))",
+        "write_bytes_sec": "sum(rate(ceph_pool_wr_bytes[1m]))",
+        "read_op_per_sec": "sum(rate(ceph_pool_rd[1m]))",
+        "write_op_per_sec": "sum(rate(ceph_pool_wr[1m]))",
     }
 
+    try:
+        results = {
+            name: query_range(
+                promql,
+                start=start,
+                end=end,
+                step=_IO_HISTORY_STEP_SECONDS,
+            )
+            for name, promql in queries.items()
+        }
+
+        # Prometheus returns one time series for each aggregate query.
+        # Convert each result into {timestamp: value} for easy alignment.
+        series = {}
+
+        for name, result in results.items():
+            values = {}
+
+            if result:
+                for timestamp, value in result[0].get("values", []):
+                    values[float(timestamp)] = float(value)
+
+            series[name] = values
+
+        # Use timestamps from the read-throughput series as the timeline.
+        timestamps = sorted(
+            set().union(
+                *[set(values.keys()) for values in series.values()]
+            )
+        )
+
+        points = []
+
+        for timestamp in timestamps[-_IO_HISTORY_MAXLEN:]:
+            points.append({
+                "timestamp": datetime.fromtimestamp(
+                    timestamp,
+                    tz=timezone.utc,
+                ).isoformat(),
+                "available": True,
+                "read_bytes_sec": series["read_bytes_sec"].get(
+                    timestamp, 0.0
+                ),
+                "write_bytes_sec": series["write_bytes_sec"].get(
+                    timestamp, 0.0
+                ),
+                "read_op_per_sec": series["read_op_per_sec"].get(
+                    timestamp, 0.0
+                ),
+                "write_op_per_sec": series["write_op_per_sec"].get(
+                    timestamp, 0.0
+                ),
+            })
+
+        return {
+            "available": True,
+            "source": "prometheus",
+            "interval_seconds": _IO_HISTORY_STEP_SECONDS,
+            "max_points": _IO_HISTORY_MAXLEN,
+            "points": points,
+        }
+
+    except PrometheusError as exc:
+        logger.error(
+            "Prometheus I/O history query failed: %s",
+            exc,
+        )
+
+        return {
+            "available": False,
+            "source": "prometheus",
+            "interval_seconds": _IO_HISTORY_STEP_SECONDS,
+            "max_points": _IO_HISTORY_MAXLEN,
+            "points": [],
+            "error": str(exc),
+        }
 
 def get_osd_utilization() -> Dict[str, Any]:
     """
