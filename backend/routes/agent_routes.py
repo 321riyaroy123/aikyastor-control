@@ -54,10 +54,28 @@ def upload_workload():
         # A directory upload is represented by its root directory; a single
         # file is represented directly so the classifier can inspect either.
         payload_path = str(upload_dir if len(saved) > 1 else Path(saved[0]["path"]))
-        original_name = Path(saved[0]["name"]).name
+        # Preserve the actual root folder name for directory uploads.
+        relative_names = [
+            item["name"]
+            for item in saved
+            if item.get("name")
+        ]
+
+        root_names = {
+            Path(name).parts[0]
+            for name in relative_names
+            if Path(name).parts
+        }
+
+        if len(root_names) == 1:
+            original_name = next(iter(root_names))
+        else:
+            # Single-file upload or ambiguous multi-root upload.
+            original_name = Path(saved[0]["name"]).name
+
         record = _manager().register_upload(
             payload_path=payload_path,
-            original_name=original_name if len(saved) == 1 else upload_id,
+            original_name=original_name,
             file_count=len(saved),
             total_size=total_size,
         )

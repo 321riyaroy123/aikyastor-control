@@ -160,11 +160,17 @@ class AgentManager:
             item_path=payload_path
         )
 
+        tuning = dict(classification.tuning_parameters or {})
+        tuning["workload_name"] = (
+            analysis.get("source_name")
+            or Path(payload_path).name
+        )
+
         recipe = get_workflow_recipe(
             workflow=classification.target_workflow,
             payload_path=payload_path,
             destination=classification.target_destination,
-            tuning=classification.tuning_parameters,
+            tuning=tuning,
         )
 
         return {
@@ -387,8 +393,12 @@ class AgentManager:
         workflow = classification.target_workflow
 
         destination = classification.target_destination
-        tuning = classification.tuning_parameters
 
+        tuning = dict(classification.tuning_parameters or {})
+        tuning["workload_name"] = (
+            analysis.get("source_name")
+            or Path(payload_path).name
+        )
         # The uploaded payload currently lives on the backend machine.
         # Copy it to the Ceph VM before executing the recipe.
         remote_payload = f"/tmp/{Path(payload_path).name}"
