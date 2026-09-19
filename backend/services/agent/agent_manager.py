@@ -133,6 +133,18 @@ class AgentManager:
     # STATUS
     # ------------------------------------------------------------------
 
+    def list_tasks(self):
+        """Return all agent tasks, newest first."""
+        with self._lock:
+            tasks = list(self._tasks.values())
+
+        tasks.sort(
+            key=lambda task: task.get("created_at", ""),
+            reverse=True,
+        )
+
+        return deepcopy(tasks)
+
     def preview_workflow(self, analysis_id):
         analysis = self._analyses.get(analysis_id)
 
@@ -345,38 +357,16 @@ class AgentManager:
     # recipe commands (MockSSHExecutor vs SSHExecutor). This avoids having
     # two parallel task-execution implementations.
     # ------------------------------------------------------------------
-
     def execute_workflow(self, analysis_id, confirm=False):
-        """Executes the real recipe for a previously previewed analysis.
+        """Execute the approved workflow against the Ceph VM."""
 
-        This is the explicit confirm-and-execute action (Phase 2B). It is
-        deliberately a separate call from preview_workflow()/create_task()
-        so that fetching a preview never has side effects.
-
-        - Requires confirm=True. This is the safety gate: previewing a
-          workflow (GET /analyses/<id>/workflow) never runs commands, and
-          neither does calling this without confirmation.
-        - Builds the *real* recipe via get_workflow_recipe(), identically
-          to preview_workflow(), so what was previewed is what executes.
-        - Runs steps through self.executor (MockSSHExecutor in simulation
-          mode, SSHExecutor in production), one at a time, in order.
-        - Persists every step and state transition via self.tracker
-          (ExecutionTracker / agent_traces.db).
-        - Does NOT retry or self-heal. On the first failed step, the task
-          is marked FAILED and execution stops. Remediation is Phase 3.
-        """
         if not confirm:
-            raise ValueError(
-                "Execution requires explicit confirmation (confirm=true)."
-            )
+            raise ValueError("Workflow execution requires confirmation")
 
         if not self.classifier_available:
             raise RuntimeError(
                 f"Ceph Agent classifier unavailable: {self.classifier_error}"
             )
-
-        if self.tracker is None:
-            raise RuntimeError("Execution tracker unavailable.")
 
         analysis = self.get_analysis(analysis_id)
 
@@ -388,21 +378,54 @@ class AgentManager:
         if not payload_path:
             raise ValueError("Analysis has no payload path")
 
-        # Re-classify and re-derive the recipe the same way preview_workflow()
-        # does, so the executed plan matches exactly what the user previewed
-        # and confirmed (the classifier is deterministic-first, so this is
-        # stable for the same payload/tuning).
-        classification = self.classifier.classify(item_path=payload_path)
-
-        recipe = get_workflow_recipe(
-            workflow=classification.target_workflow,
-            payload_path=payload_path,
-            destination=classification.target_destination,
-            tuning=classification.tuning_parameters,
+        # Re-classify server-side so execution uses the authoritative result.
+        classification = self.classifier.classify(
+            item_path=payload_path
         )
+
+        # IMPORTANT: define workflow BEFORE using it.
+        workflow = classification.target_workflow
+
+        destination = classification.target_destination
+        tuning = classification.tuning_parameters
+
+        # The uploaded payload currently lives on the backend machine.
+        # Copy it to the Ceph VM before executing the recipe.
+        remote_payload = f"/tmp/{Path(payload_path).name}"
+
+        if not self.simulation:
+            upload_ok = self.executor.upload_path(
+                payload_path,
+                remote_payload,
+            )
+
+            if not upload_ok:
+                raise RuntimeError(
+                    f"Failed to upload payload to Ceph VM: {remote_payload}"
+                )
+
+        else:
+            remote_payload = payload_path
+
+        # Build the exact same recipe that was previewed.
+        recipe = get_workflow_recipe(
+            workflow=workflow,
+            payload_path=remote_payload,
+            destination=destination,
+            tuning=tuning,
+        )
+
+        if not recipe:
+            raise ValueError(
+                f"No workflow recipe available for {workflow}"
+            )
+
+        task_id = f"task_{uuid4().hex[:10]}"
+        now = self._now()
 
         steps = [
             {
+                "number": index,
                 "name": step.name,
                 "description": step.description,
                 "command": step.command,
@@ -411,34 +434,25 @@ class AgentManager:
                 "timeout_sec": step.timeout_sec,
                 "optional": step.optional,
                 "status": "pending",
-                "exit_code": None,
-                "stdout": None,
-                "stderr": None,
-                "duration_ms": None,
             }
-            for step in recipe
+            for index, step in enumerate(recipe, 1)
         ]
-
-        now = self._now()
-        task_id = f"task_{uuid4().hex[:10]}"
 
         task = {
             "task_id": task_id,
-            "status": "queued",
-            "mode": "simulation" if self.simulation else "production",
-            "payload_path": str(payload_path),
-            "source_name": analysis.get("source_name"),
+            "analysis_id": analysis_id,
             "upload_id": analysis.get("upload_id"),
+            "payload_path": remote_payload,
+            "source_name": analysis.get("source_name"),
 
             "detected_type": classification.item_type,
-            "workflow": classification.target_workflow,
+            "workflow": workflow,
             "confidence": classification.confidence,
             "decision_tier": classification.decision_tier,
-            "target": classification.target_destination,
+            "target": destination,
             "rationale": classification.rationale,
 
-            "analysis_id": analysis_id,
-
+            "status": "queued",
             "current_step": steps[0]["name"] if steps else None,
             "step_index": 0,
             "total_steps": len(steps),
@@ -454,14 +468,19 @@ class AgentManager:
         with self._lock:
             self._tasks[task_id] = task
 
-        # Persist the task in the real tracker before kicking off execution,
-        # so it shows up in agent_traces.db even if the process is killed
-        # mid-run.
-        self.tracker.create_task(
-            task_id=task_id,
-            payload_path=str(payload_path),
-            workflow=classification.target_workflow,
-        )
+        # Persist the execution in the real agent tracker.
+        try:
+            self.tracker.create_task(
+                task_id=task_id,
+                payload_path=remote_payload,
+                workflow=workflow,
+            )
+        except Exception as exc:
+            with self._lock:
+                self._tasks.pop(task_id, None)
+            raise RuntimeError(
+                f"Failed to initialize execution tracker: {exc}"
+            ) from exc
 
         Thread(
             target=self._run_real_execution,

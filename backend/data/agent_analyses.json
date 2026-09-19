@@ -87,5 +87,395 @@
     "payload_path": "/tmp/aikyastor-agent-workloads/upload_eeed33d42e/cirros-0.6.2-x86_64-disk.img",
     "source_name": "cirros-0.6.2-x86_64-disk.img",
     "created_at": "2026-09-18T16:18:59.309246+00:00"
+  },
+  "analysis_014cd307f9": {
+    "item_path": "/tmp/aikyastor-agent-workloads/upload_2b8e90e2eb",
+    "item_type": "hierarchical_directory",
+    "target_workflow": "CephFS",
+    "confidence": 0.96,
+    "rationale": "Directory structure (24 files, max depth 1). Best mounted as a distributed POSIX filesystem preserving permissions and directory hierarchy.",
+    "target_destination": "/mnt/cephfs/upload_2b8e90e2eb",
+    "tuning_parameters": {
+      "preserve_posix_permissions": true,
+      "preserve_xattrs": true,
+      "mount_point": "/mnt/cephfs/",
+      "unpack_to_mount": false
+    },
+    "decision_tier": "tier1_deterministic",
+    "metadata": {
+      "size_mb": 21.69,
+      "is_directory": true,
+      "mime_type": "inode/directory",
+      "magic_signature": "DIRECTORY_TREE",
+      "file_count": 24,
+      "max_depth": 1
+    },
+    "analysis_id": "analysis_014cd307f9",
+    "upload_id": "upload_1c3989c081",
+    "payload_path": "/tmp/aikyastor-agent-workloads/upload_2b8e90e2eb",
+    "source_name": "upload_2b8e90e2eb",
+    "created_at": "2026-09-18T17:14:20.080439+00:00"
+  },
+  "analysis_220eb9704f": {
+    "item_path": "/tmp/aikyastor-agent-workloads/upload_07ad845a11",
+    "item_type": "hierarchical_directory",
+    "target_workflow": "CephFS",
+    "confidence": 0.96,
+    "rationale": "Directory structure (47 files, max depth 2). Best mounted as a distributed POSIX filesystem preserving permissions and directory hierarchy.",
+    "target_destination": "/mnt/cephfs/upload_07ad845a11",
+    "tuning_parameters": {
+      "preserve_posix_permissions": true,
+      "preserve_xattrs": true,
+      "mount_point": "/mnt/cephfs/",
+      "unpack_to_mount": false
+    },
+    "decision_tier": "tier1_deterministic",
+    "metadata": {
+      "size_mb": 15.28,
+      "is_directory": true,
+      "mime_type": "inode/directory",
+      "magic_signature": "DIRECTORY_TREE",
+      "file_count": 47,
+      "max_depth": 2
+    },
+    "analysis_id": "analysis_220eb9704f",
+    "upload_id": "upload_e18dc7ef84",
+    "payload_path": "/tmp/aikyastor-agent-workloads/upload_07ad845a11",
+    "source_name": "upload_07ad845a11",
+    "created_at": "2026-09-18T17:25:06.405422+00:00"
+  },
+  "analysis_20a44b192d": {
+    "item_path": "/tmp/aikyastor-agent-workloads/upload_4427fa3ab9",
+    "item_type": "hierarchical_directory",
+    "target_workflow": "CephFS",
+    "confidence": 0.96,
+    "rationale": "Directory structure (47 files, max depth 2). Best mounted as a distributed POSIX filesystem preserving permissions and directory hierarchy.",
+    "target_destination": "/mnt/cephfs/upload_4427fa3ab9",
+    "tuning_parameters": {
+      "preserve_posix_permissions": true,
+      "preserve_xattrs": true,
+      "mount_point": "/mnt/cephfs/",
+      "unpack_to_mount": false
+    },
+    "decision_tier": "tier1_deterministic",
+    "metadata": {
+      "size_mb": 15.28,
+      "is_directory": true,
+      "mime_type": "inode/directory",
+      "magic_signature": "DIRECTORY_TREE",
+      "file_count": 47,
+      "max_depth": 2
+    },
+    "analysis_id": "analysis_20a44b192d",
+    "upload_id": "upload_1b6b7ad790",
+    "payload_path": "/tmp/aikyastor-agent-workloads/upload_4427fa3ab9",
+    "source_name": "upload_4427fa3ab9",
+    "created_at": "2026-09-18T17:29:13.129275+00:00"
+  },
+  "analysis_3f232d7adf": {
+    "item_path": "/tmp/aikyastor-agent-workloads/upload_cb8ebc311c",
+    "item_type": "hierarchical_directory",
+    "target_workflow": "CephFS",
+    "confidence": 0.96,
+    "rationale": "Directory structure (47 files, max depth 2). Best mounted as a distributed POSIX filesystem preserving permissions and directory hierarchy.",
+    "target_destination": "/mnt/cephfs/upload_cb8ebc311c",
+    "tuning_parameters": {
+      "preserve_posix_permissions": true,
+      "preserve_xattrs": true,
+      "mount_point": "/mnt/cephfs/",
+      "unpack_to_mount": false
+    },
+    "decision_tier": "tier1_deterministic",
+    "metadata": {
+      "size_mb": 15.28,
+      "is_directory": true,
+      "mime_type": "inode/directory",
+      "magic_signature": "DIRECTORY_TREE",
+      "file_count": 47,
+      "max_depth": 2
+    },
+    "analysis_id": "analysis_3f232d7adf",
+    "upload_id": "upload_48429b166b",
+    "payload_path": "/tmp/aikyastor-agent-workloads/upload_cb8ebc311c",
+    "source_name": "upload_cb8ebc311c",
+    "created_at": "2026-09-18T17:30:22.403320+00:00"
+  },
+  "analysis_e91ec0a449": {
+    "item_path": "/tmp/aikyastor-agent-workloads/upload_3696227b30",
+    "item_type": "hierarchical_directory",
+    "target_workflow": "CephFS",
+    "confidence": 0.96,
+    "rationale": "Directory structure (6 files, max depth 1). Best mounted as a distributed POSIX filesystem preserving permissions and directory hierarchy.",
+    "target_destination": "/mnt/cephfs/upload_3696227b30",
+    "tuning_parameters": {
+      "preserve_posix_permissions": true,
+      "preserve_xattrs": true,
+      "mount_point": "/mnt/cephfs/",
+      "unpack_to_mount": false
+    },
+    "decision_tier": "tier1_deterministic",
+    "metadata": {
+      "size_mb": 1.9,
+      "is_directory": true,
+      "mime_type": "inode/directory",
+      "magic_signature": "DIRECTORY_TREE",
+      "file_count": 6,
+      "max_depth": 1
+    },
+    "analysis_id": "analysis_e91ec0a449",
+    "upload_id": "upload_579fa47786",
+    "payload_path": "/tmp/aikyastor-agent-workloads/upload_3696227b30",
+    "source_name": "upload_3696227b30",
+    "created_at": "2026-09-18T18:07:39.756275+00:00"
+  },
+  "analysis_e26420694d": {
+    "item_path": "/tmp/aikyastor-agent-workloads/upload_08cc92e4ad",
+    "item_type": "hierarchical_directory",
+    "target_workflow": "CephFS",
+    "confidence": 0.96,
+    "rationale": "Directory structure (6 files, max depth 1). Best mounted as a distributed POSIX filesystem preserving permissions and directory hierarchy.",
+    "target_destination": "/mnt/cephfs/upload_08cc92e4ad",
+    "tuning_parameters": {
+      "preserve_posix_permissions": true,
+      "preserve_xattrs": true,
+      "mount_point": "/mnt/cephfs/",
+      "unpack_to_mount": false
+    },
+    "decision_tier": "tier1_deterministic",
+    "metadata": {
+      "size_mb": 1.9,
+      "is_directory": true,
+      "mime_type": "inode/directory",
+      "magic_signature": "DIRECTORY_TREE",
+      "file_count": 6,
+      "max_depth": 1
+    },
+    "analysis_id": "analysis_e26420694d",
+    "upload_id": "upload_48e9ad7aee",
+    "payload_path": "/tmp/aikyastor-agent-workloads/upload_08cc92e4ad",
+    "source_name": "upload_08cc92e4ad",
+    "created_at": "2026-09-18T18:13:18.235260+00:00"
+  },
+  "analysis_7e7462a923": {
+    "item_path": "/tmp/aikyastor-agent-workloads/upload_fbe0bff064",
+    "item_type": "hierarchical_directory",
+    "target_workflow": "CephFS",
+    "confidence": 0.96,
+    "rationale": "Directory structure (6 files, max depth 1). Best mounted as a distributed POSIX filesystem preserving permissions and directory hierarchy.",
+    "target_destination": "/mnt/cephfs/upload_fbe0bff064",
+    "tuning_parameters": {
+      "preserve_posix_permissions": true,
+      "preserve_xattrs": true,
+      "mount_point": "/mnt/cephfs/",
+      "unpack_to_mount": false
+    },
+    "decision_tier": "tier1_deterministic",
+    "metadata": {
+      "size_mb": 1.9,
+      "is_directory": true,
+      "mime_type": "inode/directory",
+      "magic_signature": "DIRECTORY_TREE",
+      "file_count": 6,
+      "max_depth": 1
+    },
+    "analysis_id": "analysis_7e7462a923",
+    "upload_id": "upload_07a6ec6403",
+    "payload_path": "/tmp/aikyastor-agent-workloads/upload_fbe0bff064",
+    "source_name": "upload_fbe0bff064",
+    "created_at": "2026-09-18T18:23:08.043699+00:00"
+  },
+  "analysis_e722b3667b": {
+    "item_path": "/tmp/aikyastor-agent-workloads/upload_929a469d20",
+    "item_type": "hierarchical_directory",
+    "target_workflow": "CephFS",
+    "confidence": 0.96,
+    "rationale": "Directory structure (4 files, max depth 1). Best mounted as a distributed POSIX filesystem preserving permissions and directory hierarchy.",
+    "target_destination": "/mnt/cephfs/upload_929a469d20",
+    "tuning_parameters": {
+      "preserve_posix_permissions": true,
+      "preserve_xattrs": true,
+      "mount_point": "/mnt/cephfs/",
+      "unpack_to_mount": false
+    },
+    "decision_tier": "tier1_deterministic",
+    "metadata": {
+      "size_mb": 5.24,
+      "is_directory": true,
+      "mime_type": "inode/directory",
+      "magic_signature": "DIRECTORY_TREE",
+      "file_count": 4,
+      "max_depth": 1
+    },
+    "analysis_id": "analysis_e722b3667b",
+    "upload_id": "upload_aee3575d27",
+    "payload_path": "/tmp/aikyastor-agent-workloads/upload_929a469d20",
+    "source_name": "upload_929a469d20",
+    "created_at": "2026-09-18T18:29:08.282751+00:00"
+  },
+  "analysis_0b51ff998f": {
+    "item_path": "/tmp/aikyastor-agent-workloads/upload_072f6fadf2",
+    "item_type": "hierarchical_directory",
+    "target_workflow": "CephFS",
+    "confidence": 0.96,
+    "rationale": "Directory structure (4 files, max depth 1). Best mounted as a distributed POSIX filesystem preserving permissions and directory hierarchy.",
+    "target_destination": "/mnt/cephfs/upload_072f6fadf2",
+    "tuning_parameters": {
+      "preserve_posix_permissions": true,
+      "preserve_xattrs": true,
+      "mount_point": "/mnt/cephfs/",
+      "unpack_to_mount": false
+    },
+    "decision_tier": "tier1_deterministic",
+    "metadata": {
+      "size_mb": 5.24,
+      "is_directory": true,
+      "mime_type": "inode/directory",
+      "magic_signature": "DIRECTORY_TREE",
+      "file_count": 4,
+      "max_depth": 1
+    },
+    "analysis_id": "analysis_0b51ff998f",
+    "upload_id": "upload_bc39484f76",
+    "payload_path": "/tmp/aikyastor-agent-workloads/upload_072f6fadf2",
+    "source_name": "upload_072f6fadf2",
+    "created_at": "2026-09-18T18:35:27.829396+00:00"
+  },
+  "analysis_aefc06ed3e": {
+    "item_path": "/tmp/aikyastor-agent-workloads/upload_1b2537ba93",
+    "item_type": "hierarchical_directory",
+    "target_workflow": "CephFS",
+    "confidence": 0.96,
+    "rationale": "Directory structure (6 files, max depth 1). Best mounted as a distributed POSIX filesystem preserving permissions and directory hierarchy.",
+    "target_destination": "/mnt/cephfs/upload_1b2537ba93",
+    "tuning_parameters": {
+      "preserve_posix_permissions": true,
+      "preserve_xattrs": true,
+      "mount_point": "/mnt/cephfs/",
+      "unpack_to_mount": false
+    },
+    "decision_tier": "tier1_deterministic",
+    "metadata": {
+      "size_mb": 13.49,
+      "is_directory": true,
+      "mime_type": "inode/directory",
+      "magic_signature": "DIRECTORY_TREE",
+      "file_count": 6,
+      "max_depth": 1
+    },
+    "analysis_id": "analysis_aefc06ed3e",
+    "upload_id": "upload_1efe1bbdc2",
+    "payload_path": "/tmp/aikyastor-agent-workloads/upload_1b2537ba93",
+    "source_name": "upload_1b2537ba93",
+    "created_at": "2026-09-18T18:42:48.749999+00:00"
+  },
+  "analysis_782700b5f4": {
+    "item_path": "/tmp/aikyastor-agent-workloads/upload_aab3cb3eb7/cirros-0.6.2-x86_64-disk.img",
+    "item_type": "virtual_disk_image",
+    "target_workflow": "RBD",
+    "confidence": 0.98,
+    "rationale": "Binary magic signature `QCOW2` detected. Block storage format best suited for thin-provisioned RBD volume with copy-on-write capabilities.",
+    "target_destination": "joel/cirros-0.6.2-x86_64-disk.img",
+    "tuning_parameters": {
+      "image_format": 2,
+      "features": [
+        "layering",
+        "exclusive-lock",
+        "object-map",
+        "fast-diff"
+      ],
+      "stripe_unit": "4MB",
+      "target_pool": "joel"
+    },
+    "decision_tier": "tier1_deterministic",
+    "metadata": {
+      "size_mb": 20.44,
+      "is_directory": false,
+      "mime_type": "application/octet-stream",
+      "magic_signature": "QCOW2",
+      "file_count": 1,
+      "max_depth": 0
+    },
+    "analysis_id": "analysis_782700b5f4",
+    "upload_id": "upload_535adf570d",
+    "payload_path": "/tmp/aikyastor-agent-workloads/upload_aab3cb3eb7/cirros-0.6.2-x86_64-disk.img",
+    "source_name": "cirros-0.6.2-x86_64-disk.img",
+    "created_at": "2026-09-18T18:53:06.193519+00:00"
+  },
+  "analysis_291938a0b3": {
+    "item_path": "/tmp/aikyastor-agent-workloads/upload_43d4d98b8d/Claude-AiKyaStor_CONTROL_ceph-agent_integration_completion-20260918-2214.txt",
+    "item_type": "generic_stream",
+    "target_workflow": "RGW",
+    "confidence": 0.88,
+    "rationale": "Standalone binary file (0.05 MB). Stored as an immutable S3 object in RGW storage.",
+    "target_destination": "s3://default-bucket/Claude-AiKyaStor_CONTROL_ceph-agent_integration_completion-20260918-2214.txt",
+    "tuning_parameters": {
+      "storage_class": "STANDARD"
+    },
+    "decision_tier": "tier1_deterministic",
+    "metadata": {
+      "size_mb": 0.05,
+      "is_directory": false,
+      "mime_type": "text/plain",
+      "magic_signature": "GENERIC_BINARY",
+      "file_count": 1,
+      "max_depth": 0
+    },
+    "analysis_id": "analysis_291938a0b3",
+    "upload_id": "upload_4dccef5a1b",
+    "payload_path": "/tmp/aikyastor-agent-workloads/upload_43d4d98b8d/Claude-AiKyaStor_CONTROL_ceph-agent_integration_completion-20260918-2214.txt",
+    "source_name": "Claude-AiKyaStor CONTROL ceph-agent integration completion-20260918-2214.txt",
+    "created_at": "2026-09-18T18:55:43.989307+00:00"
+  },
+  "analysis_b43e55d6b7": {
+    "item_path": "/tmp/aikyastor-agent-workloads/upload_d1ab0fe2d7/Claude-AiKyaStor_CONTROL_ceph-agent_integration_completion-20260918-2214.txt",
+    "item_type": "generic_stream",
+    "target_workflow": "RGW",
+    "confidence": 0.88,
+    "rationale": "Standalone binary file (0.05 MB). Stored as an immutable S3 object in RGW storage.",
+    "target_destination": "s3://default-bucket/Claude-AiKyaStor_CONTROL_ceph-agent_integration_completion-20260918-2214.txt",
+    "tuning_parameters": {
+      "storage_class": "STANDARD"
+    },
+    "decision_tier": "tier1_deterministic",
+    "metadata": {
+      "size_mb": 0.05,
+      "is_directory": false,
+      "mime_type": "text/plain",
+      "magic_signature": "GENERIC_BINARY",
+      "file_count": 1,
+      "max_depth": 0
+    },
+    "analysis_id": "analysis_b43e55d6b7",
+    "upload_id": "upload_47bec7147c",
+    "payload_path": "/tmp/aikyastor-agent-workloads/upload_d1ab0fe2d7/Claude-AiKyaStor_CONTROL_ceph-agent_integration_completion-20260918-2214.txt",
+    "source_name": "Claude-AiKyaStor CONTROL ceph-agent integration completion-20260918-2214.txt",
+    "created_at": "2026-09-18T19:11:30.553752+00:00"
+  },
+  "analysis_89ae2476f5": {
+    "item_path": "/tmp/aikyastor-agent-workloads/upload_485c25895e/Harry_Styles_wallpaper.jpg",
+    "item_type": "flat_media_object",
+    "target_workflow": "RGW",
+    "confidence": 0.95,
+    "rationale": "Immutable object format (image/jpeg, 0.05 MB) detected. Optimal for Amazon S3 / Ceph RGW REST storage with high throughput multipart streaming.",
+    "target_destination": "s3://default-bucket/Harry_Styles_wallpaper.jpg",
+    "tuning_parameters": {
+      "storage_class": "STANDARD",
+      "multipart_threshold_mb": 100,
+      "target_bucket": "default-bucket"
+    },
+    "decision_tier": "tier1_deterministic",
+    "metadata": {
+      "size_mb": 0.05,
+      "is_directory": false,
+      "mime_type": "image/jpeg",
+      "magic_signature": "JPEG",
+      "file_count": 1,
+      "max_depth": 0
+    },
+    "analysis_id": "analysis_89ae2476f5",
+    "upload_id": "upload_16e59b7e4f",
+    "payload_path": "/tmp/aikyastor-agent-workloads/upload_485c25895e/Harry_Styles_wallpaper.jpg",
+    "source_name": "Harry Styles wallpaper.jpg",
+    "created_at": "2026-09-18T19:22:54.888758+00:00"
   }
 }

@@ -1,5 +1,5 @@
 {
-  "active": "flask-main",
+  "active": "cephfs",
   "filesystems": {
     "aikyastor_fs": {
       "user": "admin",
@@ -22,6 +22,16 @@
       "mount_point": "/mnt/flask"
     },
     "flask-main": {
+      "user": "admin",
+      "monitors": "192.168.56.110:6789",
+      "mount_point": "/mnt/cephfs"
+    },
+    "upload_cb8ebc311c": {
+      "user": "admin",
+      "monitors": "192.168.56.110:6789",
+      "mount_point": "/mnt/cephfs"
+    },
+    "cephfs": {
       "user": "admin",
       "monitors": "192.168.56.110:6789",
       "mount_point": "/mnt/cephfs"
