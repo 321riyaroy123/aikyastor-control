@@ -4,7 +4,7 @@ Flask application entrypoint for AiKyaStor CONTROL.
 This module wires together the backend surface for the dashboard:
 cluster monitoring, object/block/file operations, lifecycle policies,
 replication, NFS management, vault backup actions, simulation helpers,
-HashiCorp Vault status endpoints, and Post-Quantum Cryptography (PQC) telemetry.
+HashiCorp Vault status endpoints, AI Monitoring & Agent, and Post-Quantum Cryptography (PQC) telemetry.
 """
 
 import os
@@ -27,12 +27,18 @@ from routes.replication_routes import replication_bp
 from routes.lifecycle_policy_routes import lifecycle_policy_bp
 from routes.simulation_routes import simulation_bp
 from routes.nfs_routes import nfs_bp
+from routes.ai_monitor_routes import ai_monitor_bp
+from services.agent.agent_manager import AgentManager
+from routes.agent_routes import agent_bp
+import services.agent.agent_manager as agent_manager_module
 
 # ─── Initialize Flask App ─────────────────────────────────────────────────────
 app = Flask(__name__)
 CORS(app)
 
 logger.info(f"Starting AiKyaStor CONTROL in {config.get_app_mode()} mode")
+
+agent_manager_module.manager = AgentManager(simulation=config.IS_SIMULATION)
 
 # ─── Register Blueprints ──────────────────────────────────────────────────────
 app.register_blueprint(cluster_bp)           # /api/activity, /api/stats, /api/health, /api/version, /api/info
@@ -44,6 +50,8 @@ app.register_blueprint(lifecycle_policy_bp)  # /api/policies..., /api/object/buc
 app.register_blueprint(simulation_bp)        # /api/simulation/time
 app.register_blueprint(replication_bp)       # /api/replication/...
 app.register_blueprint(nfs_bp)               # /api/nfs/...
+app.register_blueprint(ai_monitor_bp)        # /api/ai-monitor/...
+app.register_blueprint(agent_bp)             # /api/agent/...
 
 # ─── Post-Quantum Cryptography (PQC) Telemetry ───────────────────────────────
 def probe_pqc_tls(endpoint_url: str = None, timeout: float = 3.0):

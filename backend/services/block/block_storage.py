@@ -12,13 +12,13 @@ import os
 import tempfile
 import json
 import subprocess
-from typing import Dict, List, Any, Tuple, Generator
+from typing import Dict, List, Any, Tuple, Generator, Optional
 from core.logger import logger
 from config.config import RBD_POOL, CMD_TIMEOUT
 from services.cluster.ceph_ops import run_ceph_cmd
 from core.activity import log_activity
 
-def _resolve_pool(pool: str | None) -> str:
+def _resolve_pool(pool: Optional[str]) -> str:
     """Return the requested RBD pool or the configured default."""
     return (pool or RBD_POOL).strip()
 
@@ -154,7 +154,7 @@ def create_rbd_pool(name: str) -> Dict[str, Any]:
 
         return {"error": str(e)}
 
-def list_rbd_images(pool: str | None = None) -> Dict[str, Any]:
+def list_rbd_images(pool: Optional[str] = None):
     pool = _resolve_pool(pool)
 
     try:
@@ -199,8 +199,8 @@ def list_rbd_images(pool: str | None = None) -> Dict[str, Any]:
 def create_rbd_image(
     name: str,
     size_mb: int,
-    pool: str | None = None,
-) -> Dict[str, Any]:
+    pool: Optional[str] = None,
+):
 
     pool = _resolve_pool(pool)
 
@@ -240,7 +240,7 @@ def create_rbd_image(
 
         return {"error": str(e)}
         
-def delete_rbd_image(name: str, pool: str | None = None) -> Dict[str, Any]:
+def delete_rbd_image(name: str, pool: Optional[str] = None):
     """
     Delete an RBD image
 
@@ -271,7 +271,7 @@ def delete_rbd_image(name: str, pool: str | None = None) -> Dict[str, Any]:
         log_activity("DELETE IMAGE", f"{pool}/{name}", "error", str(e))
         return {"error": str(e)}
 
-def map_rbd_image(name: str, pool: str | None = None) -> Dict[str, Any]:
+def map_rbd_image(name: str, pool: Optional[str] = None):
     """
     Map an RBD image to a device
 
@@ -297,33 +297,316 @@ def map_rbd_image(name: str, pool: str | None = None) -> Dict[str, Any]:
         log_activity("MAP IMAGE", f"{pool}/{name}", "error", str(e))
         return {"error": str(e)}
 
-def unmap_rbd_image(device: str, pool: str | None = None, name: str | None = None) -> Dict[str, Any]:
+def unmap_rbd_image(
+    name: str,
+    pool: Optional[str] = None
+) -> Dict[str, Any]:
     """
-    Unmap an RBD device
+    Unmount and unmap all RBD mappings for an image.
+
+    Workflow:
+        1. Resolve pool.
+        2. Find all mapped devices for pool/image.
+        3. Check whether each device is mounted.
+        4. If mounted, check whether the mount is busy.
+        5. If safe, unmount the filesystem.
+        6. Unmap the RBD device.
+
+    The agent is not involved in this operation. The backend
+    discovers the current RBD mapping independently.
 
     Args:
-        device: Mapped device path, e.g. /dev/rbd0
-        pool: Pool name
-        name: Image name
+        name: RBD image name.
+        pool: RBD pool name.
+
+    Returns:
+        Dictionary describing the unmount/unmap operation.
     """
+
     pool = _resolve_pool(pool)
+
+    if not name or not name.strip():
+        return {"error": "RBD image name is required"}
+
+    name = name.strip()
+
     try:
+        # ---------------------------------------------------------
+        # 1. Discover all currently mapped RBD devices
+        # ---------------------------------------------------------
         stdout, stderr, code = run_ceph_cmd(
-            f"sudo -n /usr/bin/rbd unmap {device}"
+            "sudo -n /usr/bin/rbd showmapped --format json"
         )
 
         if code != 0:
-            log_activity("UNMAP IMAGE", f"{pool}/{name}", "error", stderr)
-            return {"error": stderr}
+            error = stderr.strip() or "Unable to determine mapped RBD devices"
 
-        log_activity("UNMAP IMAGE", f"{pool}/{name}", "success")
-        return {"message": f"'{device}' unmapped"}
+            log_activity(
+                "UNMAP IMAGE",
+                f"{pool}/{name}",
+                "error",
+                error
+            )
+
+            return {"error": error}
+
+        if not stdout.strip():
+            return {
+                "error": (
+                    f"RBD image '{pool}/{name}' "
+                    "is not currently mapped"
+                )
+            }
+
+        # ---------------------------------------------------------
+        # 2. Parse rbd showmapped JSON
+        #
+        # Ceph versions can return the mappings as either:
+        #   { "0": {...}, "1": {...} }
+        #
+        # or:
+        #   [{...}, {...}]
+        # ---------------------------------------------------------
+        try:
+            mapped_data = json.loads(stdout)
+        except json.JSONDecodeError as e:
+            logger.exception("Failed to parse rbd showmapped JSON")
+
+            return {
+                "error": f"Invalid rbd showmapped JSON: {str(e)}"
+            }
+
+        if isinstance(mapped_data, dict):
+            mappings = list(mapped_data.values())
+        elif isinstance(mapped_data, list):
+            mappings = mapped_data
+        else:
+            mappings = []
+
+        # ---------------------------------------------------------
+        # 3. Find mappings belonging to this exact pool/image
+        # ---------------------------------------------------------
+        matching_mappings = []
+
+        for mapping in mappings:
+            if not isinstance(mapping, dict):
+                continue
+
+            mapping_pool = str(mapping.get("pool", "")).strip()
+            mapping_name = str(
+                mapping.get("name", mapping.get("image", ""))
+            ).strip()
+
+            if (
+                mapping_pool == pool
+                and mapping_name == name
+            ):
+                matching_mappings.append(mapping)
+
+        if not matching_mappings:
+            return {
+                "error": (
+                    f"RBD image '{pool}/{name}' "
+                    "is not currently mapped"
+                )
+            }
+
+        # ---------------------------------------------------------
+        # 4. Resolve devices
+        # ---------------------------------------------------------
+        devices = []
+
+        for mapping in matching_mappings:
+            device = str(mapping.get("device", "")).strip()
+
+            if device:
+                devices.append(device)
+
+        if not devices:
+            return {
+                "error": (
+                    f"RBD image '{pool}/{name}' has mappings, "
+                    "but no device paths were reported"
+                )
+            }
+
+        # Remove duplicates while preserving order.
+        devices = list(dict.fromkeys(devices))
+
+        # ---------------------------------------------------------
+        # 5. Find mountpoints BEFORE changing anything
+        #
+        # We do this for all devices first so that we don't
+        # partially unmount/unmap the image.
+        # ---------------------------------------------------------
+        mounted_devices = []
+
+        for device in devices:
+            mount_stdout, mount_stderr, mount_code = run_ceph_cmd(
+                f"findmnt -n -o TARGET --source {device}"
+            )
+
+            mountpoint = mount_stdout.strip()
+
+            if mount_code == 0 and mountpoint:
+                mounted_devices.append({
+                    "device": device,
+                    "mountpoint": mountpoint
+                })
+
+        # ---------------------------------------------------------
+        # 6. Check whether mounted filesystems are busy
+        # ---------------------------------------------------------
+        busy_mounts = []
+
+        for mounted in mounted_devices:
+            device = mounted["device"]
+            mountpoint = mounted["mountpoint"]
+
+            busy_stdout, busy_stderr, busy_code = run_ceph_cmd(
+                f"sudo -n /usr/bin/fuser -m {mountpoint}"
+            )
+
+            # fuser:
+            #   0 = one or more processes are using it
+            #   non-zero = no processes found / command issue
+            if busy_code == 0 and busy_stdout.strip():
+                busy_mounts.append({
+                    "device": device,
+                    "mountpoint": mountpoint,
+                    "processes": busy_stdout.strip()
+                })
+
+        # ---------------------------------------------------------
+        # 7. Never force-unmount a busy filesystem
+        # ---------------------------------------------------------
+        if busy_mounts:
+            log_activity(
+                "UNMAP IMAGE",
+                f"{pool}/{name}",
+                "error",
+                "Filesystem is busy"
+            )
+
+            return {
+                "error": (
+                    f"Cannot unmap '{pool}/{name}' because "
+                    "the filesystem is currently in use"
+                ),
+                "busy": busy_mounts,
+                "devices": devices
+            }
+
+        # ---------------------------------------------------------
+        # 8. Automatically unmount safe mountpoints
+        # ---------------------------------------------------------
+        unmounted = []
+
+        for mounted in mounted_devices:
+            device = mounted["device"]
+            mountpoint = mounted["mountpoint"]
+
+            stdout_umount, stderr_umount, code_umount = run_ceph_cmd(
+                f"sudo -n /usr/bin/umount {mountpoint}"
+            )
+
+            if code_umount != 0:
+                error = (
+                    stderr_umount.strip()
+                    or f"Failed to unmount {mountpoint}"
+                )
+
+                log_activity(
+                    "UNMAP IMAGE",
+                    f"{pool}/{name}",
+                    "error",
+                    error
+                )
+
+                return {
+                    "error": error,
+                    "device": device,
+                    "mountpoint": mountpoint,
+                    "unmounted": unmounted
+                }
+
+            unmounted.append({
+                "device": device,
+                "mountpoint": mountpoint
+            })
+
+        # ---------------------------------------------------------
+        # 9. Unmap every matching RBD device
+        # ---------------------------------------------------------
+        unmapped = []
+
+        for device in devices:
+            stdout_unmap, stderr_unmap, code_unmap = run_ceph_cmd(
+                f"sudo -n /usr/bin/rbd unmap {device}"
+            )
+
+            if code_unmap != 0:
+                error = (
+                    stderr_unmap.strip()
+                    or f"Failed to unmap {device}"
+                )
+
+                log_activity(
+                    "UNMAP IMAGE",
+                    f"{pool}/{name}",
+                    "error",
+                    error
+                )
+
+                return {
+                    "error": error,
+                    "device": device,
+                    "unmounted": unmounted,
+                    "unmapped": unmapped
+                }
+
+            unmapped.append(device)
+
+        # ---------------------------------------------------------
+        # 10. Success
+        # ---------------------------------------------------------
+        log_activity(
+            "UNMAP IMAGE",
+            f"{pool}/{name}",
+            "success",
+            (
+                f"Unmounted {len(unmounted)} mount(s), "
+                f"unmapped {len(unmapped)} device(s)"
+            )
+        )
+
+        return {
+            "message": (
+                f"RBD image '{pool}/{name}' "
+                "unmounted and unmapped successfully"
+            ),
+            "pool": pool,
+            "image": name,
+            "unmounted": unmounted,
+            "unmapped": unmapped
+        }
 
     except Exception as e:
-        logger.exception(f"unmap_rbd_image error for {pool}/{name}")
-        log_activity("UNMAP IMAGE", f"{pool}/{name}", "error", str(e))
-        return {"error": str(e)}
-        
+        logger.exception(
+            f"unmap_rbd_image error for {pool}/{name}"
+        )
+
+        log_activity(
+            "UNMAP IMAGE",
+            f"{pool}/{name}",
+            "error",
+            str(e)
+        )
+
+        return {
+            "error": str(e)
+        }       
+
 def list_mapped_images() -> Dict[str, Any]:
     """
     List all mapped RBD images

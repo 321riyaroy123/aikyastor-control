@@ -32,6 +32,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.so
+.Python
 *.egg-info/
 .eggs/
 dist/
@@ -47,6 +48,7 @@ env/
 ENV/
 env.bak/
 venv.bak/
+ceph-ai-venv311/
 
 # Testing / coverage
 .coverage
@@ -56,6 +58,10 @@ htmlcov/
 .pytest_cache/
 nosetests.xml
 coverage.xml
+
+# Database (too large, auto-created fresh on first run)
+*.db
+ceph_monitor.db
 
 # Editor or OS files
 .vscode/

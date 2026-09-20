@@ -58,11 +58,5 @@
             "enabled": false,
             "type": "AES256"
         }
-    },
-    "meow": {
-        "encryption": {
-            "enabled": true,
-            "type": "AES256"
-        }
     }
 }
