@@ -19,6 +19,24 @@ export const ReplicationAPI = {
         return data;
     },
 
+    // Non-throwing variant for read-only summaries (e.g. Bucket Settings).
+    // Returns a normalized object instead of throwing, so a down secondary
+    // renders as "unavailable" rather than an error toast.
+    async getStatusSafe() {
+        try {
+            const response = await fetch(`${API_BASE}/status`);
+            const data = await response.json().catch(() => ({}));
+            return { httpOk: response.ok, ...data };
+        } catch (err) {
+            return {
+                httpOk: false,
+                enabled: false,
+                reachable: false,
+                error: err.message || "Replication status unavailable"
+            };
+        }
+    },
+
     async getBuckets() {
         const response = await fetch(
             `${API_BASE}/buckets`

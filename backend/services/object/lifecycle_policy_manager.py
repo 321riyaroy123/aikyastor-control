@@ -85,7 +85,9 @@ def get_lifecycle_policy_usage(policy_id):
     buckets = []
 
     for bucket, cfg in settings.items():
-        if cfg["lifecycle"] == policy_id:
+        # Buckets created after encryption tracking was added may only have
+        # an "encryption" key; use .get() so they don't raise KeyError.
+        if cfg.get("lifecycle", "none") == policy_id:
             buckets.append(bucket)
 
     return {

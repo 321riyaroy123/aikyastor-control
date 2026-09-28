@@ -76,6 +76,8 @@ export default function BucketWorkspace({
         settings: (
             <SettingsTab
                 bucket={bucket}
+                objects={objects}
+                toast={toast}
             />
         )
     };

@@ -132,6 +132,57 @@ async function simRequest(rawPath, opts) {
     }
   }
 
+  // ── BUCKET INFO / ENCRYPTION / HASHICORP VAULT (Settings tab) ──────────
+  {
+    const m = matchPath(path, "/object/buckets/:bucket/info");
+    if (m && method === "GET") {
+      const b = SIM.buckets.find(x => x.name === m.bucket);
+      if (!b) return { error: `Bucket '${m.bucket}' not found.` };
+      const enc = (SIM.bucketSettings[m.bucket] || {}).encryption || { enabled: false, type: null };
+      return {
+        bucket: m.bucket,
+        created: b.created,
+        acl: b.acl || "private",
+        versioning: b.versioning || "Disabled",
+        object_locking: !!b.object_locking,
+        object_lock: null,
+        encryption: { enabled: !!enc.enabled, type: enc.enabled ? (enc.type || "AES256") : null },
+        region: "simulation",
+        endpoint: "simulation",
+        secure_endpoint: "simulation",
+      };
+    }
+  }
+
+  {
+    const m = matchPath(path, "/object/buckets/:bucket/encryption");
+    if (m && method === "GET") {
+      const enc = (SIM.bucketSettings[m.bucket] || {}).encryption || { enabled: false, type: null };
+      return { bucket: m.bucket, enabled: !!enc.enabled, type: enc.enabled ? (enc.type || "AES256") : null, configuration: { Rules: [] } };
+    }
+    if (m && method === "PUT") {
+      if (!SIM.bucketSettings[m.bucket]) SIM.bucketSettings[m.bucket] = {};
+      const enabled = !!body.enabled;
+      SIM.bucketSettings[m.bucket].encryption = { enabled, type: enabled ? (body.type || "AES256") : null };
+      logActivity("BUCKET ENCRYPTION", m.bucket, "success", enabled ? "Enabled SSE-S3 (AES256)" : "Server-side encryption disabled");
+      return { message: `Encryption ${enabled ? "enabled" : "disabled"} for '${m.bucket}'.`, bucket: m.bucket, enabled, type: enabled ? (body.type || "AES256") : null };
+    }
+    if (m && method === "DELETE") {
+      if (!SIM.bucketSettings[m.bucket]) SIM.bucketSettings[m.bucket] = {};
+      SIM.bucketSettings[m.bucket].encryption = { enabled: false, type: null };
+      logActivity("BUCKET ENCRYPTION", m.bucket, "success", "Server-side encryption disabled");
+      return { message: `Server-side encryption disabled for '${m.bucket}'.`, bucket: m.bucket, enabled: false, type: null };
+    }
+  }
+
+  if (path === "/vault/hashicorp/status" && method === "GET") {
+    return {
+      health: { reachable: true, initialized: true, sealed: false, standby: false, version: "2.0.4" },
+      transit: { mounted: true },
+      token: { valid: true, policies: ["default", "aikyastor-rgw"], ttl_seconds: 3600, renewable: true },
+    };
+  }
+
   if (path === "/policies" && method === "GET") return { policies: SIM.policies };
 
   if (path === "/policies" && method === "POST") {
@@ -180,6 +231,11 @@ async function simRequest(rawPath, opts) {
       SIM.bucketSettings[m.bucket].lifecycle = body.lifecycle;
       const lifecycle = SIM.policies.find(p => p.id === body.lifecycle) || null;
       return { message: "Lifecycle updated successfully", bucket: m.bucket, lifecycle };
+    }
+    if (m && method === "DELETE") {
+      if (!SIM.bucketSettings[m.bucket]) SIM.bucketSettings[m.bucket] = {};
+      SIM.bucketSettings[m.bucket].lifecycle = "none";
+      return { message: `Lifecycle policy removed from '${m.bucket}'.`, bucket: m.bucket, lifecycle: SIM.policies.find(p => p.id === "none") || null };
     }
   }
 

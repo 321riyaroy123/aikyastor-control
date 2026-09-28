@@ -5,14 +5,14 @@ import PolicyValidator from "./policy/PolicyValidator.jsx";
 import useBucketPolicy from "../../../../hooks/useBucketPolicy.js";
 import { C, styles } from "../../../../styles/theme.js";
 
-export default function BucketPolicyTab({ bucket, toast }) {
+export default function BucketPolicyTab({ bucket, toast, onPolicyChanged }) {
     const {
         loading,
         saving,
         selectedTemplate,
         policyDraft,
-        applyPolicy,
-        deletePolicy,
+        applyPolicy: applyPolicyRaw,
+        deletePolicy: deletePolicyRaw,
         applyTemplate,
 
         addStatement,
@@ -21,6 +21,20 @@ export default function BucketPolicyTab({ bucket, toast }) {
         duplicateStatement,
         toggleStatement,
     } = useBucketPolicy(bucket, toast);
+
+    // Notify the parent after a write so status displays can re-read RGW.
+    // The hook swallows errors into toasts and doesn't say whether it
+    // succeeded, so this fires after every attempt. Callers only refresh
+    // (idempotent), so an extra refresh after a failed attempt is harmless.
+    const applyPolicy = async () => {
+        await applyPolicyRaw();
+        onPolicyChanged?.();
+    };
+
+    const deletePolicy = async () => {
+        await deletePolicyRaw();
+        onPolicyChanged?.();
+    };
 
     const hasPolicy =
         (policyDraft?.statements?.length ?? 0) > 0;

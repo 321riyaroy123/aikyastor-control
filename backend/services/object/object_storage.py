@@ -65,15 +65,101 @@ def get_s3_client(secure: bool = False) -> boto3.client:
         verify=not secure,  # self-signed cert in dev; skip verification on HTTPS
     )
 
+def get_bucket_info(bucket: str) -> Dict[str, Any]:
+    """
+    Read-only metadata for a single bucket, assembled from the same
+    RGW sources list_buckets() uses, so the Settings > General tab
+    doesn't have to re-fetch and filter the entire bucket list.
+
+    Only reports values that are actually derivable from RGW/config.
+    Deliberately does NOT report owner (never applied to RGW by
+    create_bucket) or quota (not implemented).
+    """
+    try:
+        s3 = get_s3_client()
+
+        created = None
+        for b in s3.list_buckets().get("Buckets", []):
+            if b["Name"] == bucket:
+                created = str(b["CreationDate"])
+                break
+
+        if created is None:
+            return {"error": f"Bucket '{bucket}' not found."}
+
+        status = get_bucket_status(s3, bucket)
+        encryption = get_bucket_encryption(bucket)
+
+        if "error" in encryption:
+            encryption_summary = {
+                "enabled": False,
+                "type": None,
+                "error": encryption["error"],
+            }
+        else:
+            encryption_summary = {
+                "enabled": encryption["enabled"],
+                "type": encryption["type"],
+            }
+
+        return {
+            "bucket": bucket,
+            "created": created,
+            **status,
+            "encryption": encryption_summary,
+            "region": CEPH_REGION,
+            "endpoint": _endpoint_display(CEPH_RGW_ENDPOINT),
+            "secure_endpoint": _endpoint_display(CEPH_RGW_ENDPOINT_SECURE),
+        }
+
+    except ClientError as e:
+        logger.exception(f"get_bucket_info error for '{bucket}'")
+        return {"error": e.response["Error"]["Message"]}
+
+    except Exception as e:
+        logger.exception(f"Unexpected error in get_bucket_info for '{bucket}'")
+        return {"error": str(e)}
+
+
+def _endpoint_display(url: str) -> str:
+    """
+    Reduce an endpoint URL to scheme://host:port, dropping any
+    userinfo/path/query so credentials embedded in a URL (which some
+    deployments do) can never leak through the info endpoint.
+    """
+    from urllib.parse import urlparse
+
+    if not url:
+        return ""
+
+    parsed = urlparse(url)
+    host = parsed.hostname or ""
+    if parsed.port:
+        host = f"{host}:{parsed.port}"
+
+    return f"{parsed.scheme}://{host}" if parsed.scheme else host
+
 def list_buckets() -> Dict[str, Any]:
     try:
         s3 = get_s3_client()
         resp = s3.list_buckets()
         buckets = []
+        
         for b in resp.get("Buckets", []):
             bucket_name = b["Name"]
-            status = get_bucket_status(s3, bucket_name)
-
+            try:
+                status = get_bucket_status(s3, bucket_name)
+            except Exception as e:
+                logger.warning(
+                    f"Unable to read status for bucket '{bucket_name}': {e}"
+                )
+                status = {
+                    "acl": None,
+                    "versioning": None,
+                    "object_locking": False,
+                    "object_lock": None,
+                    "status_error": str(e),
+                }
             # Fold in encryption status so the bucket list/dashboard can
             # show it without a second per-bucket request. Uses the
             # already-existing get_bucket_encryption(), which queries

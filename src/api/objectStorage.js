@@ -3,7 +3,7 @@ import { req, BASE } from "./client";
 export const ObjectAPI = {
   buckets: () => req("/object/buckets"),
   users: () => req("/object/users"),
-
+  getBucketInfo: (bucket) => req(`/object/buckets/${bucket}/info`),
   createBucket: (payload) => req("/object/buckets", {
     method: "POST",
     body: JSON.stringify(payload),

@@ -190,6 +190,72 @@ export const styles = {
   policyMessageWarning: { background: "rgba(251,191,36,.08)", color: C.yellow, borderColor: "rgba(251,191,36,.25)" },
   policyMessageInfo: { background: "rgba(56,189,248,.08)", color: C.blue, borderColor: "rgba(56,189,248,.25)" },
 
+  // Settings shell v2 (section cards, info rows, status pills)
+  settingsNavGroupLabel: { padding: ".55rem .8rem .25rem", fontFamily: "'Space Mono',monospace", fontSize: ".64rem", fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: ".08em", opacity: .8 },
+  settingsNavItemActive: { background: "rgba(249,115,22,.12)", color: C.accent },
+  settingsNavItemDanger: { color: C.red },
+  settingsNavBadge: { marginLeft: "auto", width: 7, height: 7, borderRadius: "50%", flexShrink: 0 },
+
+  settingsSectionStack: { display: "flex", flexDirection: "column", gap: "1rem" },
+  settingsSection: { background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, overflow: "hidden" },
+  settingsSectionDanger: { borderColor: "rgba(248,113,113,.3)" },
+  settingsSectionHead: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "1rem", padding: ".9rem 1.1rem", borderBottom: `1px solid ${C.border}` },
+  settingsSectionTitle: { fontFamily: "'Space Mono',monospace", fontSize: ".78rem", fontWeight: 700, color: C.text, textTransform: "uppercase", letterSpacing: ".04em" },
+  settingsSectionDesc: { marginTop: ".25rem", fontSize: ".78rem", color: C.muted, lineHeight: 1.45 },
+  settingsSectionHeadRight: { display: "flex", alignItems: "center", gap: ".5rem", flexShrink: 0 },
+  settingsSectionBody: { padding: "1rem 1.1rem" },
+  settingsSectionFoot: { display: "flex", justifyContent: "flex-end", alignItems: "center", gap: ".6rem", padding: ".75rem 1.1rem", borderTop: `1px solid ${C.border}`, background: "rgba(255,255,255,.015)" },
+
+  settingsPill: { display: "inline-flex", alignItems: "center", gap: ".35rem", padding: ".2rem .6rem", borderRadius: 999, fontFamily: "'Space Mono',monospace", fontSize: ".66rem", fontWeight: 700, letterSpacing: ".04em", border: "1px solid transparent", whiteSpace: "nowrap" },
+  settingsPillOk: { background: "rgba(74,222,128,.12)", color: C.green, borderColor: "rgba(74,222,128,.3)" },
+  settingsPillWarn: { background: "rgba(251,191,36,.12)", color: C.yellow, borderColor: "rgba(251,191,36,.3)" },
+  settingsPillBad: { background: "rgba(248,113,113,.12)", color: C.red, borderColor: "rgba(248,113,113,.3)" },
+  settingsPillInfo: { background: "rgba(56,189,248,.12)", color: C.blue, borderColor: "rgba(56,189,248,.3)" },
+  settingsPillMuted: { background: "rgba(100,116,139,.12)", color: C.muted, borderColor: C.border },
+
+  settingsInfoGrid: { display: "grid", gridTemplateColumns: "180px 1fr", rowGap: 0 },
+  settingsInfoLabel: { padding: ".6rem 0", fontSize: ".78rem", color: C.muted, borderBottom: `1px solid rgba(255,255,255,.04)` },
+  settingsInfoValue: { padding: ".6rem 0", fontSize: ".84rem", color: C.text, borderBottom: `1px solid rgba(255,255,255,.04)`, overflowWrap: "anywhere", display: "flex", alignItems: "center", gap: ".6rem", flexWrap: "wrap" },
+  settingsInfoMono: { fontFamily: "'Space Mono',monospace", fontSize: ".8rem" },
+  settingsInfoNote: { fontSize: ".72rem", color: C.muted, fontStyle: "italic" },
+
+  settingsUnavailable: { display: "flex", flexDirection: "column", gap: ".4rem", padding: "1rem 1.1rem", background: C.surface, border: `1px dashed ${C.border}`, borderRadius: 8 },
+  settingsUnavailableHead: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem" },
+  settingsUnavailableText: { fontSize: ".8rem", color: C.muted, lineHeight: 1.5 },
+
+  settingsInlineError: { display: "flex", alignItems: "flex-start", gap: ".55rem", padding: ".65rem .85rem", background: "rgba(248,113,113,.08)", border: `1px solid rgba(248,113,113,.25)`, borderRadius: 6, color: C.red, fontSize: ".8rem", lineHeight: 1.45 },
+  settingsInlineNotice: { display: "flex", alignItems: "flex-start", gap: ".55rem", padding: ".65rem .85rem", background: "rgba(56,189,248,.06)", border: `1px solid rgba(56,189,248,.2)`, borderRadius: 6, color: C.muted, fontSize: ".78rem", lineHeight: 1.5 },
+  settingsInlineWarn: { display: "flex", alignItems: "flex-start", gap: ".55rem", padding: ".65rem .85rem", background: "rgba(251,191,36,.07)", border: `1px solid rgba(251,191,36,.25)`, borderRadius: 6, color: C.yellow, fontSize: ".78rem", lineHeight: 1.5 },
+  settingsLoadingRow: { padding: "1.25rem 1.1rem", color: C.muted, fontSize: ".82rem", fontStyle: "italic" },
+  settingsHeaderRow: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "1rem", marginBottom: "1.25rem", flexWrap: "wrap" },
+  settingsRefreshBtn: { display: "inline-flex", alignItems: "center", gap: ".4rem", padding: ".4rem .75rem", minHeight: 32, borderRadius: 5, border: `1px solid ${C.border}`, background: "transparent", color: C.muted, cursor: "pointer", fontFamily: "inherit", fontSize: ".76rem", fontWeight: 500, transition: "all .15s" },
+
+  // Settings v2: buttons, confirm dialog, banners, stat rows
+  settingsBtn: { display: "inline-flex", alignItems: "center", justifyContent: "center", gap: ".45rem", padding: ".5rem .95rem", minHeight: 34, borderRadius: 5, border: `1px solid ${C.border}`, background: "transparent", color: C.text, cursor: "pointer", fontFamily: "inherit", fontSize: ".8rem", fontWeight: 500, transition: "all .15s" },
+  settingsBtnPrimary: { background: C.accent, color: "#000", borderColor: C.accent },
+  settingsBtnDanger: { color: C.red, borderColor: "rgba(248,113,113,.35)" },
+  settingsBtnDangerSolid: { background: C.red, color: "#000", borderColor: C.red },
+  settingsBtnDisabled: { opacity: .55, cursor: "not-allowed" },
+
+  settingsConfirmOverlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2100, padding: "1rem" },
+  settingsConfirmBox: { width: "100%", maxWidth: 460, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: "1.5rem", display: "flex", flexDirection: "column", gap: ".9rem" },
+  settingsConfirmBoxDanger: { borderColor: "rgba(248,113,113,.4)" },
+  settingsConfirmTitle: { fontFamily: "'Space Mono',monospace", fontSize: ".9rem", fontWeight: 700, color: C.text },
+  settingsConfirmBody: { fontSize: ".84rem", color: C.muted, lineHeight: 1.55 },
+  settingsConfirmActions: { display: "flex", justifyContent: "flex-end", gap: ".6rem", marginTop: ".4rem" },
+
+  settingsBanner: { display: "flex", alignItems: "flex-start", gap: ".75rem", padding: ".85rem 1rem", borderRadius: 8, border: "1px solid transparent" },
+  settingsBannerOk: { background: "rgba(74,222,128,.07)", borderColor: "rgba(74,222,128,.25)" },
+  settingsBannerWarn: { background: "rgba(251,191,36,.07)", borderColor: "rgba(251,191,36,.28)" },
+  settingsBannerBad: { background: "rgba(248,113,113,.08)", borderColor: "rgba(248,113,113,.3)" },
+  settingsBannerNeutral: { background: C.surface, borderColor: C.border },
+  settingsBannerTitle: { fontSize: ".86rem", fontWeight: 600, color: C.text },
+  settingsBannerText: { marginTop: ".2rem", fontSize: ".78rem", color: C.muted, lineHeight: 1.5 },
+  settingsBulletList: { margin: ".4rem 0 0", paddingLeft: "1.1rem", fontSize: ".78rem", color: C.muted, lineHeight: 1.55 },
+
+  settingsFieldLabel: { display: "block", marginBottom: ".4rem", fontFamily: "'Space Mono',monospace", fontSize: ".7rem", fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: ".05em" },
+  settingsSubhead: { margin: "1.1rem 0 .4rem", fontFamily: "'Space Mono',monospace", fontSize: ".68rem", fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: ".06em" },
+
   // ==========================================================================
   // AI Monitor (ceph-ai integration)
   // ==========================================================================

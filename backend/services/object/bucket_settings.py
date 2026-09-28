@@ -53,10 +53,8 @@ def get_bucket_settings(bucket):
 def get_all_bucket_settings():
     return load_settings()
 
-
 def get_bucket_lifecycle(bucket):
-    return get_bucket_settings(bucket)["lifecycle"]
-
+    return get_bucket_settings(bucket).get("lifecycle", "none")
 
 def set_bucket_lifecycle(bucket, lifecycle):
     settings = load_settings()

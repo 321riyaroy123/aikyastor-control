@@ -35,6 +35,7 @@ from services.object.object_storage import (
     assign_bucket_lifecycle,
     get_bucket_encryption,
     set_bucket_encryption,
+    get_bucket_info,
 )
 from services.object.bucket_policy import get_bucket_policy, put_bucket_policy, delete_bucket_policy
 from services.vault.vault_ops import start_bucket_sync_background
@@ -182,6 +183,48 @@ def api_create_bucket():
             "error": str(e)
         }), 500
         
+
+@object_bp.route("/buckets/<bucket>/info", methods=["GET"])
+def api_get_bucket_info(bucket):
+    """
+    Read-only bucket metadata for the Settings > General tab.
+    """
+
+    if config.IS_SIMULATION:
+        match = next(
+            (b for b in simulation.get_mock_buckets() if b.get("name") == bucket),
+            None,
+        )
+
+        if match is None:
+            return jsonify({"error": f"Bucket '{bucket}' not found."}), 404
+
+        return jsonify({
+            "bucket": bucket,
+            "created": match.get("created"),
+            "acl": match.get("acl", "private"),
+            "versioning": match.get("versioning", "Disabled"),
+            "object_locking": match.get("object_locking", False),
+            "object_lock": None,
+            "encryption": match.get("encryption", {"enabled": False, "type": None}),
+            "region": "simulation",
+            "endpoint": "simulation",
+            "secure_endpoint": "simulation",
+        })
+
+    try:
+        result = get_bucket_info(bucket)
+
+        if "error" in result:
+            status = 404 if "not found" in result["error"].lower() else 500
+            return jsonify(result), status
+
+        return jsonify(result), 200
+
+    except Exception as e:
+        logger.exception(f"get_bucket_info route error for {bucket}")
+        return jsonify({"error": str(e)}), 500
+
 @object_bp.route("/buckets/<bucket>/objects", methods=["GET"])
 def api_list_objects(bucket):
     """List objects in a bucket"""
