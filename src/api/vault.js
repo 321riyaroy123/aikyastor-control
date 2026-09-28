@@ -4,7 +4,6 @@ export const VaultAPI = {
   status: () => req("/vault/status"),
 };
 
-import { req } from "./client";
 
 // Read-only HashiCorp Vault (transit / SSE-S3) status. Distinct from
 // /vault/status, which reports on the local backup mount (VAULT_PATH).
