@@ -7,6 +7,7 @@ import CreateImageDialog from "../components/block/CreateImageDialog";
 import SnapshotDialog from "../components/block/SnapshotDialog";
 import SnapshotsDialog from "../components/block/SnapshotsDialog";
 import { C, styles } from "../styles/theme";
+import CephTransportNote from "../components/security/CephTransportNote";
 
 // Extracted/wired from the BlockStorage component in AiKyaStorCONTROL.jsx.
 export default function BlockStoragePage({ toast }) {
@@ -199,6 +200,8 @@ export default function BlockStoragePage({ toast }) {
             <Button variant="secondary" size="sm" onClick={() => setShowCreatePool(true)}>+ New RBD Pool</Button>
             <Button variant="primary" size="sm" onClick={() => setShowCreate(true)}>+ New Image</Button>
       </div>
+
+      <CephTransportNote service="RBD" />
 
       <ImageTable
         images={images}

@@ -3,6 +3,8 @@ import {
     SettingsSection, InfoGrid, InfoRow, StatusPill,
     InlineError, LoadingRow, RefreshButton, InlineNotice, formatBytes
 } from "./primitives.jsx";
+import usePqcStatus from "../../../../../hooks/usePqcStatus";
+import PqcBadge from "../../../../security/PqcBadge";
 
 const ACL_LABELS = {
     "private": { text: "Private", tone: "ok" },
@@ -23,6 +25,9 @@ function formatDate(value) {
 
 export default function GeneralSection({ bucket, objects, bucketInfo }) {
     const { info, loading, refreshing, error, checkedAt, refresh } = bucketInfo;
+
+    // RGW HTTPS key-exchange verdict (cached server-side; shared across buckets).
+    const pqc = usePqcStatus();
 
     // objects is null while the workspace is still loading the list.
     const objectsLoaded = Array.isArray(objects);
@@ -123,6 +128,16 @@ export default function GeneralSection({ bucket, objects, bucketInfo }) {
                             mono
                             note="Used for encrypted buckets"
                         />
+                        <InfoRow
+                            label="HTTPS key exchange"
+                            note={pqc.error || pqc.status?.reason}
+                        >
+                            <PqcBadge
+                                status={pqc.status?.status}
+                                group={pqc.status?.negotiated_group}
+                                simulated={pqc.status?.simulated}
+                            />
+                        </InfoRow>
                     </InfoGrid>
                 )}
             </SettingsSection>

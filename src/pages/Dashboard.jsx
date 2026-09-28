@@ -6,6 +6,7 @@ import OSDUtilization from "../components/dashboard/OSDUtilization";
 import PoolOverview from "../components/dashboard/PoolOverview";
 import AttentionRequired from "../components/dashboard/AttentionRequired";
 import PerformanceCharts from "../components/dashboard/PerformanceCharts";
+import SecurityPosture from "../components/dashboard/SecurityPosture";
 import { useDashboardMetrics } from "../hooks/useDashboardMetrics";
 
 // Extracted from the Dashboard component in AiKyaStorCONTROL.jsx.
@@ -72,6 +73,10 @@ import { useDashboardMetrics } from "../hooks/useDashboardMetrics";
 // the first phase where implementation order and spec order genuinely
 // diverge. Reordering to strict spec order is a one-line JSX move
 // whenever it's wanted; not done silently as part of this phase.
+//
+// SecurityPosture (PQC) sits right after AttentionRequired: it reads the
+// `security` block of the same /api/dashboard response (a cached,
+// non-blocking summary of the RGW PQC key-exchange probe).
 export default function Dashboard({ stats, health, vault, activity, onRefreshActivity }) {
   const dashboardMetrics = useDashboardMetrics(8000);
 
@@ -107,6 +112,10 @@ export default function Dashboard({ stats, health, vault, activity, onRefreshAct
 
       <AttentionRequired
         health={dashboardMetrics.data?.health}
+      />
+
+      <SecurityPosture
+        security={dashboardMetrics.data?.security}
       />
 
       <PerformanceCharts
