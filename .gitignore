@@ -19,6 +19,7 @@ public/build/
 .env.* 
 .env.local
 .env.*.local
+!.env.example
 
 # Logs
 logs/
