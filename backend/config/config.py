@@ -151,3 +151,15 @@ CEPH_AI_ENABLED = os.getenv("CEPH_AI_ENABLED", "false").lower() == "true"
 CEPH_AI_DB_PATH = os.getenv("CEPH_AI_DB_PATH", "/opt/ceph-ai/ceph_monitor.db")
 CEPH_AI_DB_TIMEOUT = float(os.getenv("CEPH_AI_DB_TIMEOUT", "3.0"))
 CEPH_AI_STALE_AFTER_SECONDS = int(os.getenv("CEPH_AI_STALE_AFTER_SECONDS", "30"))
+
+# ─── Post-Quantum Cryptography (PQC) Telemetry ───────────────────────────────
+# Endpoint probed for the negotiated TLS key-exchange group. Defaults to the
+# same HTTPS endpoint boto3 uses for SSE-S3 requests.
+PQC_PROBE_ENDPOINT = os.getenv("PQC_PROBE_ENDPOINT") or CEPH_RGW_ENDPOINT_SECURE
+# openssl binary able to OFFER ML-KEM: OpenSSL >= 3.5, or an older OpenSSL
+# with oqsprovider loaded (point OPENSSL_CONF at a config that activates it).
+# Without one, /api/pqc/status reports "unverified" -- never quantum-safe.
+PQC_OPENSSL_BIN = os.getenv("PQC_OPENSSL_BIN") or "openssl"
+PQC_EXPECTED_GROUP = os.getenv("PQC_EXPECTED_GROUP") or "X25519MLKEM768"
+PQC_PROBE_TIMEOUT = float(os.getenv("PQC_PROBE_TIMEOUT", "5"))
+PQC_CACHE_SECONDS = int(os.getenv("PQC_CACHE_SECONDS", "60"))

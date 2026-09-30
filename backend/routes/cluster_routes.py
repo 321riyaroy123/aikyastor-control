@@ -49,6 +49,10 @@ particular is deliberately not stubbed out since this cluster has no
 Prometheus instance to report on. Simulation mode is intentionally NOT
 implemented for /api/dashboard yet (explicit decision — this endpoint
 501s in simulation mode rather than silently returning fake or empty data).
+
+PQC: /api/dashboard also returns "security" — a compact, cached summary of
+the RGW PQC key-exchange probe (services/security/pqc_probe.py). The full
+detail lives at /api/pqc/status.
 """
 
 from flask import Blueprint, jsonify
@@ -57,6 +61,7 @@ from core.logger import logger
 from core.activity import get_activity_log, get_activity_stats
 from services.cluster.ceph_ops import get_cluster_stats, get_cluster_health, get_ceph_version
 from services.cluster.component_status import get_component_status
+from services.security.pqc_probe import get_transit_status, summarize_for_dashboard
 from services.cluster.metrics_service import (
     get_health_summary,
     get_capacity_summary,
@@ -227,6 +232,15 @@ def dashboard():
         logger.exception("dashboard: get_storage_components error")
         components = {"available": False, "error": str(e)}
 
+    # Non-blocking: returns the cached PQC probe (refreshing it in the
+    # background when expired) so this 8s-polled endpoint never waits on
+    # TLS handshakes. "pending" until the first probe completes.
+    try:
+        security = summarize_for_dashboard(get_transit_status(block=False))
+    except Exception as e:
+        logger.exception("dashboard: pqc security summary error")
+        security = {"available": False, "error": str(e)}
+
     return jsonify({
         "health": health,
         "capacity": capacity,
@@ -238,6 +252,7 @@ def dashboard():
         "io_history": io_history,
         "components": components,
         "version": version,
+        "security": security,
     })
 
 @cluster_bp.route("/components", methods=["GET"])

@@ -5,6 +5,7 @@ import FileExplorer from "../components/file/FileExplorer";
 import VaultPopup from "../components/vault/VaultPopup";
 import NFSManager from "../components/nfs/NFSManager";
 import CephFSManager from "../components/file/CephFSManager";
+import CephTransportNote from "../components/security/CephTransportNote";
 
 // File storage page combining CephFS file operations with the NFS
 // manager used to expose RGW buckets through Ceph NFS.
@@ -117,6 +118,8 @@ export default function FileStoragePage({ toast }) {
           onClose={() => setVaultPopup(null)}
         />
       )}
+
+      <CephTransportNote service="CephFS" style={{ margin: "0 0 1rem" }} />
 
       <div style={styles.bucketPanel}>
         <div style={styles.bucketTabs}>

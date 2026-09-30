@@ -3,6 +3,8 @@ import { Lock, LockOpen } from "lucide-react";
 import { C, styles } from "../../../../../styles/theme.js";
 import useBucketEncryption from "./useBucketEncryption.js";
 import useVaultStatus from "./useVaultStatus.js";
+import usePqcStatus from "../../../../../hooks/usePqcStatus";
+import PqcBadge from "../../../../security/PqcBadge";
 import ConfirmDialog from "./ConfirmDialog.jsx";
 import {
     SettingsSection, InfoGrid, InfoRow, StatusPill, SettingsButton,
@@ -123,6 +125,8 @@ function VaultCard({ vault }) {
 export default function EncryptionSection({ bucket, toast, onEncryptionChanged }) {
     const enc = useBucketEncryption(bucket.name, { onChanged: onEncryptionChanged });
     const vault = useVaultStatus();
+    const pqc = usePqcStatus();
+    const sseConnection = pqc.status?.connections?.find(c => c.id === "backend_rgw_sse");
 
     const [confirmDisable, setConfirmDisable] = useState(false);
 
@@ -237,6 +241,17 @@ export default function EncryptionSection({ bucket, toast, onEncryptionChanged }
                                 label="Key management"
                                 value="HashiCorp Vault (transit)"
                             />
+
+                            <InfoRow
+                                label="In transit (RGW HTTPS)"
+                                note={pqc.error || sseConnection?.note}
+                            >
+                                <PqcBadge
+                                    status={pqc.status?.status}
+                                    group={pqc.status?.negotiated_group}
+                                    simulated={pqc.status?.simulated}
+                                />
+                            </InfoRow>
                         </InfoGrid>
 
                         <div style={{ marginTop: ".9rem", display: "flex", flexDirection: "column", gap: ".6rem" }}>

@@ -56,6 +56,58 @@ async function simRequest(rawPath, opts) {
   if (path === "/health" && method === "GET") return SIM.health;
   if (path === "/activity" && method === "GET") return { log: SIM.activity };
 
+  // ── PQC (mirrors backend routes/pqc_routes.py simulation payloads) ──────
+  if (path === "/pqc/status" && method === "GET") {
+    const group = "X25519MLKEM768";
+    const hs = (offered) => ({
+      outcome: "established", protocol: "TLSv1.3", cipher_suite: "TLS_AES_256_GCM_SHA384",
+      group, group_family: "ml-kem", groups_offered: offered, elapsed_ms: 14,
+    });
+    return {
+      status: "pqc_verified",
+      reason: `Simulation: RGW negotiated ${group}.`,
+      pqc_verified: true,
+      expected_group: group,
+      negotiated_group: group,
+      negotiated_group_family: "ml-kem",
+      endpoint: "https://simulation:443",
+      rgw_tls: { reachable: true, tls_version: "TLSv1.3", cipher_suite: "TLS_AES_256_GCM_SHA384", cipher_bits: 256, connect_and_handshake_ms: 12.5, cert_verified: false, error: null },
+      handshakes: { pqc_only: hs([group]), preferred: hs([group, "X25519", "secp256r1", "secp384r1"]) },
+      probe_client: { binary: "openssl", version: "simulation", error: null },
+      backend_client: { python_version: "simulation", openssl_version: "simulation", can_offer_mlkem: false, group_detectable: false, negotiated_group: null },
+      connections: [
+        { id: "backend_rgw_default", label: "Backend → RGW (S3 operations)", endpoint: "http://simulation:80", transport: "plaintext", cert_verified: null, pqc: false, note: "Simulation" },
+        { id: "backend_rgw_sse", label: "Backend → RGW (SSE-S3 requests)", endpoint: "https://simulation:443", transport: "tls", cert_verified: false, pqc: false, note: "Simulation" },
+        { id: "backend_vault", label: "Backend → HashiCorp Vault (KMS)", endpoint: "http://simulation:8200", transport: "plaintext", cert_verified: null, pqc: false, note: "Simulation" },
+      ],
+      checked_at: Date.now() / 1000,
+      cached: false,
+      simulated: true,
+    };
+  }
+  if (path === "/pqc/messenger" && method === "GET") {
+    return { available: true, modes: { ms_cluster_mode: "crc secure", ms_service_mode: "crc secure", ms_client_mode: "crc secure" }, all_secure: false, tls_pqc_applicable: false, error: null, simulated: true };
+  }
+  if (path === "/pqc/posture" && method === "GET") {
+    const encrypted = SIM.buckets.filter(b => (SIM.bucketSettings[b.name] || {}).encryption?.enabled);
+    return {
+      simulated: true,
+      checked_at: Date.now() / 1000,
+      object: {
+        available: true,
+        total_buckets: SIM.buckets.length,
+        encrypted_buckets: encrypted.length,
+        unencrypted_buckets: SIM.buckets.filter(b => !encrypted.includes(b)).map(b => b.name),
+        algorithms: encrypted.length ? ["AES256"] : [],
+        buckets: [],
+      },
+      vault: { health: { reachable: true, initialized: true, sealed: false, standby: false, version: "simulation" }, transit: { mounted: true }, token: { valid: true } },
+      messenger: { available: true, modes: { ms_cluster_mode: "crc secure", ms_service_mode: "crc secure", ms_client_mode: "crc secure" }, all_secure: false, tls_pqc_applicable: false, error: null },
+      block: { encrypted_by_aikyastor: false, osd_dmcrypt: null },
+      file: { encrypted_by_aikyastor: false, osd_dmcrypt: null },
+    };
+  }
+
   // ── VAULT ────────────────────────────────────────────────────────────────
   if (path === "/vault/status" && method === "GET") return SIM.vault;
 

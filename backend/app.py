@@ -26,6 +26,7 @@ from routes.nfs_routes import nfs_bp
 from routes.ai_monitor_routes import ai_monitor_bp
 from services.agent.agent_manager import AgentManager
 from routes.agent_routes import agent_bp
+from routes.pqc_routes import pqc_bp
 import services.agent.agent_manager as agent_manager_module
 
 # ─── Initialize Flask App ─────────────────────────────────────────────────────
@@ -48,6 +49,7 @@ app.register_blueprint(replication_bp)  # /api/replication/...
 app.register_blueprint(nfs_bp)
 app.register_blueprint(ai_monitor_bp)  # /api/ai-monitor/...
 app.register_blueprint(agent_bp)
+app.register_blueprint(pqc_bp)          # /api/pqc/status, /api/pqc/posture
 
 # ═════════════════════════════════════════════════════════════════════════════
 # FRONTEND SERVING

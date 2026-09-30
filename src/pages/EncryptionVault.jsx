@@ -4,11 +4,16 @@ import StatusBadge from "../components/common/StatusBadge";
 import { Th, TableWrap } from "../components/common/Table";
 import { C, styles } from "../styles/theme";
 import { EncryptionVaultAPI } from "../api/encryptionVault";
+import PqcPanel from "../components/security/PqcPanel";
 
 // Read-only Encryption Vault page for the HashiCorp Vault transit
 // backend used by Ceph RGW SSE-S3. Bucket-level encryption settings live
 // in the object-storage workspace; this page only shows cluster-wide
 // Vault health, transit status, and dashboard-token metadata.
+//
+// Below the Vault checks, PqcPanel reports post-quantum key-exchange
+// verification for RGW HTTPS plus at-rest / msgr2 posture. It has its own
+// data source (/api/pqc/*) and never alters the Vault status above.
 export default function EncryptionVaultPage({ toast }) {
     const [statusData, setStatusData] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -199,6 +204,10 @@ export default function EncryptionVaultPage({ toast }) {
                 tokens, or keys. To enable or disable encryption on a specific bucket, use that bucket's{" "}
                 <strong style={{ color: C.text }}>Settings → Encryption</strong> tab.
             </p>
+
+            <div style={{ height: 1, background: C.border, margin: "2rem 0 1.5rem" }} />
+
+            <PqcPanel />
         </div>
     );
 }
